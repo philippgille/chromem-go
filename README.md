@@ -97,3 +97,8 @@ Initially, only a minimal subset of all of Chroma's interface is implemented or 
 ## Usage
 
 For a full, working example, using the vector database for retrieval augmented generation (RAG), see [example/main.go](example/main.go)
+
+## Inspirations
+
+- Shoutout to [@eliben](https://github.com/eliben) whose [blog post](https://eli.thegreenplace.net/2023/retrieval-augmented-generation-in-go/) and [example code](https://github.com/eliben/code-for-blog/tree/eda87b87dad9ed8bd45d1c8d6395efba3741ed39/2023/go-rag-openai) inspired me to start this project!
+- [Chroma](https://github.com/chroma-core/chroma): Looking at Pinecone, Milvus, Qdrant, Weaviate and others, Chroma stood out by showing its core API in 4 commands on their README and on the landing page of their website. It was also one of the few ones with an in-memory mode (for Python).
