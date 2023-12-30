@@ -35,7 +35,7 @@ func NewClient() *Client {
 //     Uses the default embedding function if not provided.
 func (c *Client) CreateCollection(name string, metadata map[string]string, embeddingFunc EmbeddingFunc) *Collection {
 	if embeddingFunc == nil {
-		embeddingFunc = createEmbeddings
+		embeddingFunc = CreateEmbeddingsDefault()
 	}
 	collection := newCollection(name, metadata, embeddingFunc)
 
