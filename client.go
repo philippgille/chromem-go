@@ -8,8 +8,6 @@ import (
 type EmbeddingFunc func(ctx context.Context, document string) ([]float32, error)
 
 type Client struct {
-	embed EmbeddingFunc
-
 	collections     map[string]*Collection
 	collectionsLock sync.RWMutex
 }
