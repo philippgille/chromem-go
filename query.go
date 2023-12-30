@@ -10,19 +10,30 @@ import (
 
 var supportedFilters = []string{"$contains", "$not_contains"}
 
+// Result represents a single result from a query.
 type Result struct {
 	ID        string
 	Embedding []float32
 	Metadata  map[string]string
 	Document  string
 
+	// The cosine similarity between the query and the document.
+	// The higher the value, the more similar the document is to the query.
+	// The value is in the range [-1, 1].
 	Similarity float32
 }
 
+// Performs a nearest neighbors query on a collection specified by UUID.
+//
+//   - queryText: The text to search for.
+//   - nResults: The number of results to return. Must be > 0.
+//   - where: Conditional filtering on metadata. Optional.
+//   - whereDocument: Conditional filtering on documents. Optional.
 func (c *Collection) Query(ctx context.Context, queryText string, nResults int, where, whereDocument map[string]string) ([]Result, error) {
 	if nResults == 0 {
 		return nil, errors.New("nResults must be > 0")
 	}
+
 	// Validate whereDocument operators
 	for k := range whereDocument {
 		if !slices.Contains(supportedFilters, k) {

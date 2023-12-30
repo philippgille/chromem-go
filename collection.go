@@ -6,6 +6,9 @@ import (
 	"sync"
 )
 
+// Collection represents a collection of documents.
+// It also has a configured embedding function, which is used when adding documents
+// that don't have embeddings yet.
 type Collection struct {
 	Name     string
 	Metadata map[string]string
