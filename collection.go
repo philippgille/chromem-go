@@ -57,8 +57,6 @@ func (c *Collection) Add(ctx context.Context, ids []string, embeddings [][]float
 	var embedding []float32
 	var metadata map[string]string
 	var err error
-	c.documentsLock.Lock()
-	defer c.documentsLock.Unlock()
 	for i, document := range documents {
 		if len(embeddings) != 0 {
 			embedding = embeddings[i]
@@ -66,7 +64,10 @@ func (c *Collection) Add(ctx context.Context, ids []string, embeddings [][]float
 		if len(metadatas) != 0 {
 			metadata = metadatas[i]
 		}
+		c.documentsLock.Lock()
+		// We don't defer the unlock because we want to unlock much earlier
 		c.documents[ids[i]], err = newDocument(ctx, ids[i], embedding, metadata, document, c.embed)
+		c.documentsLock.Unlock()
 		if err != nil {
 			return err
 		}
