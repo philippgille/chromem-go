@@ -20,6 +20,9 @@ type Result struct {
 }
 
 func (c *Collection) Query(ctx context.Context, queryText string, nResults int, where, whereDocument map[string]string) ([]Result, error) {
+	if nResults == 0 {
+		return nil, errors.New("nResults must be > 0")
+	}
 	// Validate whereDocument operators
 	for k := range whereDocument {
 		if !slices.Contains(supportedFilters, k) {
