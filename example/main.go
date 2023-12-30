@@ -32,7 +32,7 @@ func main() {
 	reply := res.Choices[0].Message.Content
 	reply = "\t" + strings.ReplaceAll(reply, "\n", "\n\t") // Indent for readability
 	fmt.Println("Reply before providing the LLM with context:")
-	fmt.Println("============================================\n")
+	fmt.Printf("============================================\n\n")
 	fmt.Println(reply)
 
 	// Now we use our vector database for retrieval augmented generation (RAG) to provide the LLM with context.
@@ -88,6 +88,6 @@ func main() {
 	reply = res.Choices[0].Message.Content
 	reply = "\t" + strings.ReplaceAll(reply, "\n", "\n\t") // Indent for readability
 	fmt.Println("\nReply after providing the LLM with context:")
-	fmt.Println("===========================================\n")
+	fmt.Printf("===========================================\n\n")
 	fmt.Println(reply)
 }
