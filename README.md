@@ -75,6 +75,7 @@ Initially, only a minimal subset of all of Chroma's interface is implemented or 
 ## Features
 
 - [X] Zero dependencies on third party libraries
+- [X] Concurrent processing (when adding and querying documents)
 - Embedding creators:
   - [X] [OpenAI ada v2](https://platform.openai.com/docs/guides/embeddings/embedding-models) (default)
   - [X] Bring your own
