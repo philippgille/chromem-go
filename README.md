@@ -2,7 +2,7 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/philippgille/chromem-go.svg)](https://pkg.go.dev/github.com/philippgille/chromem-go)
 
-In-memory vector database for Go with Chroma-like interface.
+In-memory vector database for Go with Chroma-like interface and zero third-party dependencies.
 
 It's not a library to connect to the Chroma database. It's an in-memory database on its own, meant to enable retrieval augmented generation (RAG) applications in Go *without having to run a separate database*.  
 As such, the focus is not scale or performance, but simplicity.
@@ -74,6 +74,7 @@ Initially, only a minimal subset of all of Chroma's interface is implemented or 
 
 ## Features
 
+- [X] Zero dependencies on third party libraries
 - Embedding creators:
   - [X] [OpenAI ada v2](https://platform.openai.com/docs/guides/embeddings/embedding-models) (default)
   - [X] Bring your own
