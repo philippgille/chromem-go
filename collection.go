@@ -70,10 +70,11 @@ func (c *Collection) add(ctx context.Context, ids []string, documents []string, 
 	}
 
 	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
 
 	var wg sync.WaitGroup
 	var globalErr error
-	var globalErrLock sync.RWMutex
+	var globalErrLock sync.Mutex
 	semaphore := make(chan struct{}, concurrency)
 	for i, document := range documents {
 		var embedding []float32
@@ -90,13 +91,9 @@ func (c *Collection) add(ctx context.Context, ids []string, documents []string, 
 			defer wg.Done()
 
 			// Don't even start if we already have an error
-			globalErrLock.RLock()
-			// We don't defer the unlock because we want to unlock much earlier.
-			if globalErr != nil {
-				globalErrLock.RUnlock()
+			if ctx.Err() != nil {
 				return
 			}
-			globalErrLock.RUnlock()
 
 			// Wait here while $concurrency other goroutines are creating documents.
 			semaphore <- struct{}{}
