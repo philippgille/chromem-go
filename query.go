@@ -3,6 +3,7 @@ package chromem
 import (
 	"context"
 	"errors"
+	"fmt"
 	"runtime"
 	"slices"
 	"sort"
@@ -59,24 +60,13 @@ func (c *Collection) Query(ctx context.Context, queryText string, nResults int, 
 
 	queryVectors, err := c.embed(ctx, queryText)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("couldn't create embedding of query: %w", err)
 	}
 
 	// For the remaining documents, calculate cosine similarity.
-	res := make([]Result, len(filteredDocs))
-	for i, document := range filteredDocs {
-		sim, err := cosineSimilarity(queryVectors, document.Vectors)
-		if err != nil {
-			return nil, err
-		}
-		res[i] = Result{
-			ID:        document.ID,
-			Embedding: document.Vectors,
-			Metadata:  document.Metadata,
-			Document:  document.Document,
-
-			Similarity: sim,
-		}
+	res, err := calcDocSimilarity(ctx, queryVectors, filteredDocs)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't calculate cosine similarity: %w", err)
 	}
 
 	// Sort by similarity
@@ -162,4 +152,86 @@ func documentMatchesFilters(document *document, where, whereDocument map[string]
 	}
 
 	return true
+}
+
+func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*document) ([]Result, error) {
+	res := make([]Result, len(docs))
+	resLock := sync.Mutex{}
+
+	// Determine concurrency. Use number of docs or CPUs, whichever is smaller.
+	numCPUs := runtime.NumCPU()
+	numDocs := len(docs)
+	concurrency := numCPUs
+	if numDocs < numCPUs {
+		concurrency = numDocs
+	}
+
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
+
+	docChan := make(chan *document, concurrency*2)
+	var globalErr error
+	globalErrLock := sync.Mutex{}
+
+	wg := sync.WaitGroup{}
+	for i := 0; i < concurrency; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for doc := range docChan {
+				// Stop work if another goroutine encountered an error.
+				if ctx.Err() != nil {
+					return
+				}
+
+				sim, err := cosineSimilarity(queryVectors, doc.Vectors)
+				if err != nil {
+					globalErrLock.Lock()
+					defer globalErrLock.Unlock()
+					// Another goroutine might have already set the error.
+					if globalErr == nil {
+						globalErr = err
+						// Cancel the operation for all other goroutines.
+						cancel(globalErr)
+					}
+					return
+				}
+
+				resLock.Lock()
+				// We don't defer the unlock because we want to unlock much earlier.
+				res = append(res, Result{
+					ID:        doc.ID,
+					Embedding: doc.Vectors,
+					Metadata:  doc.Metadata,
+					Document:  doc.Document,
+
+					Similarity: sim,
+				})
+				resLock.Unlock()
+			}
+		}()
+	}
+
+OuterLoop:
+	for _, doc := range docs {
+		// The doc channel has limited capacity, so writing to the channel blocks
+		// when a goroutine runs into an error and then all goroutines stop processing
+		// the channel and it gets full.
+		// To avoid a deadlock we check for ctx.Done() here, which is closed by
+		// the goroutine that encountered the error.
+		select {
+		case docChan <- doc:
+		case <-ctx.Done():
+			break OuterLoop
+		}
+	}
+	close(docChan)
+
+	wg.Wait()
+
+	if globalErr != nil {
+		return nil, globalErr
+	}
+
+	return res, nil
 }
