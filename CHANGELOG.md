@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 vNext
 -----
 
+### Improved
+
+- Improve concurrency when adding documents to collection (PR [#2](https://github.com/philippgille/chromem-go/pull/2))
+
 v0.2.0 (2024-01-01)
 -------------------
 
