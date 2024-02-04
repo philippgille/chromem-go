@@ -38,9 +38,9 @@ func main() {
 	// Now we use our vector database for retrieval augmented generation (RAG) to provide the LLM with context.
 
 	// Set up chromem-go in-memory, for easy prototyping.
-	client := chromem.NewClient()
+	db := chromem.NewDB()
 	// Create collection.
-	collection := client.CreateCollection("philippgille-projects", nil, nil)
+	collection := db.CreateCollection("philippgille-projects", nil, nil)
 	// Add docs to the collection.
 	// Here we're adding the READMEs of some of my projects.
 	projects := []string{"gokv", "ln-paywall", "chromem-go"}

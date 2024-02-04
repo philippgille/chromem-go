@@ -46,10 +46,11 @@ import "github.com/philippgille/chromem-go"
 
 func main() {
     // Set up chromem-go in-memory, for easy prototyping. Persistence will be added in the future.
-    client := chromem.NewClient()
+    // We call it DB instead of client because there's no client-server separation. The DB is embedded.
+    db := chromem.NewDB()
 
     // Create collection. GetCollection, GetOrCreateCollection, DeleteCollection will be added in the future.
-    collection := client.CreateCollection("all-my-documents", nil, nil)
+    collection := db.CreateCollection("all-my-documents", nil, nil)
 
     // Add docs to the collection. Update and delete will be added in the future.
     // Row-based API will be added when Chroma adds it!
