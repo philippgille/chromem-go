@@ -6,8 +6,8 @@ import (
 )
 
 // EmbeddingFunc is a function that creates embeddings for a given document.
-// chromem-go will use OpenAI`s ada v2 model by default, but you can provide your
-// own function, using any model you like.
+// chromem-go will use OpenAI`s "text-embedding-3-small" model by default,
+// but you can provide your own function, using any model you like.
 type EmbeddingFunc func(ctx context.Context, document string) ([]float32, error)
 
 // DB is the chromem-go database. It holds collections, which hold documents.

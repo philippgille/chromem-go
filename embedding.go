@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	baseURLOpenAI        = "https://api.openai.com/v1"
-	embeddingModelOpenAI = "text-embedding-ada-002"
+	baseURLOpenAI              = "https://api.openai.com/v1"
+	embeddingModelOpenAI3Small = "text-embedding-3-small"
 )
 
 type openAIResponse struct {
@@ -22,18 +22,18 @@ type openAIResponse struct {
 	} `json:"data"`
 }
 
-// CreateEmbeddingsDefault returns a function that creates embeddings for a document using using
-// OpenAI`s ada v2 model via their API.
-// The model supports a maximum document length of 8192 tokens.
+// CreateEmbeddingsDefault returns a function that creates embeddings for a document
+// using OpenAI`s "text-embedding-3-small" model via their API.
+// The model supports a maximum document length of 8191 tokens.
 // The API key is read from the environment variable "OPENAI_API_KEY".
 func CreateEmbeddingsDefault() EmbeddingFunc {
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	return CreateEmbeddingsOpenAI(apiKey)
 }
 
-// CreateEmbeddingsOpenAI returns a function that creates the embeddings for a document
-// using OpenAI`s ada v2 model via their API.
-// The model supports a maximum document length of 8192 tokens.
+// CreateEmbeddingsDefault returns a function that creates embeddings for a document
+// using OpenAI`s "text-embedding-3-small" model via their API.
+// The model supports a maximum document length of 8191 tokens.
 func CreateEmbeddingsOpenAI(apiKey string) EmbeddingFunc {
 	// We don't set a default timeout here, although it's usually a good idea.
 	// In our case though, the library user can set the timeout on the context,
@@ -44,7 +44,7 @@ func CreateEmbeddingsOpenAI(apiKey string) EmbeddingFunc {
 		// Prepare the request body.
 		reqBody, err := json.Marshal(map[string]string{
 			"input": document,
-			"model": embeddingModelOpenAI,
+			"model": embeddingModelOpenAI3Small,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("couldn't marshal request body: %w", err)
