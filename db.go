@@ -35,7 +35,7 @@ func NewDB() *DB {
 //     Uses the default embedding function if not provided.
 func (c *DB) CreateCollection(name string, metadata map[string]string, embeddingFunc EmbeddingFunc) *Collection {
 	if embeddingFunc == nil {
-		embeddingFunc = CreateEmbeddingsDefault()
+		embeddingFunc = NewEmbeddingFuncDefault()
 	}
 	collection := newCollection(name, metadata, embeddingFunc)
 
