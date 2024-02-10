@@ -78,11 +78,13 @@ Initially, only a minimal subset of all of Chroma's interface is implemented or 
 - [X] Zero dependencies on third party libraries
 - [X] Concurrent processing (when adding and querying documents)
 - Embedding creators:
-  - [X] [OpenAI text-embedding-3-small](https://platform.openai.com/docs/guides/embeddings/embedding-models) (default)
+  - [X] [OpenAI](https://platform.openai.com/docs/guides/embeddings/embedding-models) (default)
+  - [X] [Mistral](https://docs.mistral.ai/platform/endpoints/#embedding-models)
+  - [X] [Jina](https://jina.ai/embeddings)
+  - [X] [mixedbread.ai](https://www.mixedbread.ai/)
+  - [X] [LocalAI](https://github.com/mudler/LocalAI)
   - [X] Bring your own
-  - [ ] [Mistral (API)](https://docs.mistral.ai/api/#operation/createEmbedding)
-  - [ ] [ollama](https://ollama.ai/)
-  - [ ] [LocalAI](https://github.com/mudler/LocalAI)
+  - [ ] [ollama](https://ollama.ai/) (As of 2024-02-10 their OpenAI compatible API doesn't support embeddings yet, but they have a custom API which does)
 - Similarity search:
   - [X] Exact nearest neighbor search using cosine similarity
   - [ ] Approximate nearest neighbor search with index
