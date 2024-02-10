@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 vNext
 -----
 
+v0.3.0 (2024-02-10)
+-------------------
+
 ### Added
 
 - Added support for more OpenAI embedding models (PR [#6](https://github.com/philippgille/chromem-go/pull/6))
