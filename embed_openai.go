@@ -11,9 +11,7 @@ import (
 	"os"
 )
 
-const (
-	BaseURLOpenAI = "https://api.openai.com/v1"
-)
+const BaseURLOpenAI = "https://api.openai.com/v1"
 
 type EmbeddingModelOpenAI string
 
@@ -60,7 +58,7 @@ func NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model string) EmbeddingFunc {
 		// Prepare the request body.
 		reqBody, err := json.Marshal(map[string]string{
 			"input": document,
-			"model": string(model),
+			"model": model,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("couldn't marshal request body: %w", err)
@@ -84,12 +82,7 @@ func NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model string) EmbeddingFunc {
 
 		// Check the response status.
 		if resp.StatusCode != http.StatusOK {
-			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				panic(err)
-			}
-			fmt.Println("========", string(body))
-			return nil, errors.New("error response from the OpenAI API: " + resp.Status)
+			return nil, errors.New("error response from the embedding API: " + resp.Status)
 		}
 
 		// Read and decode the response body.
