@@ -38,9 +38,8 @@ func CreateEmbeddingsDefault() EmbeddingFunc {
 	return CreateEmbeddingsOpenAI(apiKey, EmbeddingModelOpenAI3Small)
 }
 
-// CreateEmbeddingsDefault returns a function that creates embeddings for a document
-// using OpenAI`s "text-embedding-3-small" model via their API.
-// The model supports a maximum document length of 8191 tokens.
+// CreateEmbeddingsOpenAI returns a function that creates embeddings for a document
+// using the OpenAI API.
 func CreateEmbeddingsOpenAI(apiKey string, model EmbeddingModelOpenAI) EmbeddingFunc {
 	// We don't set a default timeout here, although it's usually a good idea.
 	// In our case though, the library user can set the timeout on the context,
