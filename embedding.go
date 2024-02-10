@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	baseURLOpenAI = "https://api.openai.com/v1"
+	BaseURLOpenAI = "https://api.openai.com/v1"
 )
 
 type EmbeddingModelOpenAI string
@@ -41,6 +41,16 @@ func CreateEmbeddingsDefault() EmbeddingFunc {
 // CreateEmbeddingsOpenAI returns a function that creates embeddings for a document
 // using the OpenAI API.
 func CreateEmbeddingsOpenAI(apiKey string, model EmbeddingModelOpenAI) EmbeddingFunc {
+	return CreateEmbeddingsOpenAICompat(BaseURLOpenAI, apiKey, string(model))
+}
+
+// CreateEmbeddingsOpenAICompat returns a function that creates embeddings for a document
+// using an OpenAI compatible API. For example:
+//   - Azure OpenAI: https://azure.microsoft.com/en-us/products/ai-services/openai-service
+//   - LitLLM: https://github.com/BerriAI/litellm
+//   - Ollama: https://github.com/ollama/ollama/blob/main/docs/openai.md
+//   - etc.
+func CreateEmbeddingsOpenAICompat(baseURL, apiKey, model string) EmbeddingFunc {
 	// We don't set a default timeout here, although it's usually a good idea.
 	// In our case though, the library user can set the timeout on the context,
 	// and it might have to be a long timeout, depending on the document size.
@@ -58,7 +68,7 @@ func CreateEmbeddingsOpenAI(apiKey string, model EmbeddingModelOpenAI) Embedding
 
 		// Create the request. Creating it with context is important for a timeout
 		// to be possible, because the client is configured without a timeout.
-		req, err := http.NewRequestWithContext(ctx, "POST", baseURLOpenAI+"/embeddings", bytes.NewBuffer(reqBody))
+		req, err := http.NewRequestWithContext(ctx, "POST", baseURL+"/embeddings", bytes.NewBuffer(reqBody))
 		if err != nil {
 			return nil, fmt.Errorf("couldn't create request: %w", err)
 		}
