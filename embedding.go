@@ -29,28 +29,28 @@ type openAIResponse struct {
 	} `json:"data"`
 }
 
-// CreateEmbeddingsDefault returns a function that creates embeddings for a document
+// NewEmbeddingFuncDefault returns a function that creates embeddings for a document
 // using OpenAI`s "text-embedding-3-small" model via their API.
 // The model supports a maximum document length of 8191 tokens.
 // The API key is read from the environment variable "OPENAI_API_KEY".
-func CreateEmbeddingsDefault() EmbeddingFunc {
+func NewEmbeddingFuncDefault() EmbeddingFunc {
 	apiKey := os.Getenv("OPENAI_API_KEY")
-	return CreateEmbeddingsOpenAI(apiKey, EmbeddingModelOpenAI3Small)
+	return NewEmbeddingFuncOpenAI(apiKey, EmbeddingModelOpenAI3Small)
 }
 
-// CreateEmbeddingsOpenAI returns a function that creates embeddings for a document
+// NewEmbeddingFuncOpenAI returns a function that creates embeddings for a document
 // using the OpenAI API.
-func CreateEmbeddingsOpenAI(apiKey string, model EmbeddingModelOpenAI) EmbeddingFunc {
-	return CreateEmbeddingsOpenAICompat(BaseURLOpenAI, apiKey, string(model))
+func NewEmbeddingFuncOpenAI(apiKey string, model EmbeddingModelOpenAI) EmbeddingFunc {
+	return NewEmbeddingFuncOpenAICompat(BaseURLOpenAI, apiKey, string(model))
 }
 
-// CreateEmbeddingsOpenAICompat returns a function that creates embeddings for a document
+// NewEmbeddingFuncOpenAICompat returns a function that creates embeddings for a document
 // using an OpenAI compatible API. For example:
 //   - Azure OpenAI: https://azure.microsoft.com/en-us/products/ai-services/openai-service
 //   - LitLLM: https://github.com/BerriAI/litellm
 //   - Ollama: https://github.com/ollama/ollama/blob/main/docs/openai.md
 //   - etc.
-func CreateEmbeddingsOpenAICompat(baseURL, apiKey, model string) EmbeddingFunc {
+func NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model string) EmbeddingFunc {
 	// We don't set a default timeout here, although it's usually a good idea.
 	// In our case though, the library user can set the timeout on the context,
 	// and it might have to be a long timeout, depending on the document size.
