@@ -39,7 +39,7 @@ func (c *Collection) Query(ctx context.Context, queryText string, nResults int, 
 		return nil, nil
 	}
 
-	if nResults == 0 {
+	if nResults <= 0 {
 		return nil, errors.New("nResults must be > 0")
 	}
 
