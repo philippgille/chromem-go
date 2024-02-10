@@ -8,11 +8,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 vNext
 -----
 
+### Added
+
+- Added support for more OpenAI embedding models (PR [#6](https://github.com/philippgille/chromem-go/pull/6))
+- Added support for more embedding creators/providers: (PR [#10](https://github.com/philippgille/chromem-go/pull/10))
+  - [Mistral](https://docs.mistral.ai/platform/endpoints/#embedding-models), [Jina](https://jina.ai/embeddings), [mixedbread.ai](https://www.mixedbread.ai/), [LocalAI](https://github.com/mudler/LocalAI)
+
 ### Improved
 
 - Improve concurrency when adding documents to collection (PR [#2](https://github.com/philippgille/chromem-go/pull/2))
 - Rename `Client` to `DB` to better indicate that the database is embedded and there's no client-server separation (PR [#3](https://github.com/philippgille/chromem-go/pull/3))
 - Change OpenAPI embedding model from "text-embedding-ada-002" to "text-embedding-3-small" (PR [#4](https://github.com/philippgille/chromem-go/pull/4))
+- Allow custom base URL for OpenAI, enabling the use of [Azure OpenAI](https://azure.microsoft.com/en-us/products/ai-services/openai-service), [LiteLLM](https://github.com/BerriAI/litellm), [ollama](https://github.com/ollama/ollama/blob/main/docs/openai.md) etc. (PR [#7](https://github.com/philippgille/chromem-go/pull/7))
+- Renamed `EmbeddingFunc` constructors to follow best practice (PR [#9](https://github.com/philippgille/chromem-go/pull/9))
+
+### Fixed
+
+- Don't allow `nResults` arg < 0 (PR [#5](https://github.com/philippgille/chromem-go/pull/5))
+
+### Breaking changes
+
+- Several function names and signatures were changed in this release. This can happen as long as the version is at `v0.x.y`.
 
 v0.2.0 (2024-01-01)
 -------------------
