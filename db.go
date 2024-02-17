@@ -100,3 +100,11 @@ func (c *DB) GetCollection(name string) *Collection {
 		embed: orig.embed,
 	}
 }
+
+// DeleteCollection deletes the collection with the given name.
+// If the collection doesn't exist, this is a no-op.
+func (c *DB) DeleteCollection(name string) {
+	c.collectionsLock.Lock()
+	defer c.collectionsLock.Unlock()
+	delete(c.collections, name)
+}
