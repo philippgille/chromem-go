@@ -102,3 +102,27 @@ func TestDB_DeleteCollection(t *testing.T) {
 		t.Error("expected 0 collections, got", len(db.ListCollections()))
 	}
 }
+
+func TestDB_Reset(t *testing.T) {
+	// Values in the collection
+	name := "test"
+	metadata := map[string]string{"foo": "bar"}
+	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
+		return []float32{-0.1, 0.1, 0.2}, nil
+	}
+
+	// Create initial collection
+	db := chromem.NewDB()
+	// We ignore the return value. CreateCollection is tested elsewhere.
+	_ = db.CreateCollection(name, metadata, embeddingFunc)
+
+	// Reset DB
+	db.Reset()
+
+	// Check expectations
+	// We don't have access to the documents field, but we can rely on DB.ListCollections()
+	// because it's tested elsewhere.
+	if len(db.ListCollections()) != 0 {
+		t.Error("expected 0 collections, got", len(db.ListCollections()))
+	}
+}
