@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 vNext
 -----
 
+### Added
+
+- Added `DB.ListCollections()` (PR [#12](https://github.com/philippgille/chromem-go/pull/12))
+- Added `DB.GetCollection()` (PR [#13](https://github.com/philippgille/chromem-go/pull/13))
+- Added `DB.DeleteCollection()` (PR [#14](https://github.com/philippgille/chromem-go/pull/14))
+
+### Improved
+
+- Improved example (PR [#11](https://github.com/philippgille/chromem-go/pull/11))
+
 v0.3.0 (2024-02-10)
 -------------------
 
