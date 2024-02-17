@@ -109,3 +109,10 @@ func (c *DB) DeleteCollection(name string) {
 	defer c.collectionsLock.Unlock()
 	delete(c.collections, name)
 }
+
+// Reset removes all collections from the DB.
+func (c *DB) Reset() {
+	c.collectionsLock.Lock()
+	defer c.collectionsLock.Unlock()
+	c.collections = make(map[string]*Collection)
+}
