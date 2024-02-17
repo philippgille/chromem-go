@@ -70,6 +70,7 @@ func (c *DB) ListCollections() map[string]*Collection {
 // Regarding the EmbeddingFunc it's the original. So if it closes over some state,
 // this state is shared. But usually an EmbeddingFunc just closes over an API key
 // or HTTP client, which are safe to share.
+// If the collection doesn't exist, this returns nil.
 func (c *DB) GetCollection(name string) *Collection {
 	c.collectionsLock.RLock()
 	defer c.collectionsLock.RUnlock()
