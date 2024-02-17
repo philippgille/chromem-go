@@ -13,6 +13,7 @@ vNext
 - Added `DB.ListCollections()` (PR [#12](https://github.com/philippgille/chromem-go/pull/12))
 - Added `DB.GetCollection()` (PR [#13](https://github.com/philippgille/chromem-go/pull/13))
 - Added `DB.DeleteCollection()` (PR [#14](https://github.com/philippgille/chromem-go/pull/14))
+- Added `DB.Reset()` (PR [#15](https://github.com/philippgille/chromem-go/pull/15))
 
 ### Improved
 
