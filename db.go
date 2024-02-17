@@ -44,3 +44,21 @@ func (c *DB) CreateCollection(name string, metadata map[string]string, embedding
 	c.collections[name] = collection
 	return collection
 }
+
+// ListCollections returns a map of all collections in the DB.
+// The returned map is a copy of the internal map, to it's safe to modify the map
+// itself. But it's not an entirely deep clone, so the collections themselves are
+// still the original ones.
+// You must not use them concurrently with other chromem-go operations that modify
+// the collections (like adding a document).
+func (c *DB) ListCollections() map[string]*Collection {
+	c.collectionsLock.RLock()
+	defer c.collectionsLock.RUnlock()
+
+	res := make(map[string]*Collection, len(c.collections))
+	for k, v := range c.collections {
+		res[k] = v
+	}
+
+	return res
+}
