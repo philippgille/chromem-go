@@ -62,3 +62,41 @@ func (c *DB) ListCollections() map[string]*Collection {
 
 	return res
 }
+
+// GetCollection returns the collection with the given name.
+// The collection is a copy of the original, except for its EmbeddingFunc.
+// It's only copied one level deep though. So while you *can* manipulate the collection's
+// map of documents, you must not manipulate the documents themselves.
+// Regarding the EmbeddingFunc it's the original. So if it closes over some state,
+// this state is shared. But usually an EmbeddingFunc just closes over an API key
+// or HTTP client, which are safe to share.
+func (c *DB) GetCollection(name string) *Collection {
+	c.collectionsLock.RLock()
+	defer c.collectionsLock.RUnlock()
+
+	orig, ok := c.collections[name]
+	if !ok {
+		return nil
+	}
+
+	newMetadata := make(map[string]string, len(orig.Metadata))
+	for k, v := range orig.Metadata {
+		newMetadata[k] = v
+	}
+
+	orig.documentsLock.RLock()
+	defer orig.documentsLock.RUnlock()
+	newDocuments := make(map[string]*document, len(orig.documents))
+	for k, v := range orig.documents {
+		newDocuments[k] = v
+	}
+
+	return &Collection{
+		Name:     orig.Name,
+		Metadata: newMetadata,
+
+		documents: make(map[string]*document, len(orig.documents)),
+
+		embed: orig.embed,
+	}
+}
