@@ -22,6 +22,12 @@ func newDocument(ctx context.Context, id string, embeddings []float32, metadata 
 		}
 		embeddings = vectors
 	}
+	// We copy the metadata to avoid data races in case the caller modifies the
+	// map after creating the document while we range over it.
+	m := make(map[string]string, len(metadata))
+	for k, v := range metadata {
+		m[k] = v
+	}
 
 	return &document{
 		ID:       id,
