@@ -1,0 +1,68 @@
+package chromem
+
+const (
+	baseURLMistral = "https://api.mistral.ai/v1"
+	// Currently there's only one. Let's turn this into a pseudo-enum as soon as there are more.
+	embeddingModelMistral = "mistral-embed"
+)
+
+// NewEmbeddingFuncMistral returns a function that creates embeddings for a document
+// using the Mistral API.
+func NewEmbeddingFuncMistral(apiKey string) EmbeddingFunc {
+	// The Mistral API docs don't mention the `encoding_format` as optional,
+	// but it seems to be, just like OpenAI. So we reuse the OpenAI function.
+	return NewEmbeddingFuncOpenAICompat(baseURLMistral, apiKey, embeddingModelMistral)
+}
+
+const baseURLJina = "https://api.jina.ai/v1"
+
+type EmbeddingModelJina string
+
+const (
+	EmbeddingModelJina2BaseEN   EmbeddingModelJina = "jina-embeddings-v2-base-en"
+	EmbeddingModelJina2BaseDE   EmbeddingModelJina = "jina-embeddings-v2-base-de"
+	EmbeddingModelJina2BaseCode EmbeddingModelJina = "jina-embeddings-v2-base-code"
+	EmbeddingModelJina2BaseZH   EmbeddingModelJina = "jina-embeddings-v2-base-zh"
+)
+
+// NewEmbeddingFuncJina returns a function that creates embeddings for a document
+// using the Jina API.
+func NewEmbeddingFuncJina(apiKey string, model EmbeddingModelJina) EmbeddingFunc {
+	return NewEmbeddingFuncOpenAICompat(baseURLJina, apiKey, string(model))
+}
+
+const baseURLMixedbread = "https://api.mixedbread.ai"
+
+type EmbeddingModelMixedbread string
+
+const (
+	EmbeddingModelMixedbreadUAELargeV1          EmbeddingModelMixedbread = "UAE-Large-V1"
+	EmbeddingModelMixedbreadBGELargeENV15       EmbeddingModelMixedbread = "bge-large-en-v1.5"
+	EmbeddingModelMixedbreadGTELarge            EmbeddingModelMixedbread = "gte-large"
+	EmbeddingModelMixedbreadE5LargeV2           EmbeddingModelMixedbread = "e5-large-v2"
+	EmbeddingModelMixedbreadMultilingualE5Large EmbeddingModelMixedbread = "multilingual-e5-large"
+	EmbeddingModelMixedbreadMultilingualE5Base  EmbeddingModelMixedbread = "multilingual-e5-base"
+	EmbeddingModelMixedbreadAllMiniLML6V2       EmbeddingModelMixedbread = "all-MiniLM-L6-v2"
+	EmbeddingModelMixedbreadGTELargeZh          EmbeddingModelMixedbread = "gte-large-zh"
+)
+
+// NewEmbeddingFuncMixedbread returns a function that creates embeddings for a document
+// using the mixedbread.ai API.
+func NewEmbeddingFuncMixedbread(apiKey string, model EmbeddingModelMixedbread) EmbeddingFunc {
+	return NewEmbeddingFuncOpenAICompat(baseURLMixedbread, apiKey, string(model))
+}
+
+const baseURLLocalAI = "http://localhost:8080/v1"
+
+// NewEmbeddingFuncLocalAI returns a function that creates embeddings for a document
+// using the LocalAI API.
+// You can start a LocalAI instance like this:
+//
+//	docker run -it -p 127.0.0.1:8080:8080 localai/localai:v2.7.0-ffmpeg-core bert-cpp
+//
+// And then call this constructor with model "bert-cpp-minilm-v6".
+// But other embedding models are supported as well. See the LocalAI documentation
+// for details.
+func NewEmbeddingFuncLocalAI(model string) EmbeddingFunc {
+	return NewEmbeddingFuncOpenAICompat(baseURLLocalAI, "", model)
+}
