@@ -105,6 +105,55 @@ func TestDB_GetCollection(t *testing.T) {
 	// TODO: Check documents map being a copy as soon as we have access to it
 }
 
+func TestDB_GetOrCreateCollection(t *testing.T) {
+	// Values in the collection
+	name := "test"
+	metadata := map[string]string{"foo": "bar"}
+	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
+		return []float32{-0.1, 0.1, 0.2}, nil
+	}
+
+	t.Run("Get", func(t *testing.T) {
+		// Create initial collection
+		db := chromem.NewDB()
+		// Create collection so that the GetOrCreateCollection() call below only
+		// gets it.
+		// We ignore the return value. CreateCollection is tested elsewhere.
+		_ = db.CreateCollection(name, metadata, embeddingFunc)
+
+		// Call GetOrCreateCollection() with the same name to only get it. We pass
+		// nil for the metadata and embeddingFunc so we can check that the returned
+		// collection is the original one, and not a new one.
+		c := db.GetOrCreateCollection(name, nil, nil)
+		if c == nil {
+			t.Error("expected collection, got nil")
+		}
+
+		// Check expectations
+		if c.Name != name {
+			t.Error("expected name", name, "got", c.Name)
+		}
+		// TODO: Check metadata when it's accessible (e.g. with GetMetadata())
+	})
+
+	t.Run("Create", func(t *testing.T) {
+		// Create initial collection
+		db := chromem.NewDB()
+
+		// Call GetOrCreateCollection()
+		c := db.GetOrCreateCollection(name, metadata, embeddingFunc)
+		if c == nil {
+			t.Error("expected collection, got nil")
+		}
+
+		// Check like we check CreateCollection()
+		if c.Name != name {
+			t.Error("expected name", name, "got", c.Name)
+		}
+		// TODO: Check metadata when it's accessible (e.g. with GetMetadata())
+	})
+}
+
 func TestDB_DeleteCollection(t *testing.T) {
 	// Values in the collection
 	name := "test"
