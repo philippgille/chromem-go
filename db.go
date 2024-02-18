@@ -75,6 +75,22 @@ func (c *DB) GetCollection(name string) *Collection {
 	return c.collections[name]
 }
 
+// GetOrCreateCollection returns the collection with the given name if it exists
+// in the DB, or otherwise creates it. When creating:
+//
+//   - name: The name of the collection to create.
+//   - metadata: Optional metadata to associate with the collection.
+//   - embeddingFunc: Optional function to use to embed documents.
+//     Uses the default embedding function if not provided.
+func (c *DB) GetOrCreateCollection(name string, metadata map[string]string, embeddingFunc EmbeddingFunc) *Collection {
+	// No need to lock here, because the methods we call do that.
+	collection := c.GetCollection(name)
+	if collection == nil {
+		collection = c.CreateCollection(name, metadata, embeddingFunc)
+	}
+	return collection
+}
+
 // DeleteCollection deletes the collection with the given name.
 // If the collection doesn't exist, this is a no-op.
 func (c *DB) DeleteCollection(name string) {
