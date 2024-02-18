@@ -6,21 +6,53 @@ Embeddable in-memory vector database for Go with Chroma-like interface and zero 
 
 It's *not* a library to connect to ChromaDB. It's an in-memory database on its own.
 
-Being embeddable enables you to add retrieval augmented generation (RAG) features into your Go app *without having to run a separate database*. Like when using SQLite instead of PostgreSQL/MySQL/etc.
+Being embeddable enables you to add retrieval augmented generation (RAG) and similar embeddings-based features into your Go app *without having to run a separate database*. Like when using SQLite instead of PostgreSQL/MySQL/etc.
 
 The focus is not scale or number of features, but simplicity.
 
 ## Contents
 
-1. [Interface](#interface)
-2. [Features](#features)
-3. [Usage](#usage)
-4. [Motivation](#motivation)
-5. [Related projects](#related-projects)
+1. [Use cases](#use-cases)
+2. [Interface](#interface)
+3. [Features](#features)
+4. [Usage](#usage)
+5. [Motivation](#motivation)
+6. [Related projects](#related-projects)
+
+## Use cases
+
+With a vector database you can do various things:
+
+- Retrieval augmented generation (RAG), question answering (Q&A)
+- Text and code search
+- Recommendation systems
+- Classification
+- Clustering
+
+Let's look at the RAG use case in more detail:
+
+### RAG
+
+The knowledge of large language models (LLMs) - even the ones with with 30 billion, 70 billion paramters and more - is limited. They don't know anything about what happened after their training ended, they don't know anything about data they were not trained with (like your company's intranet, Jira / bug tracker, wiki or other kinds of knowledge bases), and even the data they *do* know they often can't reproduce it *exactly*, but start to *hallucinate* instead.
+
+Fine-tuning an LLM can help a bit, but it's more meant to improve the LLMs reasoning about specific topics, or reproduce the style of written text or code. Fine-tuning does *not* add knowledge *1:1* into the model. Details are lost or mixed up. And knowledge cutoff (about anything that happened after the fine-tuning) isn't solved either.
+
+=> A vector database can act as the the up-to-date, precise knowledge for LLMs:
+
+1. You store relevant documents that you want the LLM to know in the database.
+2. The database stores the *embeddings* alongside the documents, which you can either provide or can be created by specific "embedding models" like OpenAI's `text-embedding-3-small`.
+   - `chromem-go` can do this for you and supports multiple embedding providers and models out-of-the-box.
+3. Later, when you want to talk to the LLM, you first send the question to the vector DB to find *similar*/*related* content. This is called "nearest neighbor search".
+4. In the question to the LLM, you provide this content alongside your question.
+5. The LLM can take this up-to-date precise content into account when answering.
+
+Check out the [example code](example/main.go) to see it in action!
 
 ## Interface
 
-Our inspiration, the [Chroma](https://www.trychroma.com/) interface, is the following (taken from their [README](https://github.com/chroma-core/chroma/blob/0.4.21/README.md)).
+For the full interface see <https://pkg.go.dev/github.com/philippgille/chromem-go>.
+
+Our inspiration was the [Chroma](https://www.trychroma.com/) interface, whose core API is the following (taken from their [README](https://github.com/chroma-core/chroma/blob/0.4.21/README.md)):
 
 ```python
 import chromadb
