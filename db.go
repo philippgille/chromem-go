@@ -80,8 +80,8 @@ func (c *DB) GetCollection(name string) *Collection {
 		return nil
 	}
 
-	newMetadata := make(map[string]string, len(orig.Metadata))
-	for k, v := range orig.Metadata {
+	newMetadata := make(map[string]string, len(orig.metadata))
+	for k, v := range orig.metadata {
 		newMetadata[k] = v
 	}
 
@@ -94,7 +94,7 @@ func (c *DB) GetCollection(name string) *Collection {
 
 	return &Collection{
 		Name:     orig.Name,
-		Metadata: newMetadata,
+		metadata: newMetadata,
 
 		documents: make(map[string]*document, len(orig.documents)),
 
