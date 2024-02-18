@@ -23,9 +23,15 @@ type Collection struct {
 // We don't export this yet to keep the API surface to the bare minimum.
 // Users create collections via [Client.CreateCollection].
 func newCollection(name string, metadata map[string]string, embed EmbeddingFunc) *Collection {
+	// We copy the metadata to avoid data races in case the caller modifies the
+	// map after creating the collection while we range over it.
+	m := make(map[string]string, len(metadata))
+	for k, v := range metadata {
+		m[k] = v
+	}
 	return &Collection{
 		Name:     name,
-		metadata: metadata,
+		metadata: m,
 
 		documents: make(map[string]*document),
 
@@ -36,8 +42,10 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc)
 // Add embeddings to the datastore.
 //
 //   - ids: The ids of the embeddings you wish to add
-//   - embeddings: The embeddings to add. If nil, embeddings will be computed based on the documents using the embeddingFunc set for the Collection. Optional.
-//   - metadatas: The metadata to associate with the embeddings. When querying, you can filter on this metadata. Optional.
+//   - embeddings: The embeddings to add. If nil, embeddings will be computed based
+//     on the documents using the embeddingFunc set for the Collection. Optional.
+//   - metadatas: The metadata to associate with the embeddings. When querying,
+//     you can filter on this metadata. Optional.
 //   - documents: The documents to associate with the embeddings.
 //
 // A row-based API will be added when Chroma adds it (they already plan to).
