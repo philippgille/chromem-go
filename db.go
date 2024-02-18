@@ -45,12 +45,13 @@ func (c *DB) CreateCollection(name string, metadata map[string]string, embedding
 	return collection
 }
 
-// ListCollections returns a map of all collections in the DB.
-// The returned map is a copy of the internal map, to it's safe to modify the map
-// itself. But it's not an entirely deep clone, so the collections themselves are
-// still the original ones.
-// You must not use them concurrently with other chromem-go operations that modify
-// the collections (like adding a document).
+// ListCollections returns all collections in the DB, mapping name->Collection.
+// The returned map is a copy of the internal map, so it's safe to directly modify
+// the map itself. Direct modifications of the map won't reflect on the DB's map.
+// To do that use the DB's methods like CreateCollection() and DeleteCollection().
+// The map is not an entirely deep clone, so the collections themselves are still
+// the original ones. Any methods on the collections like Add() for adding documents
+// will be reflected on the DB's collections and are concurrency-safe.
 func (c *DB) ListCollections() map[string]*Collection {
 	c.collectionsLock.RLock()
 	defer c.collectionsLock.RUnlock()
@@ -64,42 +65,14 @@ func (c *DB) ListCollections() map[string]*Collection {
 }
 
 // GetCollection returns the collection with the given name.
-// The collection is a copy of the original, except for its EmbeddingFunc.
-// It's only copied one level deep though. So while you *can* manipulate the collection's
-// map of documents, you must not manipulate the documents themselves.
-// Regarding the EmbeddingFunc it's the original. So if it closes over some state,
-// this state is shared. But usually an EmbeddingFunc just closes over an API key
-// or HTTP client, which are safe to share.
+// The returned value is a reference to the original collection, so any methods
+// on the collection like Add() will be reflected on the DB's collection. Those
+// operations are concurrency-safe.
 // If the collection doesn't exist, this returns nil.
 func (c *DB) GetCollection(name string) *Collection {
 	c.collectionsLock.RLock()
 	defer c.collectionsLock.RUnlock()
-
-	orig, ok := c.collections[name]
-	if !ok {
-		return nil
-	}
-
-	newMetadata := make(map[string]string, len(orig.metadata))
-	for k, v := range orig.metadata {
-		newMetadata[k] = v
-	}
-
-	orig.documentsLock.RLock()
-	defer orig.documentsLock.RUnlock()
-	newDocuments := make(map[string]*document, len(orig.documents))
-	for k, v := range orig.documents {
-		newDocuments[k] = v
-	}
-
-	return &Collection{
-		Name:     orig.Name,
-		metadata: newMetadata,
-
-		documents: make(map[string]*document, len(orig.documents)),
-
-		embed: orig.embed,
-	}
+	return c.collections[name]
 }
 
 // DeleteCollection deletes the collection with the given name.
