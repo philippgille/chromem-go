@@ -12,7 +12,7 @@ import (
 // that don't have embeddings yet.
 type Collection struct {
 	Name     string
-	Metadata map[string]string
+	metadata map[string]string
 
 	documents     map[string]*document
 	documentsLock sync.RWMutex
@@ -25,7 +25,7 @@ type Collection struct {
 func newCollection(name string, metadata map[string]string, embed EmbeddingFunc) *Collection {
 	return &Collection{
 		Name:     name,
-		Metadata: metadata,
+		metadata: metadata,
 
 		documents: make(map[string]*document),
 

@@ -34,14 +34,17 @@ func TestDB_ListCollections(t *testing.T) {
 	if c.Name != name {
 		t.Error("expected name", name, "got", c.Name)
 	}
-	if len(c.Metadata) != 1 {
-		t.Error("expected 1 metadata, got", len(c.Metadata))
-	}
-	if c.Metadata["foo"] != "bar" {
-		t.Error("expected metadata", metadata, "got", c.Metadata)
-	}
+	// TODO: Check metadata when it's accessible (e.g. with GetMetadata())
+	// if len(c.Metadata) != 1 {
+	// 	t.Error("expected 1 metadata, got", len(c.Metadata))
+	// }
+	// if c.Metadata["foo"] != "bar" {
+	// 	t.Error("expected metadata", metadata, "got", c.Metadata)
+	// }
+	// TODO: Same for documents and EmbeddingFunc
 
-	// And it should be a copy
+	// And it should be a copy. Adding a value here should not reflect on the DB's
+	// collection.
 	res["foo"] = &chromem.Collection{}
 	if len(db.ListCollections()) != 1 {
 		t.Error("expected 1 collection, got", len(db.ListCollections()))
@@ -68,12 +71,13 @@ func TestDB_GetCollection(t *testing.T) {
 	if c.Name != name {
 		t.Error("expected name", name, "got", c.Name)
 	}
-	if len(c.Metadata) != 1 {
-		t.Error("expected 1 metadata, got", len(c.Metadata))
-	}
-	if c.Metadata["foo"] != "bar" {
-		t.Error("expected metadata", metadata, "got", c.Metadata)
-	}
+	// TODO: Check metadata when it's accessible (e.g. with GetMetadata())
+	// if len(c.Metadata) != 1 {
+	// 	t.Error("expected 1 metadata, got", len(c.Metadata))
+	// }
+	// if c.Metadata["foo"] != "bar" {
+	// 	t.Error("expected metadata", metadata, "got", c.Metadata)
+	// }
 	// TODO: Check documents content as soon as we have access to them
 	// TODO: Same for the EmbeddingFunc
 	// TODO: Check documents map being a copy as soon as we have access to it
