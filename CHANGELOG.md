@@ -12,8 +12,10 @@ vNext
 
 - Added `DB.ListCollections()` (PR [#12](https://github.com/philippgille/chromem-go/pull/12))
 - Added `DB.GetCollection()` (PR [#13](https://github.com/philippgille/chromem-go/pull/13) + [#19](https://github.com/philippgille/chromem-go/pull/19))
+- Added `DB.GetOrCreateCollection()` (PR [#22](https://github.com/philippgille/chromem-go/pull/22))
 - Added `DB.DeleteCollection()` (PR [#14](https://github.com/philippgille/chromem-go/pull/14))
 - Added `DB.Reset()` (PR [#15](https://github.com/philippgille/chromem-go/pull/15))
+- Added various unit tests (PR [#20](https://github.com/philippgille/chromem-go/pull/20))
 
 ### Improved
 
@@ -24,6 +26,7 @@ vNext
   - Goal: Prevent direct modifications which could cause data races in case of the user doing a modification while `chromem-go` for example ranges over it.
 - Improved CI (PR [#18](https://github.com/philippgille/chromem-go/pull/18))
   - Add Go 1.22 to test matrix, update used GitHub Action from v4 to v5, use race detector during tests
+- Reorganize code internally (PR [#21](https://github.com/philippgille/chromem-go/pull/21))
 
 v0.3.0 (2024-02-10)
 -------------------
