@@ -7,6 +7,28 @@ import (
 	"github.com/philippgille/chromem-go"
 )
 
+func TestDB_CreateCollection(t *testing.T) {
+	// Values in the collection
+	name := "test"
+	metadata := map[string]string{"foo": "bar"}
+	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
+		return []float32{-0.1, 0.1, 0.2}, nil
+	}
+
+	// Create collection
+	db := chromem.NewDB()
+	c := db.CreateCollection(name, metadata, embeddingFunc)
+	if c == nil {
+		t.Error("expected collection, got nil")
+	}
+
+	// Check expectations
+	if c.Name != name {
+		t.Error("expected name", name, "got", c.Name)
+	}
+	// TODO: Check metadata etc when they become accessible
+}
+
 func TestDB_ListCollections(t *testing.T) {
 	// Values in the collection
 	name := "test"
