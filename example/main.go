@@ -42,7 +42,10 @@ func main() {
 	// Create collection.
 	// We don't pass any embedding function, leading to the default being used (OpenAI text-embedding-3-small),
 	// which requires the OPENAI_API_KEY environment variable to be set.
-	collection := db.CreateCollection("Wikipedia", nil, nil)
+	collection, err := db.CreateCollection("Wikipedia", nil, nil)
+	if err != nil {
+		panic(err)
+	}
 	// Add docs to the collection.
 	// Here we use a DBpedia sample, where each line contains the lead section / introduction
 	// to some Wikipedia article and its category.
