@@ -2,6 +2,8 @@ package chromem
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"sync"
 )
 
@@ -16,15 +18,40 @@ type EmbeddingFunc func(ctx context.Context, document string) ([]float32, error)
 //	| DB |-----------| Collection |-----------| Document |
 //	+----+           +------------+           +----------+
 type DB struct {
-	collections     map[string]*Collection
-	collectionsLock sync.RWMutex
+	collections      map[string]*Collection
+	collectionsLock  sync.RWMutex
+	persistDirectory string
 }
 
-// NewDB creates a new chromem-go DB.
+// NewDB creates a new in-memory chromem-go DB.
 func NewDB() *DB {
 	return &DB{
 		collections: make(map[string]*Collection),
 	}
+}
+
+// NewPersistentDB creates a new persistent chromem-go DB.
+// If the path is empty, it defaults to "./chromem-go".
+// The persistence covers the collections (including their documents) and the metadata.
+// However it doesn't cover the EmbeddingFunc, as functions can't be serialized.
+// When some data is persisted and you create a new persistent DB with the same
+// path, you'll have to provide the same EmbeddingFunc as before when getting an
+// existing collection and adding more documents to it.
+func NewPersistentDB(path string) (*DB, error) {
+	if path == "" {
+		path = "./chromem-go"
+	}
+
+	// Make directory if it doesn't exist.
+	err := os.MkdirAll(path, 0o700)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't create persistence directory: %w", err)
+	}
+
+	return &DB{
+		persistDirectory: path,
+		collections:      make(map[string]*Collection),
+	}, nil
 }
 
 // CreateCollection creates a new collection with the given name and metadata.
@@ -33,16 +60,19 @@ func NewDB() *DB {
 //   - metadata: Optional metadata to associate with the collection.
 //   - embeddingFunc: Optional function to use to embed documents.
 //     Uses the default embedding function if not provided.
-func (c *DB) CreateCollection(name string, metadata map[string]string, embeddingFunc EmbeddingFunc) *Collection {
+func (db *DB) CreateCollection(name string, metadata map[string]string, embeddingFunc EmbeddingFunc) (*Collection, error) {
 	if embeddingFunc == nil {
 		embeddingFunc = NewEmbeddingFuncDefault()
 	}
-	collection := newCollection(name, metadata, embeddingFunc)
+	collection, err := newCollection(name, metadata, embeddingFunc, db.persistDirectory)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't create collection: %w", err)
+	}
 
-	c.collectionsLock.Lock()
-	defer c.collectionsLock.Unlock()
-	c.collections[name] = collection
-	return collection
+	db.collectionsLock.Lock()
+	defer db.collectionsLock.Unlock()
+	db.collections[name] = collection
+	return collection, nil
 }
 
 // ListCollections returns all collections in the DB, mapping name->Collection.
@@ -52,12 +82,12 @@ func (c *DB) CreateCollection(name string, metadata map[string]string, embedding
 // The map is not an entirely deep clone, so the collections themselves are still
 // the original ones. Any methods on the collections like Add() for adding documents
 // will be reflected on the DB's collections and are concurrency-safe.
-func (c *DB) ListCollections() map[string]*Collection {
-	c.collectionsLock.RLock()
-	defer c.collectionsLock.RUnlock()
+func (db *DB) ListCollections() map[string]*Collection {
+	db.collectionsLock.RLock()
+	defer db.collectionsLock.RUnlock()
 
-	res := make(map[string]*Collection, len(c.collections))
-	for k, v := range c.collections {
+	res := make(map[string]*Collection, len(db.collections))
+	for k, v := range db.collections {
 		res[k] = v
 	}
 
@@ -69,10 +99,10 @@ func (c *DB) ListCollections() map[string]*Collection {
 // on the collection like Add() will be reflected on the DB's collection. Those
 // operations are concurrency-safe.
 // If the collection doesn't exist, this returns nil.
-func (c *DB) GetCollection(name string) *Collection {
-	c.collectionsLock.RLock()
-	defer c.collectionsLock.RUnlock()
-	return c.collections[name]
+func (db *DB) GetCollection(name string) *Collection {
+	db.collectionsLock.RLock()
+	defer db.collectionsLock.RUnlock()
+	return db.collections[name]
 }
 
 // GetOrCreateCollection returns the collection with the given name if it exists
@@ -82,26 +112,30 @@ func (c *DB) GetCollection(name string) *Collection {
 //   - metadata: Optional metadata to associate with the collection.
 //   - embeddingFunc: Optional function to use to embed documents.
 //     Uses the default embedding function if not provided.
-func (c *DB) GetOrCreateCollection(name string, metadata map[string]string, embeddingFunc EmbeddingFunc) *Collection {
+func (db *DB) GetOrCreateCollection(name string, metadata map[string]string, embeddingFunc EmbeddingFunc) (*Collection, error) {
 	// No need to lock here, because the methods we call do that.
-	collection := c.GetCollection(name)
+	collection := db.GetCollection(name)
 	if collection == nil {
-		collection = c.CreateCollection(name, metadata, embeddingFunc)
+		var err error
+		collection, err = db.CreateCollection(name, metadata, embeddingFunc)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't create collection: %w", err)
+		}
 	}
-	return collection
+	return collection, nil
 }
 
 // DeleteCollection deletes the collection with the given name.
 // If the collection doesn't exist, this is a no-op.
-func (c *DB) DeleteCollection(name string) {
-	c.collectionsLock.Lock()
-	defer c.collectionsLock.Unlock()
-	delete(c.collections, name)
+func (db *DB) DeleteCollection(name string) {
+	db.collectionsLock.Lock()
+	defer db.collectionsLock.Unlock()
+	delete(db.collections, name)
 }
 
 // Reset removes all collections from the DB.
-func (c *DB) Reset() {
-	c.collectionsLock.Lock()
-	defer c.collectionsLock.Unlock()
-	c.collections = make(map[string]*Collection)
+func (db *DB) Reset() {
+	db.collectionsLock.Lock()
+	defer db.collectionsLock.Unlock()
+	db.collections = make(map[string]*Collection)
 }

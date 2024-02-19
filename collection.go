@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path"
 	"slices"
 	"sort"
 	"sync"
@@ -13,32 +15,50 @@ import (
 // It also has a configured embedding function, which is used when adding documents
 // that don't have embeddings yet.
 type Collection struct {
-	Name     string
-	metadata map[string]string
+	Name string
 
-	documents     map[string]*document
-	documentsLock sync.RWMutex
-
-	embed EmbeddingFunc
+	persistDirectory string
+	metadata         map[string]string
+	documents        map[string]*document
+	documentsLock    sync.RWMutex
+	embed            EmbeddingFunc
 }
 
 // We don't export this yet to keep the API surface to the bare minimum.
 // Users create collections via [Client.CreateCollection].
-func newCollection(name string, metadata map[string]string, embed EmbeddingFunc) *Collection {
+func newCollection(name string, metadata map[string]string, embed EmbeddingFunc, dir string) (*Collection, error) {
 	// We copy the metadata to avoid data races in case the caller modifies the
 	// map after creating the collection while we range over it.
 	m := make(map[string]string, len(metadata))
 	for k, v := range metadata {
 		m[k] = v
 	}
-	return &Collection{
-		Name:     name,
-		metadata: m,
 
+	c := &Collection{
+		Name: name,
+
+		metadata:  m,
 		documents: make(map[string]*document),
-
-		embed: embed,
+		embed:     embed,
 	}
+
+	// Persistence
+	if dir != "" {
+		safeName := hash2hex(name)
+		c.persistDirectory = path.Join(dir, safeName)
+
+		// Persist the metadata
+		err := os.MkdirAll(c.persistDirectory, 0o700)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't create collection directory: %w", err)
+		}
+		err = persist(c.persistDirectory, m)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't persist collection metadata: %w", err)
+		}
+	}
+
+	return c, nil
 }
 
 // Add embeddings to the datastore.
@@ -189,8 +209,19 @@ func (c *Collection) addRow(ctx context.Context, id string, document string, emb
 	}
 
 	c.documentsLock.Lock()
-	defer c.documentsLock.Unlock()
+	// We don't defer the unlock because we want to do it earlier.
 	c.documents[id] = doc
+	c.documentsLock.Unlock()
+
+	// Persist the document
+	if c.persistDirectory != "" {
+		safeID := hash2hex(id)
+		filePath := path.Join(c.persistDirectory, safeID)
+		err := persist(filePath, doc)
+		if err != nil {
+			return fmt.Errorf("couldn't persist document: %w", err)
+		}
+	}
 
 	return nil
 }

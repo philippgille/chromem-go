@@ -17,7 +17,10 @@ func TestDB_CreateCollection(t *testing.T) {
 
 	// Create collection
 	db := chromem.NewDB()
-	c := db.CreateCollection(name, metadata, embeddingFunc)
+	c, err := db.CreateCollection(name, metadata, embeddingFunc)
+	if err != nil {
+		t.Error("expected no error, got", err)
+	}
 	if c == nil {
 		t.Error("expected collection, got nil")
 	}
@@ -40,7 +43,10 @@ func TestDB_ListCollections(t *testing.T) {
 	// Create initial collection
 	db := chromem.NewDB()
 	// We ignore the return value. CreateCollection is tested elsewhere.
-	_ = db.CreateCollection(name, metadata, embeddingFunc)
+	_, err := db.CreateCollection(name, metadata, embeddingFunc)
+	if err != nil {
+		t.Error("expected no error, got", err)
+	}
 
 	// List collections
 	res := db.ListCollections()
@@ -84,7 +90,10 @@ func TestDB_GetCollection(t *testing.T) {
 	// Create initial collection
 	db := chromem.NewDB()
 	// We ignore the return value. CreateCollection is tested elsewhere.
-	_ = db.CreateCollection(name, metadata, embeddingFunc)
+	_, err := db.CreateCollection(name, metadata, embeddingFunc)
+	if err != nil {
+		t.Error("expected no error, got", err)
+	}
 
 	// Get collection
 	c := db.GetCollection(name)
@@ -119,12 +128,18 @@ func TestDB_GetOrCreateCollection(t *testing.T) {
 		// Create collection so that the GetOrCreateCollection() call below only
 		// gets it.
 		// We ignore the return value. CreateCollection is tested elsewhere.
-		_ = db.CreateCollection(name, metadata, embeddingFunc)
+		_, err := db.CreateCollection(name, metadata, embeddingFunc)
+		if err != nil {
+			t.Error("expected no error, got", err)
+		}
 
 		// Call GetOrCreateCollection() with the same name to only get it. We pass
 		// nil for the metadata and embeddingFunc so we can check that the returned
 		// collection is the original one, and not a new one.
-		c := db.GetOrCreateCollection(name, nil, nil)
+		c, err := db.GetOrCreateCollection(name, nil, nil)
+		if err != nil {
+			t.Error("expected no error, got", err)
+		}
 		if c == nil {
 			t.Error("expected collection, got nil")
 		}
@@ -141,7 +156,10 @@ func TestDB_GetOrCreateCollection(t *testing.T) {
 		db := chromem.NewDB()
 
 		// Call GetOrCreateCollection()
-		c := db.GetOrCreateCollection(name, metadata, embeddingFunc)
+		c, err := db.GetOrCreateCollection(name, metadata, embeddingFunc)
+		if err != nil {
+			t.Error("expected no error, got", err)
+		}
 		if c == nil {
 			t.Error("expected collection, got nil")
 		}
@@ -165,7 +183,10 @@ func TestDB_DeleteCollection(t *testing.T) {
 	// Create initial collection
 	db := chromem.NewDB()
 	// We ignore the return value. CreateCollection is tested elsewhere.
-	_ = db.CreateCollection(name, metadata, embeddingFunc)
+	_, err := db.CreateCollection(name, metadata, embeddingFunc)
+	if err != nil {
+		t.Error("expected no error, got", err)
+	}
 
 	// Delete collection
 	db.DeleteCollection(name)
@@ -189,7 +210,10 @@ func TestDB_Reset(t *testing.T) {
 	// Create initial collection
 	db := chromem.NewDB()
 	// We ignore the return value. CreateCollection is tested elsewhere.
-	_ = db.CreateCollection(name, metadata, embeddingFunc)
+	_, err := db.CreateCollection(name, metadata, embeddingFunc)
+	if err != nil {
+		t.Error("expected no error, got", err)
+	}
 
 	// Reset DB
 	db.Reset()

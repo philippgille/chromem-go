@@ -15,7 +15,10 @@ func TestCollection_Add(t *testing.T) {
 	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
 		return []float32{-0.1, 0.1, 0.2}, nil
 	}
-	c := db.CreateCollection(name, metadata, embeddingFunc)
+	c, err := db.CreateCollection(name, metadata, embeddingFunc)
+	if err != nil {
+		t.Error("expected no error, got", err)
+	}
 	if c == nil {
 		t.Error("expected collection, got nil")
 	}
@@ -24,7 +27,7 @@ func TestCollection_Add(t *testing.T) {
 	ids := []string{"1", "2"}
 	metadatas := []map[string]string{{"foo": "bar"}, {"a": "b"}}
 	documents := []string{"hello world", "hallo welt"}
-	err := c.Add(context.Background(), ids, nil, metadatas, documents)
+	err = c.Add(context.Background(), ids, nil, metadatas, documents)
 	if err != nil {
 		t.Error("expected nil, got", err)
 	}
