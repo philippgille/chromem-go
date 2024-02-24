@@ -46,13 +46,14 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 	if dir != "" {
 		safeName := hash2hex(name)
 		c.persistDirectory = path.Join(dir, safeName)
-
-		// Persist the metadata
+		// Create dir
 		err := os.MkdirAll(c.persistDirectory, 0o700)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't create collection directory: %w", err)
 		}
-		err = persist(c.persistDirectory, m)
+		// Persist metadata
+		metadataPath := path.Join(c.persistDirectory, metadataFileName)
+		err = persist(metadataPath, m)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't persist collection metadata: %w", err)
 		}

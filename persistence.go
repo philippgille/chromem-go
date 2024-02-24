@@ -8,6 +8,8 @@ import (
 	"os"
 )
 
+const metadataFileName = "00000000"
+
 func hash2hex(name string) string {
 	hash := sha256.Sum256([]byte(name))
 	// We encode 4 of the 32 bytes (32 out of 256 bits), so 8 hex characters.
