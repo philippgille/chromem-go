@@ -41,6 +41,9 @@ func NewDB() *DB {
 func NewPersistentDB(path string) (*DB, error) {
 	if path == "" {
 		path = "./chromem-go"
+	} else {
+		// Clean in case the user provides something like "./db/../db"
+		path = filepath.Clean(path)
 	}
 
 	db := &DB{
@@ -63,6 +66,10 @@ func NewPersistentDB(path string) (*DB, error) {
 		if err != nil {
 			return fmt.Errorf("couldn't walk DB directory: %w", err)
 		}
+		// WalkDir reads root, which we can skip.
+		if path == p {
+			return nil
+		}
 		// First level is the subdirectories for the collections, so skip any files.
 		if !info.IsDir() {
 			return nil
@@ -78,7 +85,8 @@ func NewPersistentDB(path string) (*DB, error) {
 			// We can fill embed only when the user calls DB.GetCollection() or
 			// DB.GetOrCreateCollection().
 		}
-		err = filepath.WalkDir(filepath.Join(path, info.Name()), func(p string, info os.DirEntry, err error) error {
+		collectionPath := filepath.Join(path, info.Name())
+		err = filepath.WalkDir(collectionPath, func(p string, info os.DirEntry, err error) error {
 			if err != nil {
 				return fmt.Errorf("couldn't walk collection directory: %w", err)
 			}
