@@ -51,9 +51,16 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 		if err != nil {
 			return nil, fmt.Errorf("couldn't create collection directory: %w", err)
 		}
-		// Persist metadata
+		// Persist name and metadata
 		metadataPath := path.Join(c.persistDirectory, metadataFileName)
-		err = persist(metadataPath, m)
+		pc := struct {
+			Name     string
+			Metadata map[string]string
+		}{
+			Name:     name,
+			Metadata: m,
+		}
+		err = persist(metadataPath, pc)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't persist collection metadata: %w", err)
 		}
