@@ -96,7 +96,7 @@ func TestDB_GetCollection(t *testing.T) {
 	}
 
 	// Get collection
-	c := db.GetCollection(name)
+	c := db.GetCollection(name, nil)
 
 	// Check expectations
 	if c.Name != name {
