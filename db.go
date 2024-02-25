@@ -62,17 +62,15 @@ func NewPersistentDB(path string) (*DB, error) {
 	}
 
 	// Otherwise, read all collections and their documents from the directory.
-	err := filepath.WalkDir(path, func(p string, info os.DirEntry, err error) error {
-		if err != nil {
-			return fmt.Errorf("couldn't walk DB directory: %w", err)
-		}
-		// WalkDir reads root, which we can skip.
-		if path == p {
-			return nil
-		}
-		// First level is the subdirectories for the collections, so skip any files.
-		if !info.IsDir() {
-			return nil
+	dirEntries, err := os.ReadDir(path)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't read persistence directory: %w", err)
+	}
+	for _, dirEntry := range dirEntries {
+		// Collections are subdirectories, so skip any files (which the user might
+		// have placed).
+		if !dirEntry.IsDir() {
+			continue
 		}
 		// For each subdirectory, create a collection and read its name, metadata
 		// and documents.
@@ -85,49 +83,47 @@ func NewPersistentDB(path string) (*DB, error) {
 			// We can fill embed only when the user calls DB.GetCollection() or
 			// DB.GetOrCreateCollection().
 		}
-		collectionPath := filepath.Join(path, info.Name())
-		err = filepath.WalkDir(collectionPath, func(p string, info os.DirEntry, err error) error {
-			if err != nil {
-				return fmt.Errorf("couldn't walk collection directory: %w", err)
-			}
-			// Files should be metadata and documents; skip subdirectories.
-			if info.IsDir() {
-				return nil
+		collectionPath := filepath.Join(path, dirEntry.Name())
+		collectionDirEntries, err := os.ReadDir(collectionPath)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't read collection directory: %w", err)
+		}
+		for _, collectionDirEntry := range collectionDirEntries {
+			// Files should be metadata and documents; skip subdirectories which
+			// the user might have placed.
+			if collectionDirEntry.IsDir() {
+				continue
 			}
 
-			if info.Name() == metadataFileName+".gob" {
+			fPath := filepath.Join(collectionPath, collectionDirEntry.Name())
+			// Differentiate between collection metadata, documents and other files.
+			if collectionDirEntry.Name() == metadataFileName+".gob" {
+				// Read name and metadata
 				pc := struct {
 					Name     string
 					Metadata map[string]string
 				}{}
-				err := read(p, &pc)
+				err := read(fPath, &pc)
 				if err != nil {
-					return fmt.Errorf("couldn't read collection metadata: %w", err)
+					return nil, fmt.Errorf("couldn't read collection metadata: %w", err)
 				}
 				c.Name = pc.Name
-				c.persistDirectory = filepath.Dir(p)
+				c.persistDirectory = filepath.Dir(collectionPath)
 				c.metadata = pc.Metadata
-			} else {
+			} else if filepath.Ext(collectionDirEntry.Name()) == ".gob" {
 				// Read document
 				d := &document{}
-				err := read(p, d)
+				err := read(fPath, d)
 				if err != nil {
-					return fmt.Errorf("couldn't read document: %w", err)
+					return nil, fmt.Errorf("couldn't read document: %w", err)
 				}
 				c.documents[d.ID] = d
+			} else {
+				// Might be a file that the user has placed
+				continue
 			}
-
-			return nil
-		})
-		if err != nil {
-			return fmt.Errorf("couldn't read collection directory: %w", err)
 		}
 		db.collections[c.Name] = c
-
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("couldn't read persisted database: %w", err)
 	}
 
 	return db, nil
