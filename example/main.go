@@ -19,14 +19,16 @@ const (
 	question = "Wich smooth jazz album received a Grammy nomination in 2009? I want to know the album name and artist."
 	// We use a local LLM running in ollama: https://ollama.com/
 	ollamaBaseURL = "http://localhost:11434/v1"
-	// We use a very small model that doesn't need much resources and is fast, but doesn't have much knowledge: https://ollama.com/library/tinyllama
+	// We use a very small model that doesn't need much resources and is fast, but
+	// doesn't have much knowledge: https://ollama.com/library/tinyllama
 	ollamaModel = "tinyllama:1.1b"
 )
 
 func main() {
 	ctx := context.Background()
 
-	// First we ask an LLM a fairly specific question that it won't know the answer to.
+	// First we ask an LLM a fairly specific question that it won't know the answer
+	// to.
 	log.Println("Asking LLM...")
 	reply := askLLM(ctx, "", question)
 	fmt.Printf("\nInitial reply from the LLM:\n" +
@@ -36,15 +38,23 @@ func main() {
 	// Now we use our vector database for retrieval augmented generation (RAG),
 	// which means we provide the LLM with relevant knowledge.
 
-	// Set up chromem-go in-memory, for easy prototyping.
+	// Set up chromem-go with persistence, so that when the program restarts, the
+	// DB's data is still available.
 	log.Println("Setting up chromem-go...")
-	db := chromem.NewDB()
+	db, err := chromem.NewPersistentDB("./db")
+	if err != nil {
+		panic(err)
+	}
 	// Create collection.
-	// We don't pass any embedding function, leading to the default being used (OpenAI text-embedding-3-small),
-	// which requires the OPENAI_API_KEY environment variable to be set.
-	collection := db.CreateCollection("Wikipedia", nil, nil)
+	// We don't pass any embedding function, leading to the default being used (OpenAI
+	// text-embedding-3-small), which requires the OPENAI_API_KEY environment variable
+	// to be set.
+	collection, err := db.CreateCollection("Wikipedia", nil, nil)
+	if err != nil {
+		panic(err)
+	}
 	// Add docs to the collection.
-	// Here we use a DBpedia sample, where each line contains the lead section / introduction
+	// Here we use a DBpedia sample, where each line contains the lead section/introduction
 	// to some Wikipedia article and its category.
 	f, err := os.Open("dbpedia_sample.jsonl")
 	if err != nil {
@@ -55,7 +65,8 @@ func main() {
 	var metadatas []map[string]string
 	var texts []string
 	log.Println("Reading JSON lines...")
-	// In this example we just read the first 20 lines, but in a real-world scenario you'd read the entire file.
+	// In this example we just read the first 20 lines, but in a real-world scenario
+	// you'd read the entire file.
 	for i := 0; i < 20; i++ {
 		var article struct {
 			Text     string `json:"text"`
@@ -78,8 +89,10 @@ func main() {
 		panic(err)
 	}
 
-	// Search for documents similar to the one we added just by passing the original question.
-	// We ask for the two most similar documents, but you can use more or less depending on your needs and the supported context size of the LLM you use.
+	// Search for documents similar to the one we added just by passing the original
+	// question.
+	// We ask for the two most similar documents, but you can use more or less depending
+	// on your needs and the supported context size of the LLM you use.
 	log.Println("Querying chromem-go...")
 	docRes, err := collection.Query(ctx, question, 2, nil, nil)
 	if err != nil {

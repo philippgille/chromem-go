@@ -2,9 +2,9 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/philippgille/chromem-go.svg)](https://pkg.go.dev/github.com/philippgille/chromem-go)
 
-Embeddable in-memory vector database for Go with Chroma-like interface and zero third-party dependencies.
+Embeddable vector database for Go with Chroma-like interface and zero third-party dependencies. In-memory with optional persistence.
 
-It's *not* a library to connect to ChromaDB. It's an in-memory database on its own.
+It's *not* a library to connect to ChromaDB. It's a database on its own.
 
 Being embeddable enables you to add retrieval augmented generation (RAG) and similar embeddings-based features into your Go app *without having to run a separate database*. Like when using SQLite instead of PostgreSQL/MySQL/etc.
 
@@ -86,7 +86,7 @@ package main
 import "github.com/philippgille/chromem-go"
 
 func main() {
-    // Set up chromem-go in-memory, for easy prototyping. Persistence will be added in the future.
+    // Set up chromem-go in-memory, for easy prototyping. Can add persistence easily!
     // We call it DB instead of client because there's no client-server separation. The DB is embedded.
     db := chromem.NewDB()
 
@@ -94,7 +94,7 @@ func main() {
     collection := db.CreateCollection("all-my-documents", nil, nil)
 
     // Add docs to the collection. Update and delete will be added in the future.
-    // Row-based API will be added when Chroma adds it!
+    // Row-based API will be added when Chroma adds it or even before!
     _ = collection.Add(ctx,
         []string{"doc1", "doc2"}, // unique ID for each doc
         nil, // We handle embedding automatically. You can skip that and add your own embeddings as well.
@@ -143,7 +143,7 @@ See the Godoc for details: <https://pkg.go.dev/github.com/philippgille/chromem-g
   - [ ] Operators (`$and`, `$or` etc.)
 - Storage:
   - [X] In-memory
-  - [ ] Persistent (file)
+  - [X] Persistent (file)
   - [ ] Persistent (others (S3, PostgreSQL, ...))
 - Data types:
   - [X] Documents (text)
