@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 vNext
 -----
 
+In this release we added optional persistence and increased the API surface with DB methods that Chroma offers as well.
+
 ### Added
 
 - Added `DB.ListCollections()` (PR [#12](https://github.com/philippgille/chromem-go/pull/12))
@@ -16,6 +18,11 @@ vNext
 - Added `DB.DeleteCollection()` (PR [#14](https://github.com/philippgille/chromem-go/pull/14))
 - Added `DB.Reset()` (PR [#15](https://github.com/philippgille/chromem-go/pull/15))
 - Added various unit tests (PR [#20](https://github.com/philippgille/chromem-go/pull/20))
+- Added `DB.GetOrCreateCollection()` (PR [#22](https://github.com/philippgille/chromem-go/pull/22))
+- Added optional persistence! Via multiple PRs:
+  - Write in PR [#23](https://github.com/philippgille/chromem-go/pull/23)+[#24](https://github.com/philippgille/chromem-go/pull/24)
+  - Read in PR [#25](https://github.com/philippgille/chromem-go/pull/25)
+  - Delete: TODO
 
 ### Improved
 
@@ -27,6 +34,10 @@ vNext
 - Improved CI (PR [#18](https://github.com/philippgille/chromem-go/pull/18))
   - Add Go 1.22 to test matrix, update used GitHub Action from v4 to v5, use race detector during tests
 - Reorganize code internally (PR [#21](https://github.com/philippgille/chromem-go/pull/21))
+
+### Breaking changes
+
+- Because functions can't be (de-)serialized, `GetCollection` requires a new parameter of type `EmbeddingFunc`, in order to set the correct func when using a DB with persistence and it just loaded the collections and documents from storage. (PR [#25](https://github.com/philippgille/chromem-go/pull/25))
 
 v0.3.0 (2024-02-10)
 -------------------
