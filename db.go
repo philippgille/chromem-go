@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 )
 
@@ -42,16 +43,86 @@ func NewPersistentDB(path string) (*DB, error) {
 		path = "./chromem-go"
 	}
 
-	// Make directory if it doesn't exist.
-	err := os.MkdirAll(path, 0o700)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't create persistence directory: %w", err)
-	}
-
-	return &DB{
+	db := &DB{
 		persistDirectory: path,
 		collections:      make(map[string]*Collection),
-	}, nil
+	}
+
+	// If the directory doesn't exist, create it and return an empty DB.
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		err := os.MkdirAll(path, 0o700)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't create persistence directory: %w", err)
+		}
+
+		return db, nil
+	}
+
+	// Otherwise, read all collections and their documents from the directory.
+	err := filepath.WalkDir(path, func(p string, info os.DirEntry, err error) error {
+		if err != nil {
+			return fmt.Errorf("couldn't walk DB directory: %w", err)
+		}
+		// First level is the subdirectories for the collections, so skip any files.
+		if !info.IsDir() {
+			return nil
+		}
+		// For each subdirectory, create a collection and read its name, metadata
+		// and documents.
+		// TODO: Parallelize this (e.g. chan with $numCPU buffer and $numCPU goroutines
+		// reading from it).
+		c := &Collection{
+			// We can fill Name, persistDirectory and metadata only after reading
+			// the metadata.
+			documents: make(map[string]*document),
+			// We can fill embed only when the user calls DB.GetCollection() or
+			// DB.GetOrCreateCollection().
+		}
+		err = filepath.WalkDir(filepath.Join(path, info.Name()), func(p string, info os.DirEntry, err error) error {
+			if err != nil {
+				return fmt.Errorf("couldn't walk collection directory: %w", err)
+			}
+			// Files should be metadata and documents; skip subdirectories.
+			if info.IsDir() {
+				return nil
+			}
+
+			if info.Name() == metadataFileName+".gob" {
+				pc := struct {
+					Name     string
+					Metadata map[string]string
+				}{}
+				err := read(p, &pc)
+				if err != nil {
+					return fmt.Errorf("couldn't read collection metadata: %w", err)
+				}
+				c.Name = pc.Name
+				c.persistDirectory = filepath.Dir(p)
+				c.metadata = pc.Metadata
+			} else {
+				// Read document
+				d := &document{}
+				err := read(p, d)
+				if err != nil {
+					return fmt.Errorf("couldn't read document: %w", err)
+				}
+				c.documents[d.ID] = d
+			}
+
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("couldn't read collection directory: %w", err)
+		}
+		db.collections[c.Name] = c
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("couldn't read persisted database: %w", err)
+	}
+
+	return db, nil
 }
 
 // CreateCollection creates a new collection with the given name and metadata.

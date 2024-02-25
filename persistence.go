@@ -18,7 +18,8 @@ func hash2hex(name string) string {
 	return hex.EncodeToString(hash[:4])
 }
 
-// persist persists an object to a file at the given path.
+// persist persists an object to a file at the given path. The object is serialized
+// as gob.
 func persist(filePath string, obj any) error {
 	filePath += ".gob"
 
@@ -32,6 +33,24 @@ func persist(filePath string, obj any) error {
 	err = enc.Encode(obj)
 	if err != nil {
 		return fmt.Errorf("couldn't encode or write object: %w", err)
+	}
+
+	return nil
+}
+
+// read reads an object from a file at the given path. The object is deserialized
+// from gob. `obj` must be a pointer to an instantiated object.
+func read(filePath string, obj any) error {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("couldn't open file '%s': %w", filePath, err)
+	}
+	defer f.Close()
+
+	dec := gob.NewDecoder(f)
+	err = dec.Decode(obj)
+	if err != nil {
+		return fmt.Errorf("couldn't decode or read object: %w", err)
 	}
 
 	return nil
