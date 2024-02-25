@@ -170,14 +170,30 @@ func (db *DB) ListCollections() map[string]*Collection {
 }
 
 // GetCollection returns the collection with the given name.
-// The returned value is a reference to the original collection, so any methods
+// The embeddingFunc param is only used if the DB is persistent and was just loaded
+// from storage, in which case no embedding func is set yet (funcs are not (de-)serializable).
+// It can be nil, in which case the default one will be used.
+// The returned collection is a reference to the original collection, so any methods
 // on the collection like Add() will be reflected on the DB's collection. Those
 // operations are concurrency-safe.
 // If the collection doesn't exist, this returns nil.
-func (db *DB) GetCollection(name string) *Collection {
+func (db *DB) GetCollection(name string, embeddingFunc EmbeddingFunc) *Collection {
 	db.collectionsLock.RLock()
 	defer db.collectionsLock.RUnlock()
-	return db.collections[name]
+
+	c, ok := db.collections[name]
+	if !ok {
+		return nil
+	}
+
+	if c.embed == nil {
+		if embeddingFunc == nil {
+			c.embed = NewEmbeddingFuncDefault()
+		} else {
+			c.embed = embeddingFunc
+		}
+	}
+	return c
 }
 
 // GetOrCreateCollection returns the collection with the given name if it exists
@@ -189,7 +205,7 @@ func (db *DB) GetCollection(name string) *Collection {
 //     Uses the default embedding function if not provided.
 func (db *DB) GetOrCreateCollection(name string, metadata map[string]string, embeddingFunc EmbeddingFunc) (*Collection, error) {
 	// No need to lock here, because the methods we call do that.
-	collection := db.GetCollection(name)
+	collection := db.GetCollection(name, embeddingFunc)
 	if collection == nil {
 		var err error
 		collection, err = db.CreateCollection(name, metadata, embeddingFunc)
