@@ -76,17 +76,17 @@ func NewPersistentDB(path string) (*DB, error) {
 		// and documents.
 		// TODO: Parallelize this (e.g. chan with $numCPU buffer and $numCPU goroutines
 		// reading from it).
+		collectionPath := filepath.Join(path, dirEntry.Name())
+		collectionDirEntries, err := os.ReadDir(collectionPath)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't read collection directory: %w", err)
+		}
 		c := &Collection{
 			// We can fill Name, persistDirectory and metadata only after reading
 			// the metadata.
 			documents: make(map[string]*document),
 			// We can fill embed only when the user calls DB.GetCollection() or
 			// DB.GetOrCreateCollection().
-		}
-		collectionPath := filepath.Join(path, dirEntry.Name())
-		collectionDirEntries, err := os.ReadDir(collectionPath)
-		if err != nil {
-			return nil, fmt.Errorf("couldn't read collection directory: %w", err)
 		}
 		for _, collectionDirEntry := range collectionDirEntries {
 			// Files should be metadata and documents; skip subdirectories which
