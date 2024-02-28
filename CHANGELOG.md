@@ -8,21 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 vNext
 -----
 
-In this release we added optional persistence and increased the API surface with DB methods that Chroma offers as well.
+In this release the main features are optional persistence and an extended interface.
 
 ### Added
 
-- Added `DB.ListCollections()` (PR [#12](https://github.com/philippgille/chromem-go/pull/12))
-- Added `DB.GetCollection()` (PR [#13](https://github.com/philippgille/chromem-go/pull/13) + [#19](https://github.com/philippgille/chromem-go/pull/19))
-- Added `DB.GetOrCreateCollection()` (PR [#22](https://github.com/philippgille/chromem-go/pull/22))
-- Added `DB.DeleteCollection()` (PR [#14](https://github.com/philippgille/chromem-go/pull/14))
-- Added `DB.Reset()` (PR [#15](https://github.com/philippgille/chromem-go/pull/15))
+- Extended the interface:
+  - `DB.ListCollections()` (PR [#12](https://github.com/philippgille/chromem-go/pull/12))
+  - `DB.GetCollection()` (PR [#13](https://github.com/philippgille/chromem-go/pull/13) + [#19](https://github.com/philippgille/chromem-go/pull/19))
+  - `DB.DeleteCollection()` (PR [#14](https://github.com/philippgille/chromem-go/pull/14))
+  - `DB.Reset()` (PR [#15](https://github.com/philippgille/chromem-go/pull/15))
+  - `DB.GetOrCreateCollection()` (PR [#22](https://github.com/philippgille/chromem-go/pull/22))
 - Added various unit tests (PR [#20](https://github.com/philippgille/chromem-go/pull/20))
-- Added `DB.GetOrCreateCollection()` (PR [#22](https://github.com/philippgille/chromem-go/pull/22))
 - Added optional persistence! Via multiple PRs:
   - Write in PR [#23](https://github.com/philippgille/chromem-go/pull/23)+[#24](https://github.com/philippgille/chromem-go/pull/24)
   - Read in PR [#25](https://github.com/philippgille/chromem-go/pull/25)
-  - Delete: TODO
+  - Delete in PR [#26](https://github.com/philippgille/chromem-go/pull/26)
 
 ### Improved
 
@@ -38,6 +38,7 @@ In this release we added optional persistence and increased the API surface with
 ### Breaking changes
 
 - Because functions can't be (de-)serialized, `GetCollection` requires a new parameter of type `EmbeddingFunc`, in order to set the correct func when using a DB with persistence and it just loaded the collections and documents from storage. (PR [#25](https://github.com/philippgille/chromem-go/pull/25))
+- Some methods now return an error (due to file operations when persistence is used)
 
 v0.3.0 (2024-02-10)
 -------------------
