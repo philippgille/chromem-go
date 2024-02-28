@@ -218,15 +218,49 @@ func (db *DB) GetOrCreateCollection(name string, metadata map[string]string, emb
 
 // DeleteCollection deletes the collection with the given name.
 // If the collection doesn't exist, this is a no-op.
-func (db *DB) DeleteCollection(name string) {
+// If the DB is persistent, it also removes the collection's directory.
+// You shouldn't hold any references to the collection after calling this method.
+func (db *DB) DeleteCollection(name string) error {
 	db.collectionsLock.Lock()
 	defer db.collectionsLock.Unlock()
+
+	col, ok := db.collections[name]
+	if !ok {
+		return nil
+	}
+
+	if db.persistDirectory != "" {
+		collectionPath := col.persistDirectory
+		err := os.RemoveAll(collectionPath)
+		if err != nil {
+			return fmt.Errorf("couldn't delete collection directory: %w", err)
+		}
+	}
+
 	delete(db.collections, name)
+	return nil
 }
 
 // Reset removes all collections from the DB.
-func (db *DB) Reset() {
+// If the DB is persistent, it also removes all contents of the DB directory.
+// You shouldn't hold any references to old collections after calling this method.
+func (db *DB) Reset() error {
 	db.collectionsLock.Lock()
 	defer db.collectionsLock.Unlock()
+
+	if db.persistDirectory != "" {
+		err := os.RemoveAll(db.persistDirectory)
+		if err != nil {
+			return fmt.Errorf("couldn't delete persistence directory: %w", err)
+		}
+		// Recreate empty root level directory
+		err = os.MkdirAll(db.persistDirectory, 0o700)
+		if err != nil {
+			return fmt.Errorf("couldn't recreate persistence directory: %w", err)
+		}
+	}
+
+	// Just assign a new map, the GC will take care of the rest.
 	db.collections = make(map[string]*Collection)
+	return nil
 }
