@@ -15,21 +15,30 @@ func TestDB_CreateCollection(t *testing.T) {
 		return []float32{-0.1, 0.1, 0.2}, nil
 	}
 
-	// Create collection
 	db := chromem.NewDB()
-	c, err := db.CreateCollection(name, metadata, embeddingFunc)
-	if err != nil {
-		t.Error("expected no error, got", err)
-	}
-	if c == nil {
-		t.Error("expected collection, got nil")
-	}
 
-	// Check expectations
-	if c.Name != name {
-		t.Error("expected name", name, "got", c.Name)
-	}
-	// TODO: Check metadata etc when they become accessible
+	t.Run("OK", func(t *testing.T) {
+		c, err := db.CreateCollection(name, metadata, embeddingFunc)
+		if err != nil {
+			t.Error("expected no error, got", err)
+		}
+		if c == nil {
+			t.Error("expected collection, got nil")
+		}
+
+		// Check expectations
+		if c.Name != name {
+			t.Error("expected name", name, "got", c.Name)
+		}
+		// TODO: Check metadata etc when they become accessible
+	})
+
+	t.Run("NOK - Empty name", func(t *testing.T) {
+		_, err := db.CreateCollection("", metadata, embeddingFunc)
+		if err == nil {
+			t.Error("expected error, got nil")
+		}
+	})
 }
 
 func TestDB_ListCollections(t *testing.T) {
