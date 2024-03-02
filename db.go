@@ -2,7 +2,9 @@ package chromem
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
@@ -52,7 +54,7 @@ func NewPersistentDB(path string) (*DB, error) {
 	}
 
 	// If the directory doesn't exist, create it and return an empty DB.
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	if _, err := os.Stat(path); errors.Is(err, fs.ErrNotExist) {
 		err := os.MkdirAll(path, 0o700)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't create persistence directory: %w", err)
