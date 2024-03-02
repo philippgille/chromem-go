@@ -107,14 +107,17 @@ func (c *Collection) Count() int {
 //   - where: Conditional filtering on metadata. Optional.
 //   - whereDocument: Conditional filtering on documents. Optional.
 func (c *Collection) Query(ctx context.Context, queryText string, nResults int, where, whereDocument map[string]string) ([]Result, error) {
+	if queryText == "" {
+		return nil, errors.New("queryText is empty")
+	}
+	if nResults <= 0 {
+		return nil, errors.New("nResults must be > 0")
+	}
+
 	c.documentsLock.RLock()
 	defer c.documentsLock.RUnlock()
 	if len(c.documents) == 0 {
 		return nil, nil
-	}
-
-	if nResults <= 0 {
-		return nil, errors.New("nResults must be > 0")
 	}
 
 	// Validate whereDocument operators
