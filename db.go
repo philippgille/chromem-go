@@ -35,11 +35,16 @@ func NewDB() *DB {
 
 // NewPersistentDB creates a new persistent chromem-go DB.
 // If the path is empty, it defaults to "./chromem-go".
+//
 // The persistence covers the collections (including their documents) and the metadata.
 // However it doesn't cover the EmbeddingFunc, as functions can't be serialized.
 // When some data is persisted and you create a new persistent DB with the same
 // path, you'll have to provide the same EmbeddingFunc as before when getting an
 // existing collection and adding more documents to it.
+//
+// Currently the persistence is done synchronously on each write operation, and
+// each document addition leads to a new file, encoded as gob. In the future we
+// will make this configurable (encoding, async writes, WAL-based writes, etc.).
 func NewPersistentDB(path string) (*DB, error) {
 	if path == "" {
 		path = "./chromem-go"
