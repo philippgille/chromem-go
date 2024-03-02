@@ -5,32 +5,24 @@ import (
 	"encoding/json"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"runtime"
 	"strconv"
-	"strings"
 
 	"github.com/philippgille/chromem-go"
-	"github.com/sashabaranov/go-openai"
 )
 
 const (
-	question = "How many Albatros L 74 planes were produced?"
-	// We use a local LLM running in ollama: https://ollama.com/
-	ollamaBaseURL = "http://localhost:11434/v1"
-	// We use a very small model that doesn't need much resources and is fast, but
-	// doesn't have much knowledge: https://ollama.com/library/gemma
-	// We found Gemma 2B to be superior to TinyLlama (1.1B), Stable LM 2 (1.6B)
-	// and Phi-2 (2.7B) for the retrieval augmented generation (RAG) use case.
-	ollamaModel = "gemma:2b"
+	question = "When did the Monarch Company exist?"
+	// We use a local LLM running in Ollama for the embedding: https://ollama.com/library/nomic-embed-text
+	embeddingModel = "nomic-embed-text"
 )
 
 func main() {
 	ctx := context.Background()
 
-	// Warm up ollama, in case the model isn't loaded yet
-	log.Println("Warming up ollama...")
+	// Warm up Ollama, in case the model isn't loaded yet
+	log.Println("Warming up Ollama...")
 	_ = askLLM(ctx, nil, "Hello!")
 
 	// First we ask an LLM a fairly specific question that it likely won't know
@@ -51,10 +43,12 @@ func main() {
 		panic(err)
 	}
 	// Create collection if it wasn't loaded from persistent storage yet.
-	// We don't pass any embedding function, leading to the default being used (OpenAI
-	// text-embedding-3-small), which requires the OPENAI_API_KEY environment variable
-	// to be set.
-	collection, err := db.GetOrCreateCollection("Wikipedia", nil, nil)
+	// You can pass nil as embedding function to use the default (OpenAI text-embedding-3-small),
+	// which is very good and cheap. It would require the OPENAI_API_KEY environment
+	// variable to be set.
+	// For this example we choose to use a locally running embedding model though.
+	// It requires Ollama to serve its API at "http://localhost:11434/api".
+	collection, err := db.GetOrCreateCollection("Wikipedia", nil, chromem.NewEmbeddingFuncOllama(embeddingModel))
 	if err != nil {
 		panic(err)
 	}
@@ -88,7 +82,7 @@ func main() {
 			metadatas = append(metadatas, map[string]string{"category": article.Category})
 			texts = append(texts, article.Text)
 		}
-		log.Println("Adding documents to chromem-go, including creating their embeddings via OpenAI API...")
+		log.Println("Adding documents to chromem-go, including creating their embeddings via Ollama API...")
 		err = collection.AddConcurrently(ctx, ids, nil, metadatas, texts, runtime.NumCPU())
 		if err != nil {
 			panic(err)
@@ -109,6 +103,11 @@ func main() {
 	// Here you could filter out any documents whose similarity is below a certain threshold.
 	// if docRes[...].Similarity < 0.5 { ...
 
+	// Print the retrieved documents and their similarity to the question.
+	for i, res := range docRes {
+		log.Printf("Document %d (similarity: %f): \"%s\"\n", i+1, res.Similarity, res.Document)
+	}
+
 	// Now we can ask the LLM again, augmenting the question with the knowledge we retrieved.
 	// In this example we just use both retrieved documents as context.
 	contexts := []string{docRes[0].Document, docRes[1].Document}
@@ -117,52 +116,17 @@ func main() {
 	log.Printf("Reply after augmenting the question with knowledge: \"" + reply + "\"\n")
 
 	/* Output (can differ slightly on each run):
-	2024/03/02 14:52:40 Warming up ollama...
-	2024/03/02 14:52:42 Question: How many Albatros L 74 planes were produced?
-	2024/03/02 14:52:42 Asking LLM...
-	2024/03/02 14:52:45 Initial reply from the LLM: "I am unable to provide a specific number for the number of Albatros L 74 planes produced, as I do not have access to real-time information or comprehensive records."
-	2024/03/02 14:52:45 Setting up chromem-go...
-	2024/03/02 14:52:45 Reading JSON lines...
-	2024/03/02 14:52:45 Adding documents to chromem-go, including creating their embeddings via OpenAI API...
-	2024/03/02 14:52:55 Querying chromem-go...
-	2024/03/02 14:52:55 Asking LLM with augmented question...
-	2024/03/02 14:53:01 Reply after augmenting the question with knowledge: "Answer: Only two Albatros L 74 planes were produced."
+	2024/03/02 20:02:30 Warming up Ollama...
+	2024/03/02 20:02:33 Question: When did the Monarch Company exist?
+	2024/03/02 20:02:33 Asking LLM...
+	2024/03/02 20:02:34 Initial reply from the LLM: "I cannot provide information on the Monarch Company, as I am unable to access real-time or comprehensive knowledge sources."
+	2024/03/02 20:02:34 Setting up chromem-go...
+	2024/03/02 20:02:34 Reading JSON lines...
+	2024/03/02 20:02:34 Adding documents to chromem-go, including creating their embeddings via Ollama API...
+	2024/03/02 20:03:11 Querying chromem-go...
+	2024/03/02 20:03:11 Document 1 (similarity: 0.723627): "Malleable Iron Range Company was a company that existed from 1896 to 1985 and primarily produced kitchen ranges made of malleable iron but also produced a variety of other related products. The company's primary trademark was 'Monarch' and was colloquially often referred to as the Monarch Company or just Monarch."
+	2024/03/02 20:03:11 Document 2 (similarity: 0.550584): "The American Motor Car Company was a short-lived company in the automotive industry founded in 1906 lasting until 1913. It was based in Indianapolis Indiana United States. The American Motor Car Company pioneered the underslung design."
+	2024/03/02 20:03:11 Asking LLM with augmented question...
+	2024/03/02 20:03:32 Reply after augmenting the question with knowledge: "The Monarch Company existed from 1896 to 1985."
 	*/
-}
-
-func askLLM(ctx context.Context, contexts []string, question string) string {
-	// We use a local LLM running in ollama, which has an OpenAI-compatible API.
-	openAIClient := openai.NewClientWithConfig(openai.ClientConfig{
-		BaseURL:    ollamaBaseURL,
-		HTTPClient: http.DefaultClient,
-	})
-	messages := []openai.ChatCompletionMessage{
-		{
-			Role:    openai.ChatMessageRoleSystem,
-			Content: "You are a helpful assistant. You answer the user's questions in a concise manner. If you are not sure, say that you don't know the answer. If the user provides contexts, use them to answer their question.",
-		},
-	}
-	// Add contexts in reverse order, as many LLMs prioritize the latest message
-	// or rather forget about older ones (despite fitting into the LLM context).
-	for i := len(contexts) - 1; i >= 0; i-- {
-		messages = append(messages, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleUser,
-			Content: "Context:" + contexts[i],
-		})
-	}
-	messages = append(messages, openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleUser,
-		Content: "Question: " + question,
-	})
-	res, err := openAIClient.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model:    ollamaModel,
-		Messages: messages,
-	})
-	if err != nil {
-		panic(err)
-	}
-	reply := res.Choices[0].Message.Content
-	reply = strings.TrimSpace(reply)
-
-	return reply
 }
