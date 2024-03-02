@@ -138,6 +138,9 @@ func NewPersistentDB(path string) (*DB, error) {
 //   - embeddingFunc: Optional function to use to embed documents.
 //     Uses the default embedding function if not provided.
 func (db *DB) CreateCollection(name string, metadata map[string]string, embeddingFunc EmbeddingFunc) (*Collection, error) {
+	if name == "" {
+		return nil, errors.New("collection name is empty")
+	}
 	if embeddingFunc == nil {
 		embeddingFunc = NewEmbeddingFuncDefault()
 	}
