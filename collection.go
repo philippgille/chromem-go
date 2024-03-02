@@ -93,6 +93,13 @@ func (c *Collection) AddConcurrently(ctx context.Context, ids []string, embeddin
 	return c.add(ctx, ids, documents, embeddings, metadatas, concurrency)
 }
 
+// Count returns the number of documents in the collection.
+func (c *Collection) Count() int {
+	c.documentsLock.RLock()
+	defer c.documentsLock.RUnlock()
+	return len(c.documents)
+}
+
 // Performs a nearest neighbors query on a collection specified by UUID.
 //
 //   - queryText: The text to search for.
