@@ -2,26 +2,45 @@ package chromem
 
 import (
 	"context"
+	"errors"
 )
 
-type document struct {
-	ID       string
-	Metadata map[string]string
-	Document string
-
-	Vectors []float32
+// Document represents a single document.
+type Document struct {
+	ID        string
+	Metadata  map[string]string
+	Embedding []float32
+	Content   string
 }
 
-// newDocument creates a new document, including its embeddings.
+// NewDocument creates a new document, including its embeddings.
+// Metadata is optional.
 // If the embeddings are not provided, they are created using the embedding function.
-func newDocument(ctx context.Context, id string, embeddings []float32, metadata map[string]string, doc string, embed EmbeddingFunc) (*document, error) {
-	if len(embeddings) == 0 {
-		vectors, err := embed(ctx, doc)
-		if err != nil {
-			return nil, err
-		}
-		embeddings = vectors
+// You can leave the content empty if you only want to store embeddings.
+// If embeddingFunc is nil, the default embedding function is used.
+//
+// If you want to create a document without embeddings, for example to let [Collection.AddDocuments]
+// create them concurrently, you can create a document with `chromem.Document{...}`
+// instead of using this constructor.
+func NewDocument(ctx context.Context, id string, metadata map[string]string, embedding []float32, content string, embeddingFunc EmbeddingFunc) (Document, error) {
+	if id == "" {
+		return Document{}, errors.New("id is empty")
 	}
+	if len(embedding) == 0 && content == "" {
+		return Document{}, errors.New("either embedding or content must be filled")
+	}
+	if embeddingFunc == nil {
+		embeddingFunc = NewEmbeddingFuncDefault()
+	}
+
+	if len(embedding) == 0 {
+		var err error
+		embedding, err = embeddingFunc(ctx, content)
+		if err != nil {
+			return Document{}, err
+		}
+	}
+
 	// We copy the metadata to avoid data races in case the caller modifies the
 	// map after creating the document while we range over it.
 	m := make(map[string]string, len(metadata))
@@ -29,11 +48,10 @@ func newDocument(ctx context.Context, id string, embeddings []float32, metadata 
 		m[k] = v
 	}
 
-	return &document{
-		ID:       id,
-		Metadata: metadata,
-		Document: doc,
-
-		Vectors: embeddings,
+	return Document{
+		ID:        id,
+		Metadata:  metadata,
+		Embedding: embedding,
+		Content:   content,
 	}, nil
 }
