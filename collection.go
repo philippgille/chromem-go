@@ -19,7 +19,7 @@ type Collection struct {
 
 	persistDirectory string
 	metadata         map[string]string
-	documents        map[string]*document
+	documents        map[string]*Document
 	documentsLock    sync.RWMutex
 	embed            EmbeddingFunc
 }
@@ -38,7 +38,7 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 		Name: name,
 
 		metadata:  m,
-		documents: make(map[string]*document),
+		documents: make(map[string]*Document),
 		embed:     embed,
 	}
 
@@ -221,14 +221,14 @@ func (c *Collection) add(ctx context.Context, ids []string, documents []string, 
 }
 
 func (c *Collection) addRow(ctx context.Context, id string, document string, embedding []float32, metadata map[string]string) error {
-	doc, err := newDocument(ctx, id, embedding, metadata, document, c.embed)
+	doc, err := NewDocument(ctx, id, metadata, embedding, document, c.embed)
 	if err != nil {
 		return fmt.Errorf("couldn't create document '%s': %w", id, err)
 	}
 
 	c.documentsLock.Lock()
 	// We don't defer the unlock because we want to do it earlier.
-	c.documents[id] = doc
+	c.documents[id] = &doc
 	c.documentsLock.Unlock()
 
 	// Persist the document

@@ -105,12 +105,12 @@ func main() {
 
 	// Print the retrieved documents and their similarity to the question.
 	for i, res := range docRes {
-		log.Printf("Document %d (similarity: %f): \"%s\"\n", i+1, res.Similarity, res.Document)
+		log.Printf("Document %d (similarity: %f): \"%s\"\n", i+1, res.Similarity, res.Content)
 	}
 
 	// Now we can ask the LLM again, augmenting the question with the knowledge we retrieved.
 	// In this example we just use both retrieved documents as context.
-	contexts := []string{docRes[0].Document, docRes[1].Document}
+	contexts := []string{docRes[0].Content, docRes[1].Content}
 	log.Println("Asking LLM with augmented question...")
 	reply = askLLM(ctx, contexts, question)
 	log.Printf("Reply after augmenting the question with knowledge: \"" + reply + "\"\n")
