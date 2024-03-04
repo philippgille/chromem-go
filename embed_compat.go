@@ -6,7 +6,7 @@ const (
 	embeddingModelMistral = "mistral-embed"
 )
 
-// NewEmbeddingFuncMistral returns a function that creates embeddings for a document
+// NewEmbeddingFuncMistral returns a function that creates embeddings for a text
 // using the Mistral API.
 func NewEmbeddingFuncMistral(apiKey string) EmbeddingFunc {
 	// The Mistral API docs don't mention the `encoding_format` as optional,
@@ -25,7 +25,7 @@ const (
 	EmbeddingModelJina2BaseZH   EmbeddingModelJina = "jina-embeddings-v2-base-zh"
 )
 
-// NewEmbeddingFuncJina returns a function that creates embeddings for a document
+// NewEmbeddingFuncJina returns a function that creates embeddings for a text
 // using the Jina API.
 func NewEmbeddingFuncJina(apiKey string, model EmbeddingModelJina) EmbeddingFunc {
 	return NewEmbeddingFuncOpenAICompat(baseURLJina, apiKey, string(model))
@@ -46,7 +46,7 @@ const (
 	EmbeddingModelMixedbreadGTELargeZh          EmbeddingModelMixedbread = "gte-large-zh"
 )
 
-// NewEmbeddingFuncMixedbread returns a function that creates embeddings for a document
+// NewEmbeddingFuncMixedbread returns a function that creates embeddings for a text
 // using the mixedbread.ai API.
 func NewEmbeddingFuncMixedbread(apiKey string, model EmbeddingModelMixedbread) EmbeddingFunc {
 	return NewEmbeddingFuncOpenAICompat(baseURLMixedbread, apiKey, string(model))
@@ -54,7 +54,7 @@ func NewEmbeddingFuncMixedbread(apiKey string, model EmbeddingModelMixedbread) E
 
 const baseURLLocalAI = "http://localhost:8080/v1"
 
-// NewEmbeddingFuncLocalAI returns a function that creates embeddings for a document
+// NewEmbeddingFuncLocalAI returns a function that creates embeddings for a text
 // using the LocalAI API.
 // You can start a LocalAI instance like this:
 //

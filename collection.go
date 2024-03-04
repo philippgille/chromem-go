@@ -73,14 +73,14 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 //
 //   - ids: The ids of the embeddings you wish to add
 //   - embeddings: The embeddings to add. If nil, embeddings will be computed based
-//     on the documents using the embeddingFunc set for the Collection. Optional.
+//     on the contents using the embeddingFunc set for the Collection. Optional.
 //   - metadatas: The metadata to associate with the embeddings. When querying,
 //     you can filter on this metadata. Optional.
-//   - documents: The documents to associate with the embeddings.
+//   - contents: The contents to associate with the embeddings.
 //
 // This is a Chroma-like method. For a more Go-idiomatic one, see [AddDocuments].
-func (c *Collection) Add(ctx context.Context, ids []string, embeddings [][]float32, metadatas []map[string]string, documents []string) error {
-	return c.AddConcurrently(ctx, ids, embeddings, metadatas, documents, 1)
+func (c *Collection) Add(ctx context.Context, ids []string, embeddings [][]float32, metadatas []map[string]string, contents []string) error {
+	return c.AddConcurrently(ctx, ids, embeddings, metadatas, contents, 1)
 }
 
 // AddConcurrently is like Add, but adds embeddings concurrently.
@@ -88,12 +88,12 @@ func (c *Collection) Add(ctx context.Context, ids []string, embeddings [][]float
 // Upon error, concurrently running operations are canceled and the error is returned.
 //
 // This is a Chroma-like method. For a more Go-idiomatic one, see [AddDocuments].
-func (c *Collection) AddConcurrently(ctx context.Context, ids []string, embeddings [][]float32, metadatas []map[string]string, documents []string, concurrency int) error {
+func (c *Collection) AddConcurrently(ctx context.Context, ids []string, embeddings [][]float32, metadatas []map[string]string, contents []string, concurrency int) error {
 	if len(ids) == 0 {
 		return errors.New("ids are empty")
 	}
-	if len(embeddings) == 0 && len(documents) == 0 {
-		return errors.New("either embeddings or documents must be filled")
+	if len(embeddings) == 0 && len(contents) == 0 {
+		return errors.New("either embeddings or contents must be filled")
 	}
 	if len(embeddings) != 0 {
 		if len(embeddings) != len(ids) {
@@ -104,15 +104,15 @@ func (c *Collection) AddConcurrently(ctx context.Context, ids []string, embeddin
 		embeddings = make([][]float32, len(ids))
 	}
 	if len(metadatas) != 0 && len(ids) != len(metadatas) {
-		return errors.New("ids, metadatas and documents must have the same length")
+		return errors.New("ids, metadatas and contents must have the same length")
 	}
-	if len(documents) != 0 {
-		if len(documents) != len(ids) {
-			return errors.New("ids and documents must have the same length")
+	if len(contents) != 0 {
+		if len(contents) != len(ids) {
+			return errors.New("ids and contents must have the same length")
 		}
 	} else {
 		// Assign empty slice so we can simply access via index later
-		documents = make([]string, len(ids))
+		contents = make([]string, len(ids))
 	}
 	if concurrency < 1 {
 		return errors.New("concurrency must be at least 1")
@@ -125,7 +125,7 @@ func (c *Collection) AddConcurrently(ctx context.Context, ids []string, embeddin
 			ID:        id,
 			Metadata:  metadatas[i],
 			Embedding: embeddings[i],
-			Content:   documents[i],
+			Content:   contents[i],
 		})
 	}
 
