@@ -24,10 +24,10 @@ func TestNewEmbeddingFuncOpenAICompat(t *testing.T) {
 	apiKey := "secret"
 	model := "model-small"
 	baseURLSuffix := "/v1"
-	document := "hello world"
+	input := "hello world"
 
 	wantBody, err := json.Marshal(map[string]string{
-		"input": document,
+		"input": input,
 		"model": model,
 	})
 	if err != nil {
@@ -76,7 +76,7 @@ func TestNewEmbeddingFuncOpenAICompat(t *testing.T) {
 	baseURL := ts.URL + baseURLSuffix
 
 	f := chromem.NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model)
-	res, err := f(context.Background(), document)
+	res, err := f(context.Background(), input)
 	if err != nil {
 		t.Error("expected nil, got", err)
 	}

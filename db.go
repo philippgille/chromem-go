@@ -10,10 +10,10 @@ import (
 	"sync"
 )
 
-// EmbeddingFunc is a function that creates embeddings for a given document.
+// EmbeddingFunc is a function that creates embeddings for a given text.
 // chromem-go will use OpenAI`s "text-embedding-3-small" model by default,
 // but you can provide your own function, using any model you like.
-type EmbeddingFunc func(ctx context.Context, document string) ([]float32, error)
+type EmbeddingFunc func(ctx context.Context, text string) ([]float32, error)
 
 // DB is the chromem-go database. It holds collections, which hold documents.
 //

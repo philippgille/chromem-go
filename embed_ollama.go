@@ -16,21 +16,21 @@ type ollamaResponse struct {
 	Embedding []float32 `json:"embedding"`
 }
 
-// NewEmbeddingFuncOllama returns a function that creates embeddings for a document
+// NewEmbeddingFuncOllama returns a function that creates embeddings for a text
 // using Ollama's embedding API. You can pass any model that Ollama supports and
 // that supports embeddings. A good one as of 2024-03-02 is "nomic-embed-text".
 // See https://ollama.com/library/nomic-embed-text
 func NewEmbeddingFuncOllama(model string) EmbeddingFunc {
 	// We don't set a default timeout here, although it's usually a good idea.
 	// In our case though, the library user can set the timeout on the context,
-	// and it might have to be a long timeout, depending on the document size.
+	// and it might have to be a long timeout, depending on the text length.
 	client := &http.Client{}
 
-	return func(ctx context.Context, document string) ([]float32, error) {
+	return func(ctx context.Context, text string) ([]float32, error) {
 		// Prepare the request body.
 		reqBody, err := json.Marshal(map[string]string{
 			"model":  model,
-			"prompt": document,
+			"prompt": text,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("couldn't marshal request body: %w", err)
