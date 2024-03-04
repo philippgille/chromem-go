@@ -247,7 +247,7 @@ func (c *Collection) Count() int {
 	return len(c.documents)
 }
 
-// Performs a nearest neighbors query on a collection specified by UUID.
+// Performs an exhaustive nearest neighbor search on the collection.
 //
 //   - queryText: The text to search for.
 //   - nResults: The number of results to return. Must be > 0.
