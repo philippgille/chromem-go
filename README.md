@@ -1,14 +1,19 @@
 # chromem-go
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/philippgille/chromem-go.svg)](https://pkg.go.dev/github.com/philippgille/chromem-go)
+[![Build status](https://github.com/philippgille/chromem-go/actions/workflows/go.yml/badge.svg)](https://github.com/philippgille/chromem-go/actions/workflows/go.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/philippgille/chromem-go)](https://goreportcard.com/report/github.com/philippgille/chromem-go)
+[![GitHub Releases](https://img.shields.io/github/release/philippgille/chromem-go.svg)](https://github.com/philippgille/chromem-go/releases)
 
 Embeddable vector database for Go with Chroma-like interface and zero third-party dependencies. In-memory with optional persistence.
 
-It's *not* a library to connect to ChromaDB. It's a database on its own.
+It's *not* a library to connect to Chroma and also not a reimplementation of it in Go. It's a database on its own.
 
-Being embeddable enables you to add retrieval augmented generation (RAG) and similar embeddings-based features into your Go app *without having to run a separate database*. Like when using SQLite instead of PostgreSQL/MySQL/etc.
+Because `chromem-go` is embeddable it enables you to add retrieval augmented generation (RAG) and similar embeddings-based features into your Go app *without having to run a separate database*. Like when using SQLite instead of PostgreSQL/MySQL/etc.
 
 The focus is not scale or number of features, but simplicity.
+
+> ⚠️ The project is in beta, under heavy construction, and may introduce breaking changes in releases before `v1.0.0`. All changes are documented in the [`CHANGELOG`](./CHANGELOG.md).
 
 ## Contents
 
@@ -91,10 +96,11 @@ func main() {
     db := chromem.NewDB()
 
     // Create collection. GetCollection, GetOrCreateCollection, DeleteCollection also available!
-    collection := db.CreateCollection("all-my-documents", nil, nil)
+    collection, _ := db.CreateCollection("all-my-documents", nil, nil)
 
     // Add docs to the collection. Update and delete will be added in the future.
-    // Row-based API will be added when Chroma adds it or even before!
+    // Can be multi-threaded with AddConcurrently()!
+    // We're showing the Chroma-like method here, but more Go-idiomatic methods are also available!
     _ = collection.Add(ctx,
         []string{"doc1", "doc2"}, // unique ID for each doc
         nil, // We handle embedding automatically. You can skip that and add your own embeddings as well.
@@ -112,8 +118,8 @@ func main() {
 }
 ```
 
-Initially `chromem-go` started with just these methods, but we added more over time. We intentionally don't want to cover 100% of Chroma's API surface though.  
-Instead, we will add some alternative methods that are more Go-idiomatic.
+Initially `chromem-go` started with just the four core methods, but we added more over time. We intentionally don't want to cover 100% of Chroma's API surface though.  
+We're providing some alternative methods that are more Go-idiomatic instead.
 
 See the Godoc for details: <https://pkg.go.dev/github.com/philippgille/chromem-go>
 
@@ -123,30 +129,44 @@ See the Godoc for details: <https://pkg.go.dev/github.com/philippgille/chromem-g
 - [X] Embeddable (like SQLite, i.e. no client-server model, no separate DB to maintain)
 - [X] Multi-threaded processing (when adding and querying documents), making use of Go's native concurrency features
 - Embedding creators:
-  - [X] [OpenAI](https://platform.openai.com/docs/guides/embeddings/embedding-models) (default)
-  - [X] [Mistral](https://docs.mistral.ai/platform/endpoints/#embedding-models)
-  - [X] [Jina](https://jina.ai/embeddings)
-  - [X] [mixedbread.ai](https://www.mixedbread.ai/)
-  - [X] [LocalAI](https://github.com/mudler/LocalAI)
-  - [X] Bring your own
-  - You can also pass existing embeddings when adding documents to a collection.
-  - [ ] [ollama](https://ollama.ai/)
-    - (As of 2024-02-10 their OpenAI compatible API doesn't support embeddings yet, but they have a custom API which does)
+  - Hosted:
+    - [X] [OpenAI](https://platform.openai.com/docs/guides/embeddings/embedding-models) (default)
+    - [X] [Mistral](https://docs.mistral.ai/platform/endpoints/#embedding-models)
+    - [X] [Jina](https://jina.ai/embeddings)
+    - [X] [mixedbread.ai](https://www.mixedbread.ai/)
+  - Local:
+    - [X] [Ollama](https://github.com/ollama/ollama)
+    - [X] [LocalAI](https://github.com/mudler/LocalAI)
+  - Bring your own (implement [`chromem.EmbeddingFunc`](https://pkg.go.dev/github.com/philippgille/chromem-go#EmbeddingFunc))
+  - You can also pass existing embeddings when adding documents to a collection, instead of letting `chromem-go` create them
 - Similarity search:
-  - [X] Exact nearest neighbor search using cosine similarity
-  - [ ] Approximate nearest neighbor search with index
-    - [ ] Hierarchical Navigable Small World (HNSW)
-    - [ ] Inverted file flat (IVFFlat)
+  - [X] Exhaustive nearest neighbor search using cosine similarity
 - Filters:
   - [X] Document filters: `$contains`, `$not_contains`
   - [X] Metadata filters: Exact matches
-  - [ ] Operators (`$and`, `$or` etc.)
 - Storage:
   - [X] In-memory
-  - [X] Persistent (file)
-  - [ ] Persistent (others (S3, PostgreSQL, ...))
+  - [X] Optional local persistence (file based, encoded as [gob](https://go.dev/blog/gob))
 - Data types:
   - [X] Documents (text)
+
+### Roadmap
+
+- Embedding creators:
+  - [ ] Add an `EmbeddingFunc` that downloads and shells out to [llamafile](https://github.com/Mozilla-Ocho/llamafile)
+- Similarity search:
+  - [ ] Approximate nearest neighbor search with index (ANN)
+    - [ ] Hierarchical Navigable Small World (HNSW)
+    - [ ] Inverted file flat (IVFFlat)
+- Filters:
+  - [ ] Operators (`$and`, `$or` etc.)
+- Storage:
+  - [ ] JSON as second encoding format
+  - [ ] Write-ahead log (WAL) as second file format
+  - [ ] Compression
+  - [ ] Encryption (at rest)
+  - [ ] Optional remote storage (S3, PostgreSQL, ...)
+- Data types:
   - [ ] Images
   - [ ] Videos
 
@@ -171,5 +191,5 @@ That's when I decided to build my own vector database, embeddable in Go, inspire
 - The big, full-fledged client-server-based vector databases for maximum scale and performance:
   - [Pinecone](https://www.pinecone.io/): Closed source
   - [Qdrant](https://github.com/qdrant/qdrant): Written in Rust
-  - [Milvus](https://github.com/milvus-io/milvus): Written in Go, but not embeddable as of December 2023
+  - [Milvus](https://github.com/milvus-io/milvus): Written in Go and C++, but not embeddable as of December 2023
   - [Weaviate](https://github.com/weaviate/weaviate): Written in Go, but not embeddable as of December 2023
