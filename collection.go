@@ -151,18 +151,18 @@ func (c *Collection) AddDocuments(ctx context.Context, documents []Document, con
 	}
 	// For other validations we rely on AddDocument.
 
-	var globalErr error
-	globalErrLock := sync.Mutex{}
+	var sharedErr error
+	sharedErrLock := sync.Mutex{}
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
-	setGlobalErr := func(err error) {
-		globalErrLock.Lock()
-		defer globalErrLock.Unlock()
+	setSharedErr := func(err error) {
+		sharedErrLock.Lock()
+		defer sharedErrLock.Unlock()
 		// Another goroutine might have already set the error.
-		if globalErr == nil {
-			globalErr = err
+		if sharedErr == nil {
+			sharedErr = err
 			// Cancel the operation for all other goroutines.
-			cancel(globalErr)
+			cancel(sharedErr)
 		}
 	}
 
@@ -184,7 +184,7 @@ func (c *Collection) AddDocuments(ctx context.Context, documents []Document, con
 
 			err := c.AddDocument(ctx, doc)
 			if err != nil {
-				setGlobalErr(fmt.Errorf("couldn't add document '%s': %w", doc.ID, err))
+				setSharedErr(fmt.Errorf("couldn't add document '%s': %w", doc.ID, err))
 				return
 			}
 		}(doc)
@@ -192,7 +192,7 @@ func (c *Collection) AddDocuments(ctx context.Context, documents []Document, con
 
 	wg.Wait()
 
-	return globalErr
+	return sharedErr
 }
 
 // AddDocument adds a document to the collection.
