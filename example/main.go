@@ -54,6 +54,7 @@ func main() {
 	}
 	// Add docs to the collection, if the collection was just created (and not
 	// loaded from persistent storage).
+	docs := []chromem.Document{}
 	if collection.Count() == 0 {
 		// Here we use a DBpedia sample, where each line contains the lead section/introduction
 		// to some Wikipedia article and its category.
@@ -62,9 +63,6 @@ func main() {
 			panic(err)
 		}
 		d := json.NewDecoder(f)
-		var ids []string
-		var metadatas []map[string]string
-		var texts []string
 		log.Println("Reading JSON lines...")
 		for i := 1; ; i++ {
 			var article struct {
@@ -78,12 +76,14 @@ func main() {
 				panic(err)
 			}
 
-			ids = append(ids, strconv.Itoa(i))
-			metadatas = append(metadatas, map[string]string{"category": article.Category})
-			texts = append(texts, article.Text)
+			docs = append(docs, chromem.Document{
+				ID:       strconv.Itoa(i),
+				Metadata: map[string]string{"category": article.Category},
+				Content:  article.Text,
+			})
 		}
 		log.Println("Adding documents to chromem-go, including creating their embeddings via Ollama API...")
-		err = collection.AddConcurrently(ctx, ids, nil, metadatas, texts, runtime.NumCPU())
+		err = collection.AddDocuments(ctx, docs, runtime.NumCPU())
 		if err != nil {
 			panic(err)
 		}
