@@ -2,6 +2,7 @@ package chromem
 
 import (
 	"context"
+	"fmt"
 	"runtime"
 	"strings"
 	"sync"
@@ -12,9 +13,9 @@ var supportedFilters = []string{"$contains", "$not_contains"}
 // Result represents a single result from a query.
 type Result struct {
 	ID        string
-	Embedding []float32
 	Metadata  map[string]string
-	Document  string
+	Embedding []float32
+	Content   string
 
 	// The cosine similarity between the query and the document.
 	// The higher the value, the more similar the document is to the query.
@@ -24,8 +25,8 @@ type Result struct {
 
 // filterDocs filters a map of documents by metadata and content.
 // It does this concurrently.
-func filterDocs(docs map[string]*document, where, whereDocument map[string]string) []*document {
-	filteredDocs := make([]*document, 0, len(docs))
+func filterDocs(docs map[string]*Document, where, whereDocument map[string]string) []*Document {
+	filteredDocs := make([]*Document, 0, len(docs))
 	filteredDocsLock := sync.Mutex{}
 
 	// Determine concurrency. Use number of docs or CPUs, whichever is smaller.
@@ -36,7 +37,7 @@ func filterDocs(docs map[string]*document, where, whereDocument map[string]strin
 		concurrency = numDocs
 	}
 
-	docChan := make(chan *document, concurrency*2)
+	docChan := make(chan *Document, concurrency*2)
 
 	wg := sync.WaitGroup{}
 	for i := 0; i < concurrency; i++ {
@@ -65,7 +66,7 @@ func filterDocs(docs map[string]*document, where, whereDocument map[string]strin
 
 // documentMatchesFilters checks if a document matches the given filters.
 // When calling this function, the whereDocument keys must already be validated!
-func documentMatchesFilters(document *document, where, whereDocument map[string]string) bool {
+func documentMatchesFilters(document *Document, where, whereDocument map[string]string) bool {
 	// A document's metadata must have *all* the fields in the where clause.
 	for k, v := range where {
 		// TODO: Do we want to check for existence of the key? I.e. should
@@ -80,11 +81,11 @@ func documentMatchesFilters(document *document, where, whereDocument map[string]
 	for k, v := range whereDocument {
 		switch k {
 		case "$contains":
-			if !strings.Contains(document.Document, v) {
+			if !strings.Contains(document.Content, v) {
 				return false
 			}
 		case "$not_contains":
-			if strings.Contains(document.Document, v) {
+			if strings.Contains(document.Content, v) {
 				return false
 			}
 		default:
@@ -97,7 +98,7 @@ func documentMatchesFilters(document *document, where, whereDocument map[string]
 	return true
 }
 
-func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*document) ([]Result, error) {
+func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Document) ([]Result, error) {
 	res := make([]Result, len(docs))
 	resLock := sync.Mutex{}
 
@@ -109,14 +110,23 @@ func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*docu
 		concurrency = numDocs
 	}
 
-	ctx, cancel := context.WithCancelCause(ctx)
-	defer cancel(nil)
-
-	docChan := make(chan *document, concurrency*2)
 	var globalErr error
 	globalErrLock := sync.Mutex{}
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
+	setGlobalErr := func(err error) {
+		globalErrLock.Lock()
+		defer globalErrLock.Unlock()
+		// Another goroutine might have already set the error.
+		if globalErr == nil {
+			globalErr = err
+			// Cancel the operation for all other goroutines.
+			cancel(globalErr)
+		}
+	}
 
 	wg := sync.WaitGroup{}
+	docChan := make(chan *Document, concurrency*2)
 	for i := 0; i < concurrency; i++ {
 		wg.Add(1)
 		go func() {
@@ -127,16 +137,9 @@ func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*docu
 					return
 				}
 
-				sim, err := cosineSimilarity(queryVectors, doc.Vectors)
+				sim, err := cosineSimilarity(queryVectors, doc.Embedding)
 				if err != nil {
-					globalErrLock.Lock()
-					defer globalErrLock.Unlock()
-					// Another goroutine might have already set the error.
-					if globalErr == nil {
-						globalErr = err
-						// Cancel the operation for all other goroutines.
-						cancel(globalErr)
-					}
+					setGlobalErr(fmt.Errorf("couldn't calculate similarity for document '%s': %w", doc.ID, err))
 					return
 				}
 
@@ -144,9 +147,9 @@ func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*docu
 				// We don't defer the unlock because we want to unlock much earlier.
 				res = append(res, Result{
 					ID:        doc.ID,
-					Embedding: doc.Vectors,
 					Metadata:  doc.Metadata,
-					Document:  doc.Document,
+					Embedding: doc.Embedding,
+					Content:   doc.Content,
 
 					Similarity: sim,
 				})

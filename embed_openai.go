@@ -27,22 +27,22 @@ type openAIResponse struct {
 	} `json:"data"`
 }
 
-// NewEmbeddingFuncDefault returns a function that creates embeddings for a document
+// NewEmbeddingFuncDefault returns a function that creates embeddings for a text
 // using OpenAI`s "text-embedding-3-small" model via their API.
-// The model supports a maximum document length of 8191 tokens.
+// The model supports a maximum text length of 8191 tokens.
 // The API key is read from the environment variable "OPENAI_API_KEY".
 func NewEmbeddingFuncDefault() EmbeddingFunc {
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	return NewEmbeddingFuncOpenAI(apiKey, EmbeddingModelOpenAI3Small)
 }
 
-// NewEmbeddingFuncOpenAI returns a function that creates embeddings for a document
+// NewEmbeddingFuncOpenAI returns a function that creates embeddings for a text
 // using the OpenAI API.
 func NewEmbeddingFuncOpenAI(apiKey string, model EmbeddingModelOpenAI) EmbeddingFunc {
 	return NewEmbeddingFuncOpenAICompat(BaseURLOpenAI, apiKey, string(model))
 }
 
-// NewEmbeddingFuncOpenAICompat returns a function that creates embeddings for a document
+// NewEmbeddingFuncOpenAICompat returns a function that creates embeddings for a text
 // using an OpenAI compatible API. For example:
 //   - Azure OpenAI: https://azure.microsoft.com/en-us/products/ai-services/openai-service
 //   - LitLLM: https://github.com/BerriAI/litellm
@@ -51,13 +51,13 @@ func NewEmbeddingFuncOpenAI(apiKey string, model EmbeddingModelOpenAI) Embedding
 func NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model string) EmbeddingFunc {
 	// We don't set a default timeout here, although it's usually a good idea.
 	// In our case though, the library user can set the timeout on the context,
-	// and it might have to be a long timeout, depending on the document size.
+	// and it might have to be a long timeout, depending on the text length.
 	client := &http.Client{}
 
-	return func(ctx context.Context, document string) ([]float32, error) {
+	return func(ctx context.Context, text string) ([]float32, error) {
 		// Prepare the request body.
 		reqBody, err := json.Marshal(map[string]string{
-			"input": document,
+			"input": text,
 			"model": model,
 		})
 		if err != nil {

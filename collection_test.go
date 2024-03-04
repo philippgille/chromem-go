@@ -26,8 +26,8 @@ func TestCollection_Add(t *testing.T) {
 	// Add document
 	ids := []string{"1", "2"}
 	metadatas := []map[string]string{{"foo": "bar"}, {"a": "b"}}
-	documents := []string{"hello world", "hallo welt"}
-	err = c.Add(context.Background(), ids, nil, metadatas, documents)
+	contents := []string{"hello world", "hallo welt"}
+	err = c.Add(context.Background(), ids, nil, metadatas, contents)
 	if err != nil {
 		t.Error("expected nil, got", err)
 	}
@@ -54,8 +54,8 @@ func TestCollection_Count(t *testing.T) {
 	// Add documents
 	ids := []string{"1", "2"}
 	metadatas := []map[string]string{{"foo": "bar"}, {"a": "b"}}
-	documents := []string{"hello world", "hallo welt"}
-	err = c.Add(context.Background(), ids, nil, metadatas, documents)
+	contents := []string{"hello world", "hallo welt"}
+	err = c.Add(context.Background(), ids, nil, metadatas, contents)
 	if err != nil {
 		t.Error("expected nil, got", err)
 	}

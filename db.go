@@ -10,10 +10,10 @@ import (
 	"sync"
 )
 
-// EmbeddingFunc is a function that creates embeddings for a given document.
+// EmbeddingFunc is a function that creates embeddings for a given text.
 // chromem-go will use OpenAI`s "text-embedding-3-small" model by default,
 // but you can provide your own function, using any model you like.
-type EmbeddingFunc func(ctx context.Context, document string) ([]float32, error)
+type EmbeddingFunc func(ctx context.Context, text string) ([]float32, error)
 
 // DB is the chromem-go database. It holds collections, which hold documents.
 //
@@ -91,7 +91,7 @@ func NewPersistentDB(path string) (*DB, error) {
 		c := &Collection{
 			// We can fill Name, persistDirectory and metadata only after reading
 			// the metadata.
-			documents: make(map[string]*document),
+			documents: make(map[string]*Document),
 			// We can fill embed only when the user calls DB.GetCollection() or
 			// DB.GetOrCreateCollection().
 		}
@@ -119,7 +119,7 @@ func NewPersistentDB(path string) (*DB, error) {
 				c.metadata = pc.Metadata
 			} else if filepath.Ext(collectionDirEntry.Name()) == ".gob" {
 				// Read document
-				d := &document{}
+				d := &Document{}
 				err := read(fPath, d)
 				if err != nil {
 					return nil, fmt.Errorf("couldn't read document: %w", err)
