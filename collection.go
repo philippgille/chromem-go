@@ -103,8 +103,13 @@ func (c *Collection) AddConcurrently(ctx context.Context, ids []string, embeddin
 		// Assign empty slice so we can simply access via index later
 		embeddings = make([][]float32, len(ids))
 	}
-	if len(metadatas) != 0 && len(ids) != len(metadatas) {
-		return errors.New("ids, metadatas and contents must have the same length")
+	if len(metadatas) != 0 {
+		if len(ids) != len(metadatas) {
+			return errors.New("when metadatas is not empty it must have the same length as ids")
+		}
+	} else {
+		// Assign empty slice so we can simply access via index later
+		metadatas = make([]map[string]string, len(ids))
 	}
 	if len(contents) != 0 {
 		if len(contents) != len(ids) {
