@@ -99,7 +99,7 @@ func documentMatchesFilters(document *Document, where, whereDocument map[string]
 }
 
 func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Document) ([]Result, error) {
-	res := make([]Result, len(docs))
+	res := make([]Result, 0, len(docs))
 	resLock := sync.Mutex{}
 
 	// Determine concurrency. Use number of docs or CPUs, whichever is smaller.
