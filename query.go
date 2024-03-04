@@ -110,18 +110,18 @@ func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Docu
 		concurrency = numDocs
 	}
 
-	var globalErr error
-	globalErrLock := sync.Mutex{}
+	var sharedErr error
+	sharedErrLock := sync.Mutex{}
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
-	setGlobalErr := func(err error) {
-		globalErrLock.Lock()
-		defer globalErrLock.Unlock()
+	setSharedErr := func(err error) {
+		sharedErrLock.Lock()
+		defer sharedErrLock.Unlock()
 		// Another goroutine might have already set the error.
-		if globalErr == nil {
-			globalErr = err
+		if sharedErr == nil {
+			sharedErr = err
 			// Cancel the operation for all other goroutines.
-			cancel(globalErr)
+			cancel(sharedErr)
 		}
 	}
 
@@ -139,7 +139,7 @@ func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Docu
 
 				sim, err := cosineSimilarity(queryVectors, doc.Embedding)
 				if err != nil {
-					setGlobalErr(fmt.Errorf("couldn't calculate similarity for document '%s': %w", doc.ID, err))
+					setSharedErr(fmt.Errorf("couldn't calculate similarity for document '%s': %w", doc.ID, err))
 					return
 				}
 
@@ -175,8 +175,8 @@ OuterLoop:
 
 	wg.Wait()
 
-	if globalErr != nil {
-		return nil, globalErr
+	if sharedErr != nil {
+		return nil, sharedErr
 	}
 
 	return res, nil
