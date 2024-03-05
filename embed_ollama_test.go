@@ -1,4 +1,4 @@
-package chromem_test
+package chromem
 
 import (
 	"bytes"
@@ -7,28 +7,20 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"slices"
 	"strings"
 	"testing"
-
-	"github.com/philippgille/chromem-go"
 )
 
-type openAIResponse struct {
-	Data []struct {
-		Embedding []float32 `json:"embedding"`
-	} `json:"data"`
-}
-
-func TestNewEmbeddingFuncOpenAICompat(t *testing.T) {
-	apiKey := "secret"
+func TestNewEmbeddingFuncOllama(t *testing.T) {
 	model := "model-small"
-	baseURLSuffix := "/v1"
-	input := "hello world"
+	baseURLSuffix := "/api"
+	prompt := "hello world"
 
 	wantBody, err := json.Marshal(map[string]string{
-		"input": input,
-		"model": model,
+		"model":  model,
+		"prompt": prompt,
 	})
 	if err != nil {
 		t.Error("unexpected error:", err)
@@ -46,9 +38,6 @@ func TestNewEmbeddingFuncOpenAICompat(t *testing.T) {
 			t.Error("expected method POST, got", r.Method)
 		}
 		// Check headers
-		if r.Header.Get("Authorization") != "Bearer "+apiKey {
-			t.Error("expected Authorization header", "Bearer "+apiKey, "got", r.Header.Get("Authorization"))
-		}
 		if r.Header.Get("Content-Type") != "application/json" {
 			t.Error("expected Content-Type header", "application/json", "got", r.Header.Get("Content-Type"))
 		}
@@ -62,21 +51,25 @@ func TestNewEmbeddingFuncOpenAICompat(t *testing.T) {
 		}
 
 		// Write response
-		resp := openAIResponse{
-			Data: []struct {
-				Embedding []float32 `json:"embedding"`
-			}{
-				{Embedding: wantRes},
-			},
+		resp := ollamaResponse{
+			Embedding: wantRes,
 		}
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer ts.Close()
-	baseURL := ts.URL + baseURLSuffix
 
-	f := chromem.NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model)
-	res, err := f(context.Background(), input)
+	// Get port from URL
+	u, err := url.Parse(ts.URL)
+	if err != nil {
+		t.Error("unexpected error:", err)
+	}
+	// TODO: It's bad to overwrite a global var for testing. Follow-up with a change
+	// to allow passing custom URLs to the function.
+	baseURLOllama = strings.Replace(baseURLOllama, "11434", u.Port(), 1)
+
+	f := NewEmbeddingFuncOllama(model)
+	res, err := f(context.Background(), prompt)
 	if err != nil {
 		t.Error("expected nil, got", err)
 	}

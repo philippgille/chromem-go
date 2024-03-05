@@ -10,7 +10,9 @@ import (
 	"net/http"
 )
 
-const baseURLOllama = "http://localhost:11434/api"
+// TODO: Turn into const and use as default, but allow user to pass custom URL
+// as well as custom API key, in case Ollama runs on a remote (secured) server.
+var baseURLOllama = "http://localhost:11434/api"
 
 type ollamaResponse struct {
 	Embedding []float32 `json:"embedding"`
