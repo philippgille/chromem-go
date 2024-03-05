@@ -61,6 +61,11 @@ func filterDocs(docs map[string]*Document, where, whereDocument map[string]strin
 
 	wg.Wait()
 
+	// With filteredDocs being initialized as potentially large slice, let's return
+	// nil instead of the empty slice.
+	if len(filteredDocs) == 0 {
+		filteredDocs = nil
+	}
 	return filteredDocs
 }
 
