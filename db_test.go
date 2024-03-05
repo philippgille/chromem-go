@@ -20,7 +20,7 @@ func TestDB_CreateCollection(t *testing.T) {
 	t.Run("OK", func(t *testing.T) {
 		c, err := db.CreateCollection(name, metadata, embeddingFunc)
 		if err != nil {
-			t.Error("expected no error, got", err)
+			t.Fatal("expected no error, got", err)
 		}
 		if c == nil {
 			t.Fatal("expected collection, got nil")
@@ -30,49 +30,49 @@ func TestDB_CreateCollection(t *testing.T) {
 
 		// DB should have one collection now
 		if len(db.collections) != 1 {
-			t.Error("expected 1 collection, got", len(db.collections))
+			t.Fatal("expected 1 collection, got", len(db.collections))
 		}
 		// The collection should be the one we just created
 		c2, ok := db.collections[name]
 		if !ok {
-			t.Error("expected collection", name, "not found")
+			t.Fatal("expected collection", name, "not found")
 		}
 		if c2.Name != name {
-			t.Error("expected name", name, "got", c2.Name)
+			t.Fatal("expected name", name, "got", c2.Name)
 		}
 		// The returned collection should also be the same
 		if c.Name != name {
-			t.Error("expected name", name, "got", c.Name)
+			t.Fatal("expected name", name, "got", c.Name)
 		}
 		// The collection's persistent dir should be empty
 		if c.persistDirectory != "" {
-			t.Error("expected empty persistent directory, got", c.persistDirectory)
+			t.Fatal("expected empty persistent directory, got", c.persistDirectory)
 		}
 		// It's metadata should match
 		if len(c.metadata) != 1 || c.metadata["foo"] != "bar" {
-			t.Error("expected metadata", metadata, "got", c.metadata)
+			t.Fatal("expected metadata", metadata, "got", c.metadata)
 		}
 		// Documents should be empty, but not nil
 		if c.documents == nil {
-			t.Error("expected non-nil documents, got nil")
+			t.Fatal("expected non-nil documents, got nil")
 		}
 		if len(c.documents) != 0 {
-			t.Error("expected empty documents, got", len(c.documents))
+			t.Fatal("expected empty documents, got", len(c.documents))
 		}
 		// The embedding function should be the one we passed
 		gotVectors, err := c.embed(context.Background(), "test")
 		if err != nil {
-			t.Error("expected no error, got", err)
+			t.Fatal("expected no error, got", err)
 		}
 		if !slices.Equal(gotVectors, vectors) {
-			t.Error("expected vectors", vectors, "got", gotVectors)
+			t.Fatal("expected vectors", vectors, "got", gotVectors)
 		}
 	})
 
 	t.Run("NOK - Empty name", func(t *testing.T) {
 		_, err := db.CreateCollection("", metadata, embeddingFunc)
 		if err == nil {
-			t.Error("expected error, got nil")
+			t.Fatal("expected error, got nil")
 		}
 	})
 }
@@ -91,7 +91,7 @@ func TestDB_ListCollections(t *testing.T) {
 	// We ignore the return value. CreateCollection is tested elsewhere.
 	_, err := db.CreateCollection(name, metadata, embeddingFunc)
 	if err != nil {
-		t.Error("expected no error, got", err)
+		t.Fatal("expected no error, got", err)
 	}
 
 	// List collections
@@ -101,45 +101,45 @@ func TestDB_ListCollections(t *testing.T) {
 
 	// Should've returned a map with one collection
 	if len(res) != 1 {
-		t.Error("expected 1 collection, got", len(res))
+		t.Fatal("expected 1 collection, got", len(res))
 	}
 	// The collection should be the one we just created
 	c, ok := res[name]
 	if !ok {
-		t.Error("expected collection", name, "not found")
+		t.Fatal("expected collection", name, "not found")
 	}
 	if c.Name != name {
-		t.Error("expected name", name, "got", c.Name)
+		t.Fatal("expected name", name, "got", c.Name)
 	}
 	// The collection's persistent dir should be empty
 	if c.persistDirectory != "" {
-		t.Error("expected empty persistent directory, got", c.persistDirectory)
+		t.Fatal("expected empty persistent directory, got", c.persistDirectory)
 	}
 	// It's metadata should match
 	if len(c.metadata) != 1 || c.metadata["foo"] != "bar" {
-		t.Error("expected metadata", metadata, "got", c.metadata)
+		t.Fatal("expected metadata", metadata, "got", c.metadata)
 	}
 	// Documents should be empty, but not nil
 	if c.documents == nil {
-		t.Error("expected non-nil documents, got nil")
+		t.Fatal("expected non-nil documents, got nil")
 	}
 	if len(c.documents) != 0 {
-		t.Error("expected empty documents, got", len(c.documents))
+		t.Fatal("expected empty documents, got", len(c.documents))
 	}
 	// The embedding function should be the one we passed
 	gotVectors, err := c.embed(context.Background(), "test")
 	if err != nil {
-		t.Error("expected no error, got", err)
+		t.Fatal("expected no error, got", err)
 	}
 	if !slices.Equal(gotVectors, vectors) {
-		t.Error("expected vectors", vectors, "got", gotVectors)
+		t.Fatal("expected vectors", vectors, "got", gotVectors)
 	}
 
 	// And it should be a copy. Adding a value here should not reflect on the DB's
 	// collection.
 	res["foo"] = &Collection{}
 	if len(db.ListCollections()) != 1 {
-		t.Error("expected 1 collection, got", len(db.ListCollections()))
+		t.Fatal("expected 1 collection, got", len(db.ListCollections()))
 	}
 }
 
@@ -157,7 +157,7 @@ func TestDB_GetCollection(t *testing.T) {
 	// We ignore the return value. CreateCollection is tested elsewhere.
 	_, err := db.CreateCollection(name, metadata, embeddingFunc)
 	if err != nil {
-		t.Error("expected no error, got", err)
+		t.Fatal("expected no error, got", err)
 	}
 
 	// Get collection
@@ -165,30 +165,30 @@ func TestDB_GetCollection(t *testing.T) {
 
 	// Check expectations
 	if c.Name != name {
-		t.Error("expected name", name, "got", c.Name)
+		t.Fatal("expected name", name, "got", c.Name)
 	}
 	// The collection's persistent dir should be empty
 	if c.persistDirectory != "" {
-		t.Error("expected empty persistent directory, got", c.persistDirectory)
+		t.Fatal("expected empty persistent directory, got", c.persistDirectory)
 	}
 	// It's metadata should match
 	if len(c.metadata) != 1 || c.metadata["foo"] != "bar" {
-		t.Error("expected metadata", metadata, "got", c.metadata)
+		t.Fatal("expected metadata", metadata, "got", c.metadata)
 	}
 	// Documents should be empty, but not nil
 	if c.documents == nil {
-		t.Error("expected non-nil documents, got nil")
+		t.Fatal("expected non-nil documents, got nil")
 	}
 	if len(c.documents) != 0 {
-		t.Error("expected empty documents, got", len(c.documents))
+		t.Fatal("expected empty documents, got", len(c.documents))
 	}
 	// The embedding function should be the one we passed
 	gotVectors, err := c.embed(context.Background(), "test")
 	if err != nil {
-		t.Error("expected no error, got", err)
+		t.Fatal("expected no error, got", err)
 	}
 	if !slices.Equal(gotVectors, vectors) {
-		t.Error("expected vectors", vectors, "got", gotVectors)
+		t.Fatal("expected vectors", vectors, "got", gotVectors)
 	}
 }
 
@@ -209,7 +209,7 @@ func TestDB_GetOrCreateCollection(t *testing.T) {
 		// We ignore the return value. CreateCollection is tested elsewhere.
 		_, err := db.CreateCollection(name, metadata, embeddingFunc)
 		if err != nil {
-			t.Error("expected no error, got", err)
+			t.Fatal("expected no error, got", err)
 		}
 
 		// Call GetOrCreateCollection() with the same name to only get it. We pass
@@ -217,7 +217,7 @@ func TestDB_GetOrCreateCollection(t *testing.T) {
 		// collection is the original one, and not a new one.
 		c, err := db.GetOrCreateCollection(name, nil, nil)
 		if err != nil {
-			t.Error("expected no error, got", err)
+			t.Fatal("expected no error, got", err)
 		}
 		if c == nil {
 			t.Fatal("expected collection, got nil")
@@ -225,30 +225,30 @@ func TestDB_GetOrCreateCollection(t *testing.T) {
 
 		// Check expectations
 		if c.Name != name {
-			t.Error("expected name", name, "got", c.Name)
+			t.Fatal("expected name", name, "got", c.Name)
 		}
 		// The collection's persistent dir should be empty
 		if c.persistDirectory != "" {
-			t.Error("expected empty persistent directory, got", c.persistDirectory)
+			t.Fatal("expected empty persistent directory, got", c.persistDirectory)
 		}
 		// It's metadata should match
 		if len(c.metadata) != 1 || c.metadata["foo"] != "bar" {
-			t.Error("expected metadata", metadata, "got", c.metadata)
+			t.Fatal("expected metadata", metadata, "got", c.metadata)
 		}
 		// Documents should be empty, but not nil
 		if c.documents == nil {
-			t.Error("expected non-nil documents, got nil")
+			t.Fatal("expected non-nil documents, got nil")
 		}
 		if len(c.documents) != 0 {
-			t.Error("expected empty documents, got", len(c.documents))
+			t.Fatal("expected empty documents, got", len(c.documents))
 		}
 		// The embedding function should be the one we passed
 		gotVectors, err := c.embed(context.Background(), "test")
 		if err != nil {
-			t.Error("expected no error, got", err)
+			t.Fatal("expected no error, got", err)
 		}
 		if !slices.Equal(gotVectors, vectors) {
-			t.Error("expected vectors", vectors, "got", gotVectors)
+			t.Fatal("expected vectors", vectors, "got", gotVectors)
 		}
 	})
 
@@ -259,7 +259,7 @@ func TestDB_GetOrCreateCollection(t *testing.T) {
 		// Call GetOrCreateCollection()
 		c, err := db.GetOrCreateCollection(name, metadata, embeddingFunc)
 		if err != nil {
-			t.Error("expected no error, got", err)
+			t.Fatal("expected no error, got", err)
 		}
 		if c == nil {
 			t.Fatal("expected collection, got nil")
@@ -267,30 +267,30 @@ func TestDB_GetOrCreateCollection(t *testing.T) {
 
 		// Check like we check CreateCollection()
 		if c.Name != name {
-			t.Error("expected name", name, "got", c.Name)
+			t.Fatal("expected name", name, "got", c.Name)
 		}
 		// The collection's persistent dir should be empty
 		if c.persistDirectory != "" {
-			t.Error("expected empty persistent directory, got", c.persistDirectory)
+			t.Fatal("expected empty persistent directory, got", c.persistDirectory)
 		}
 		// It's metadata should match
 		if len(c.metadata) != 1 || c.metadata["foo"] != "bar" {
-			t.Error("expected metadata", metadata, "got", c.metadata)
+			t.Fatal("expected metadata", metadata, "got", c.metadata)
 		}
 		// Documents should be empty, but not nil
 		if c.documents == nil {
-			t.Error("expected non-nil documents, got nil")
+			t.Fatal("expected non-nil documents, got nil")
 		}
 		if len(c.documents) != 0 {
-			t.Error("expected empty documents, got", len(c.documents))
+			t.Fatal("expected empty documents, got", len(c.documents))
 		}
 		// The embedding function should be the one we passed
 		gotVectors, err := c.embed(context.Background(), "test")
 		if err != nil {
-			t.Error("expected no error, got", err)
+			t.Fatal("expected no error, got", err)
 		}
 		if !slices.Equal(gotVectors, vectors) {
-			t.Error("expected vectors", vectors, "got", gotVectors)
+			t.Fatal("expected vectors", vectors, "got", gotVectors)
 		}
 	})
 }
@@ -309,7 +309,7 @@ func TestDB_DeleteCollection(t *testing.T) {
 	// We ignore the return value. CreateCollection is tested elsewhere.
 	_, err := db.CreateCollection(name, metadata, embeddingFunc)
 	if err != nil {
-		t.Error("expected no error, got", err)
+		t.Fatal("expected no error, got", err)
 	}
 
 	// Delete collection
@@ -319,11 +319,11 @@ func TestDB_DeleteCollection(t *testing.T) {
 	// We don't have access to the documents field, but we can rely on DB.ListCollections()
 	// because it's tested elsewhere.
 	if len(db.ListCollections()) != 0 {
-		t.Error("expected 0 collections, got", len(db.ListCollections()))
+		t.Fatal("expected 0 collections, got", len(db.ListCollections()))
 	}
 	// Also check internally
 	if len(db.collections) != 0 {
-		t.Error("expected 0 collections, got", len(db.collections))
+		t.Fatal("expected 0 collections, got", len(db.collections))
 	}
 }
 
@@ -341,7 +341,7 @@ func TestDB_Reset(t *testing.T) {
 	// We ignore the return value. CreateCollection is tested elsewhere.
 	_, err := db.CreateCollection(name, metadata, embeddingFunc)
 	if err != nil {
-		t.Error("expected no error, got", err)
+		t.Fatal("expected no error, got", err)
 	}
 
 	// Reset DB
@@ -351,10 +351,10 @@ func TestDB_Reset(t *testing.T) {
 	// We don't have access to the documents field, but we can rely on DB.ListCollections()
 	// because it's tested elsewhere.
 	if len(db.ListCollections()) != 0 {
-		t.Error("expected 0 collections, got", len(db.ListCollections()))
+		t.Fatal("expected 0 collections, got", len(db.ListCollections()))
 	}
 	// Also check internally
 	if len(db.collections) != 0 {
-		t.Error("expected 0 collections, got", len(db.collections))
+		t.Fatal("expected 0 collections, got", len(db.collections))
 	}
 }

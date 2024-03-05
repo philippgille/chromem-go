@@ -11,7 +11,7 @@ import (
 func TestPersistence(t *testing.T) {
 	tempDir, err := os.MkdirTemp("", "chromem-go")
 	if err != nil {
-		t.Error("expected nil, got", err)
+		t.Fatal("expected nil, got", err)
 	}
 	t.Cleanup(func() {
 		_ = os.RemoveAll(tempDir)
@@ -31,23 +31,23 @@ func TestPersistence(t *testing.T) {
 	// Check if the file exists.
 	_, err = os.Stat(tempDir + ".gob")
 	if err != nil {
-		t.Error("expected nil, got", err)
+		t.Fatal("expected nil, got", err)
 	}
 	// Check if the file contains the expected data.
 	b, err := os.ReadFile(tempDir + ".gob")
 	if err != nil {
-		t.Error("expected nil, got", err)
+		t.Fatal("expected nil, got", err)
 	}
 	d := gob.NewDecoder(bytes.NewReader(b))
 	res := s{}
 	err = d.Decode(&res)
 	if err != nil {
-		t.Error("expected nil, got", err)
+		t.Fatal("expected nil, got", err)
 	}
 	if res.Foo != obj.Foo {
-		t.Error("expected", obj.Foo, "got", res.Foo)
+		t.Fatal("expected", obj.Foo, "got", res.Foo)
 	}
 	if slices.Compare[[]float32](res.Bar, obj.Bar) != 0 {
-		t.Error("expected", obj.Bar, "got", res.Bar)
+		t.Fatal("expected", obj.Bar, "got", res.Bar)
 	}
 }
