@@ -31,7 +31,7 @@ func TestNewEmbeddingFuncOpenAICompat(t *testing.T) {
 		"model": model,
 	})
 	if err != nil {
-		t.Error("unexpected error:", err)
+		t.Fatal("unexpected error:", err)
 	}
 	wantRes := []float32{-0.1, 0.1, 0.2}
 
@@ -39,26 +39,26 @@ func TestNewEmbeddingFuncOpenAICompat(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Check URL
 		if !strings.HasSuffix(r.URL.Path, baseURLSuffix+"/embeddings") {
-			t.Error("expected URL", baseURLSuffix+"/embeddings", "got", r.URL.Path)
+			t.Fatal("expected URL", baseURLSuffix+"/embeddings", "got", r.URL.Path)
 		}
 		// Check method
 		if r.Method != "POST" {
-			t.Error("expected method POST, got", r.Method)
+			t.Fatal("expected method POST, got", r.Method)
 		}
 		// Check headers
 		if r.Header.Get("Authorization") != "Bearer "+apiKey {
-			t.Error("expected Authorization header", "Bearer "+apiKey, "got", r.Header.Get("Authorization"))
+			t.Fatal("expected Authorization header", "Bearer "+apiKey, "got", r.Header.Get("Authorization"))
 		}
 		if r.Header.Get("Content-Type") != "application/json" {
-			t.Error("expected Content-Type header", "application/json", "got", r.Header.Get("Content-Type"))
+			t.Fatal("expected Content-Type header", "application/json", "got", r.Header.Get("Content-Type"))
 		}
 		// Check body
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			t.Error("unexpected error:", err)
+			t.Fatal("unexpected error:", err)
 		}
 		if !bytes.Equal(body, wantBody) {
-			t.Error("expected body", wantBody, "got", body)
+			t.Fatal("expected body", wantBody, "got", body)
 		}
 
 		// Write response
@@ -78,9 +78,9 @@ func TestNewEmbeddingFuncOpenAICompat(t *testing.T) {
 	f := chromem.NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model)
 	res, err := f(context.Background(), input)
 	if err != nil {
-		t.Error("expected nil, got", err)
+		t.Fatal("expected nil, got", err)
 	}
 	if slices.Compare(wantRes, res) != 0 {
-		t.Error("expected res", wantRes, "got", res)
+		t.Fatal("expected res", wantRes, "got", res)
 	}
 }
