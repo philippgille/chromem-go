@@ -47,19 +47,19 @@ func TestDocument_New(t *testing.T) {
 			// Create document
 			d, err := NewDocument(ctx, id, metadata, vectors, content, embeddingFunc)
 			if err != nil {
-				t.Error("expected no error, got", err)
+				t.Fatal("expected no error, got", err)
 			}
 			if d.ID != id {
-				t.Error("expected id", id, "got", d.ID)
+				t.Fatal("expected id", id, "got", d.ID)
 			}
 			if d.Metadata["foo"] != metadata["foo"] {
-				t.Error("expected metadata", metadata, "got", d.Metadata)
+				t.Fatal("expected metadata", metadata, "got", d.Metadata)
 			}
 			if !slices.Equal(d.Embedding, vectors) {
-				t.Error("expected vectors", vectors, "got", d.Embedding)
+				t.Fatal("expected vectors", vectors, "got", d.Embedding)
 			}
 			if d.Content != content {
-				t.Error("expected content", content, "got", d.Content)
+				t.Fatal("expected content", content, "got", d.Content)
 			}
 		})
 	}

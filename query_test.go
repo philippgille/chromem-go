@@ -92,7 +92,7 @@ func TestFilterDocs(t *testing.T) {
 			got := filterDocs(docs, tc.where, tc.whereDocument)
 
 			if !reflect.DeepEqual(got, tc.want) {
-				t.Errorf("got %v; want %v", got, tc.want)
+				t.Fatalf("got %v; want %v", got, tc.want)
 			}
 		})
 	}
