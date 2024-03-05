@@ -2,6 +2,7 @@ package chromem
 
 import (
 	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -92,6 +93,14 @@ func TestFilterDocs(t *testing.T) {
 			got := filterDocs(docs, tc.where, tc.whereDocument)
 
 			if !reflect.DeepEqual(got, tc.want) {
+				// If len is 2, the order might be different (function under test
+				// is concurrent and order is not guaranteed).
+				if len(got) == 2 && len(tc.want) == 2 {
+					slices.Reverse(got)
+					if reflect.DeepEqual(got, tc.want) {
+						return
+					}
+				}
 				t.Fatalf("got %v; want %v", got, tc.want)
 			}
 		})
