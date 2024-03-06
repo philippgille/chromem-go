@@ -51,7 +51,7 @@ Fine-tuning an LLM can help a bit, but it's more meant to improve the LLMs reaso
 4. In the question to the LLM, you provide this content alongside your question.
 5. The LLM can take this up-to-date precise content into account when answering.
 
-Check out the [example code](example/main.go) to see it in action!
+Check out the [example code](example) to see it in action!
 
 ## Interface
 
@@ -176,7 +176,7 @@ See the Godoc for details: <https://pkg.go.dev/github.com/philippgille/chromem-g
 
 ## Usage
 
-For a full, working example, using the vector database for retrieval augmented generation (RAG) and locally running embeddings model and LLM (in Ollama), see [example/main.go](example/main.go).
+For a full, working example, using the vector database for retrieval augmented generation (RAG) and locally running embeddings model and LLM (in Ollama), see the [example code](example).
 
 ## Motivation
 
