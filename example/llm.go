@@ -10,10 +10,10 @@ import (
 )
 
 const (
-	// We use a local LLM running in Ollama for asking the question: https://ollama.com/
+	// We use a local LLM running in Ollama for asking the question: https://github.com/ollama/ollama
 	ollamaBaseURL = "http://localhost:11434/v1"
-	// We use a very small model that doesn't need much resources and is fast, but
-	// doesn't have much knowledge: https://ollama.com/library/gemma
+	// We use Google's Gemma (2B), a very small model that doesn't need much resources
+	// and is fast, but doesn't have much knowledge: https://huggingface.co/google/gemma-2b
 	// We found Gemma 2B to be superior to TinyLlama (1.1B), Stable LM 2 (1.6B)
 	// and Phi-2 (2.7B) for the retrieval augmented generation (RAG) use case.
 	llmModel = "gemma:2b"
