@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 vNext
 -----
 
-In this release the main features are optional persistence and an extended interface.
+In this release the main features are optional persistence, an extended interface, support for creating embeddings with [Ollama](https://github.com/ollama/ollama/), the exporting of the `Document` struct, and more Go-idiomatic methods to add documents to collections.
 
 ### Added
 
@@ -18,15 +18,19 @@ In this release the main features are optional persistence and an extended inter
   - `DB.DeleteCollection()` (PR [#14](https://github.com/philippgille/chromem-go/pull/14))
   - `DB.Reset()` (PR [#15](https://github.com/philippgille/chromem-go/pull/15))
   - `DB.GetOrCreateCollection()` (PR [#22](https://github.com/philippgille/chromem-go/pull/22))
-- Added various unit tests (PR [#20](https://github.com/philippgille/chromem-go/pull/20))
+  - `Collection.Count()` (PR [#27](https://github.com/philippgille/chromem-go/pull/27))
+  - `Document` struct, `NewDocument()` function, `Collection.AddDocument()` and `Collection.AddDocuments()` methods (PR [#34](https://github.com/philippgille/chromem-go/pull/34))
+    - More Go-idiomatic alternatives to `Collection.Add()`
+- Added various unit tests (PR [#20](https://github.com/philippgille/chromem-go/pull/20), [#39](https://github.com/philippgille/chromem-go/pull/39))
 - Added optional persistence! Via multiple PRs:
-  - Write in PR [#23](https://github.com/philippgille/chromem-go/pull/23)+[#24](https://github.com/philippgille/chromem-go/pull/24)
+  - Write in PR [#23](https://github.com/philippgille/chromem-go/pull/23), [#24](https://github.com/philippgille/chromem-go/pull/24), [#31](https://github.com/philippgille/chromem-go/pull/31)
   - Read in PR [#25](https://github.com/philippgille/chromem-go/pull/25)
   - Delete in PR [#26](https://github.com/philippgille/chromem-go/pull/26)
+- Added support for creating embeddings with [Ollama](https://github.com/ollama/ollama/) (PR [#32](https://github.com/philippgille/chromem-go/pull/32))
 
 ### Improved
 
-- Improved example (PR [#11](https://github.com/philippgille/chromem-go/pull/11))
+- Improved example (PR [#11](https://github.com/philippgille/chromem-go/pull/11), [#28](https://github.com/philippgille/chromem-go/pull/28), [#33](https://github.com/philippgille/chromem-go/pull/33))
 - Stop exporting `Collection.Metadata` (PR [#16](https://github.com/philippgille/chromem-go/pull/16))
   - Goal: Prevent direct modifications which could cause data races in case of the user doing a modification while `chromem-go` for example ranges over it during a `Collection.Query()` call.
 - Copy metadata in constructors (PR [#17](https://github.com/philippgille/chromem-go/pull/17))
@@ -34,11 +38,25 @@ In this release the main features are optional persistence and an extended inter
 - Improved CI (PR [#18](https://github.com/philippgille/chromem-go/pull/18))
   - Add Go 1.22 to test matrix, update used GitHub Action from v4 to v5, use race detector during tests
 - Reorganize code internally (PR [#21](https://github.com/philippgille/chromem-go/pull/21))
+- Switched to newer recommended check for file related `ErrNotExist` errors (PR [#29](https://github.com/philippgille/chromem-go/pull/29))
+- Added more validations in several existing methods (PR [#30](https://github.com/philippgille/chromem-go/pull/30))
+- Internal variable renamed (PR [#37](https://github.com/philippgille/chromem-go/pull/37))
+- Fail unit tests immediately (PR [#40](https://github.com/philippgille/chromem-go/pull/40))
+
+### Fixed
+
+- Fixed metadatas validation in `Collection.AddConcurrently()` (PR [#35](https://github.com/philippgille/chromem-go/pull/35))
+- Fixed Godoc of `Collection.Query()` method (PR [#36](https://github.com/philippgille/chromem-go/pull/36))
+- Fixed length of result slice (PR [#38](https://github.com/philippgille/chromem-go/pull/38))
+- Fixed filter test (PR [#41](https://github.com/philippgille/chromem-go/pull/41))
 
 ### Breaking changes
 
 - Because functions can't be (de-)serialized, `GetCollection` requires a new parameter of type `EmbeddingFunc`, in order to set the correct func when using a DB with persistence and it just loaded the collections and documents from storage. (PR [#25](https://github.com/philippgille/chromem-go/pull/25))
 - Some methods now return an error (due to file operations when persistence is used)
+- Additional validations will return an early error, but most (if not all) prior calls with the invalid parameters probably lead to some errors down the line anyway
+- `Collection.Metadata` is not exported anymore
+- `Result.Document` field was renamed to `Result.Content`, to avoid confusion with the now exported `Document` struct
 
 v0.3.0 (2024-02-10)
 -------------------
