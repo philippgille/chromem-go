@@ -176,7 +176,7 @@ See the Godoc for details: <https://pkg.go.dev/github.com/philippgille/chromem-g
 
 ## Usage
 
-For a full, working example, using the vector database for retrieval augmented generation (RAG), see [example/main.go](example/main.go)
+For a full, working example, using the vector database for retrieval augmented generation (RAG) and locally running embeddings model and LLM (in Ollama), see [example/main.go](example/main.go).
 
 ## Motivation
 
@@ -198,9 +198,10 @@ That's when I decided to build my own vector database, embeddable in Go, inspire
   - [Milvus](https://github.com/milvus-io/milvus): Written in Go and C++, but not embeddable as of December 2023
   - [Weaviate](https://github.com/weaviate/weaviate): Written in Go, but not embeddable as of December 2023
 - Some non-specialized SQL, NoSQL and Key-Value databases added support for storing vectors and (some of them) querying based on similarity:
-  - [`pgvector`](https://github.com/pgvector/pgvector) extension for PostgreSQL: Client-server model
+  - [pgvector](https://github.com/pgvector/pgvector) extension for [PostgreSQL](https://www.postgresql.org/): Client-server model
   - [Redis](https://github.com/redis/redis) ([1](https://redis.io/docs/interact/search-and-query/query/vector-search/), [2](https://redis.io/docs/interact/search-and-query/advanced-concepts/vectors/)): Client-server model
-  - [DuckDB](https://github.com/duckdb/duckdb) has a function to calculate cosine similarity ([1](https://duckdb.org/docs/sql/functions/nested)): Can be embedded (like SQLite), but the Go library is CGO-based and there's no way to query with a text input and get the most similar stored text as output (as of 2024-03-06)
+  - [sqlite-vss](https://github.com/asg017/sqlite-vss) extension for [SQLite](https://www.sqlite.org/): Embedded, but the [Go bindings](https://github.com/asg017/sqlite-vss/tree/8fc44301843029a13a474d1f292378485e1fdd62/bindings/go) require CGO. There's a [CGO-free Go library](https://gitlab.com/cznic/sqlite) for SQLite, but then it's without the vector search extension.
+  - [DuckDB](https://github.com/duckdb/duckdb) has a function to calculate cosine similarity ([1](https://duckdb.org/docs/sql/functions/nested)): Embedded, but the Go bindings use CGO
   - [MongoDB](https://github.com/mongodb/mongo)'s cloud platform offers a vector search product ([1](https://www.mongodb.com/products/platform/atlas-vector-search)): Client-server model
 - Some libraries for vector similarity search:
   - [Faiss](https://github.com/facebookresearch/faiss): Written in C++; 3rd party Go bindings use CGO
