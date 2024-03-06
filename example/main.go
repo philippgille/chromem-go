@@ -14,7 +14,7 @@ import (
 
 const (
 	question = "When did the Monarch Company exist?"
-	// We use a local LLM running in Ollama for the embedding: https://ollama.com/library/nomic-embed-text
+	// We use a local LLM running in Ollama for the embedding: https://huggingface.co/nomic-ai/nomic-embed-text-v1.5
 	embeddingModel = "nomic-embed-text"
 )
 
