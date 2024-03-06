@@ -141,6 +141,7 @@ See the Godoc for details: <https://pkg.go.dev/github.com/philippgille/chromem-g
   - You can also pass existing embeddings when adding documents to a collection, instead of letting `chromem-go` create them
 - Similarity search:
   - [X] Exhaustive nearest neighbor search using cosine similarity
+    - A.k.a. "exact" or brute-force search. Sometimes called FLAT index.
 - Filters:
   - [X] Document filters: `$contains`, `$not_contains`
   - [X] Metadata filters: Exact matches
@@ -152,6 +153,9 @@ See the Godoc for details: <https://pkg.go.dev/github.com/philippgille/chromem-g
 
 ### Roadmap
 
+- Performance:
+  - [ ] Add Go benchmark code
+  - [ ] Improve code based on CPU and memory profiles
 - Embedding creators:
   - [ ] Add an `EmbeddingFunc` that downloads and shells out to [llamafile](https://github.com/Mozilla-Ocho/llamafile)
 - Similarity search:
@@ -193,3 +197,12 @@ That's when I decided to build my own vector database, embeddable in Go, inspire
   - [Qdrant](https://github.com/qdrant/qdrant): Written in Rust
   - [Milvus](https://github.com/milvus-io/milvus): Written in Go and C++, but not embeddable as of December 2023
   - [Weaviate](https://github.com/weaviate/weaviate): Written in Go, but not embeddable as of December 2023
+- Some non-specialized SQL, NoSQL and Key-Value databases added support for storing vectors and (some of them) querying based on similarity:
+  - [`pgvector`](https://github.com/pgvector/pgvector) extension for PostgreSQL: Client-server model
+  - [Redis](https://github.com/redis/redis) ([1](https://redis.io/docs/interact/search-and-query/query/vector-search/), [2](https://redis.io/docs/interact/search-and-query/advanced-concepts/vectors/)): Client-server model
+  - [DuckDB](https://github.com/duckdb/duckdb) has a function to calculate cosine similarity ([1](https://duckdb.org/docs/sql/functions/nested)): Can be embedded (like SQLite), but the Go library is CGO-based and there's no way to query with a text input and get the most similar stored text as output (as of 2024-03-06)
+  - [MongoDB](https://github.com/mongodb/mongo)'s cloud platform offers a vector search product ([1](https://www.mongodb.com/products/platform/atlas-vector-search)): Client-server model
+- Some libraries for vector similarity search:
+  - [Faiss](https://github.com/facebookresearch/faiss): Written in C++; 3rd party Go bindings use CGO
+  - [Annoy](https://github.com/spotify/annoy): Written in C++; Go bindings use CGO ([1](https://github.com/spotify/annoy/blob/2be37c9e015544be2cf60c431f0cccc076151a2d/README_GO.rst))
+  - [USearch](https://github.com/unum-cloud/usearch): Written in C++; Go bindings use CGO
