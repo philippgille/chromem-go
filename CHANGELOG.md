@@ -27,6 +27,7 @@ In this release the main features are optional persistence, an extended interfac
   - Read in PR [#25](https://github.com/philippgille/chromem-go/pull/25)
   - Delete in PR [#26](https://github.com/philippgille/chromem-go/pull/26)
 - Added support for creating embeddings with [Ollama](https://github.com/ollama/ollama/) (PR [#32](https://github.com/philippgille/chromem-go/pull/32))
+- Added example documentation (PR [#42](https://github.com/philippgille/chromem-go/pull/42))
 
 ### Improved
 
