@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"time"
 
 	"github.com/philippgille/chromem-go"
 )
@@ -62,6 +63,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		defer f.Close()
 		d := json.NewDecoder(f)
 		log.Println("Reading JSON lines...")
 		for i := 1; ; i++ {
@@ -91,15 +93,18 @@ func main() {
 		log.Println("Not reading JSON lines because collection was loaded from persistent storage.")
 	}
 
-	// Search for documents similar to the one we added just by passing the original
-	// question.
+	// Search for documents that are semantically similar to the original question.
 	// We ask for the two most similar documents, but you can use more or less depending
 	// on your needs and the supported context size of the LLM you use.
+	// You can limit the search by filtering on content or metadata (like the article's
+	// category), but we don't do that in this example.
+	start := time.Now()
 	log.Println("Querying chromem-go...")
 	docRes, err := collection.Query(ctx, question, 2, nil, nil)
 	if err != nil {
 		panic(err)
 	}
+	log.Println("Search took", time.Since(start))
 	// Here you could filter out any documents whose similarity is below a certain threshold.
 	// if docRes[...].Similarity < 0.5 { ...
 
@@ -124,6 +129,7 @@ func main() {
 	2024/03/02 20:02:34 Reading JSON lines...
 	2024/03/02 20:02:34 Adding documents to chromem-go, including creating their embeddings via Ollama API...
 	2024/03/02 20:03:11 Querying chromem-go...
+	2024/03/02 20:03:11 Search took 231.672667ms
 	2024/03/02 20:03:11 Document 1 (similarity: 0.723627): "Malleable Iron Range Company was a company that existed from 1896 to 1985 and primarily produced kitchen ranges made of malleable iron but also produced a variety of other related products. The company's primary trademark was 'Monarch' and was colloquially often referred to as the Monarch Company or just Monarch."
 	2024/03/02 20:03:11 Document 2 (similarity: 0.550584): "The American Motor Car Company was a short-lived company in the automotive industry founded in 1906 lasting until 1913. It was based in Indianapolis Indiana United States. The American Motor Car Company pioneered the underslung design."
 	2024/03/02 20:03:11 Asking LLM with augmented question...

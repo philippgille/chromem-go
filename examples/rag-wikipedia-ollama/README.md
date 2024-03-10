@@ -1,6 +1,6 @@
-# Example
+# RAG Wikipedia Ollama
 
-This example shows a retrieval augmented generation (RAG) application, using `chromem-go` as knowledge base for finding relevant info for a question.
+This example shows a retrieval augmented generation (RAG) application, using `chromem-go` as knowledge base for finding relevant info for a question. More specifically the app is doing *question answering*. The underlying data is 200 Wikipedia articles (or rather their lead section / introduction).
 
 We run the embeddings model and LLM in [Ollama](https://github.com/ollama/ollama), to showcase how a RAG application can run entirely offline, without relying on OpenAI or other third party APIs. It doesn't require a GPU, and a CPU like an 11th Gen Intel i5-1135G7 (like in the first generation Framework Laptop 13) is fast enough.
 
@@ -29,13 +29,14 @@ The output can differ slightly on each run, but it's along the lines of:
 2024/03/02 20:02:34 Reading JSON lines...
 2024/03/02 20:02:34 Adding documents to chromem-go, including creating their embeddings via Ollama API...
 2024/03/02 20:03:11 Querying chromem-go...
+2024/03/02 20:03:11 Search took 231.672667ms
 2024/03/02 20:03:11 Document 1 (similarity: 0.723627): "Malleable Iron Range Company was a company that existed from 1896 to 1985 and primarily produced kitchen ranges made of malleable iron but also produced a variety of other related products. The company's primary trademark was 'Monarch' and was colloquially often referred to as the Monarch Company or just Monarch."
 2024/03/02 20:03:11 Document 2 (similarity: 0.550584): "The American Motor Car Company was a short-lived company in the automotive industry founded in 1906 lasting until 1913. It was based in Indianapolis Indiana United States. The American Motor Car Company pioneered the underslung design."
 2024/03/02 20:03:11 Asking LLM with augmented question...
 2024/03/02 20:03:32 Reply after augmenting the question with knowledge: "The Monarch Company existed from 1896 to 1985."
 ```
 
-The majority of the time here is spent during the embeddings creation as well as the LLM conversation, which are not part of `chromem-go`.
+The majority of the time here is spent during the embeddings creation, where we are limited by the performance of the Ollama API, which depends on your CPU/GPU and the embeddings model.
 
 ## OpenAI
 
@@ -48,10 +49,10 @@ Then, if you want to create the embeddings via OpenAI, but still use Gemma 2B as
 <details><summary>Apply this patch</summary>
 
 ```diff
-diff --git a/example/main.go b/example/main.go
+diff --git a/examples/rag-wikipedia-ollama/main.go b/examples/rag-wikipedia-ollama/main.go
 index 55b3076..cee9561 100644
---- a/example/main.go
-+++ b/example/main.go
+--- a/examples/rag-wikipedia-ollama/main.go
++++ b/examples/rag-wikipedia-ollama/main.go
 @@ -14,8 +14,6 @@ import (
  
  const (
@@ -88,10 +89,10 @@ Or alternatively, if you want to use OpenAI for everything (embeddings creation 
 <details><summary>Apply this patch</summary>
 
 ```diff
-diff --git a/example/llm.go b/example/llm.go
+diff --git a/examples/rag-wikipedia-ollama/llm.go b/examples/rag-wikipedia-ollama/llm.go
 index 1fde4ec..7cb81cc 100644
---- a/example/llm.go
-+++ b/example/llm.go
+--- a/examples/rag-wikipedia-ollama/llm.go
++++ b/examples/rag-wikipedia-ollama/llm.go
 @@ -2,23 +2,13 @@ package main
  
  import (
@@ -138,10 +139,10 @@ index 1fde4ec..7cb81cc 100644
    Messages: messages,
   })
   if err != nil {
-diff --git a/example/main.go b/example/main.go
+diff --git a/examples/rag-wikipedia-ollama/main.go b/examples/rag-wikipedia-ollama/main.go
 index 55b3076..044a246 100644
---- a/example/main.go
-+++ b/example/main.go
+--- a/examples/rag-wikipedia-ollama/main.go
++++ b/examples/rag-wikipedia-ollama/main.go
 @@ -12,19 +12,11 @@ import (
   "github.com/philippgille/chromem-go"
  )
