@@ -13,6 +13,8 @@ Because `chromem-go` is embeddable it enables you to add retrieval augmented gen
 
 The focus is not scale or number of features, but simplicity.
 
+Performance has not been a priority yet. Without optimizations (except some parallelization with goroutines) querying 5,000 documents takes ~500ms on a mid-range laptop CPU (11th Gen Intel i5-1135G7, like in the first generation Framework Laptop 13).
+
 > ⚠️ The project is in beta, under heavy construction, and may introduce breaking changes in releases before `v1.0.0`. All changes are documented in the [`CHANGELOG`](./CHANGELOG.md).
 
 ## Contents
