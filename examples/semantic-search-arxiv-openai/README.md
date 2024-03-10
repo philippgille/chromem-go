@@ -27,6 +27,7 @@ The output can differ slightly on each run, but it's along the lines of:
  2024/03/10 18:23:55 Read and parsed 5006 documents.
  2024/03/10 18:23:55 Adding documents to chromem-go, including creating their embeddings via OpenAI API...
  2024/03/10 18:28:12 Querying chromem-go...
+ 2024/03/10 18:28:12 Search took 529.451163ms
  2024/03/10 18:28:12 Search results:
   1) Similarity 0.488895:
    URL: https://arxiv.org/abs/2209.15469
