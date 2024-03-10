@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"slices"
 	"sort"
 	"sync"
@@ -45,14 +45,14 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 	// Persistence
 	if dir != "" {
 		safeName := hash2hex(name)
-		c.persistDirectory = path.Join(dir, safeName)
+		c.persistDirectory = filepath.Join(dir, safeName)
 		// Create dir
 		err := os.MkdirAll(c.persistDirectory, 0o700)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't create collection directory: %w", err)
 		}
 		// Persist name and metadata
-		metadataPath := path.Join(c.persistDirectory, metadataFileName)
+		metadataPath := filepath.Join(c.persistDirectory, metadataFileName)
 		pc := struct {
 			Name     string
 			Metadata map[string]string
@@ -230,7 +230,7 @@ func (c *Collection) AddDocument(ctx context.Context, doc Document) error {
 	// Persist the document
 	if c.persistDirectory != "" {
 		safeID := hash2hex(doc.ID)
-		filePath := path.Join(c.persistDirectory, safeID)
+		filePath := filepath.Join(c.persistDirectory, safeID)
 		err := persist(filePath, doc)
 		if err != nil {
 			return fmt.Errorf("couldn't persist document: %w", err)
