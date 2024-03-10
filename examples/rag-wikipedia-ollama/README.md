@@ -1,4 +1,4 @@
-# Example
+# RAG Wikipedia Ollama
 
 This example shows a retrieval augmented generation (RAG) application, using `chromem-go` as knowledge base for finding relevant info for a question.
 
@@ -48,10 +48,10 @@ Then, if you want to create the embeddings via OpenAI, but still use Gemma 2B as
 <details><summary>Apply this patch</summary>
 
 ```diff
-diff --git a/example/main.go b/example/main.go
+diff --git a/examples/rag-wikipedia-ollama/main.go b/examples/rag-wikipedia-ollama/main.go
 index 55b3076..cee9561 100644
---- a/example/main.go
-+++ b/example/main.go
+--- a/examples/rag-wikipedia-ollama/main.go
++++ b/examples/rag-wikipedia-ollama/main.go
 @@ -14,8 +14,6 @@ import (
  
  const (
@@ -88,10 +88,10 @@ Or alternatively, if you want to use OpenAI for everything (embeddings creation 
 <details><summary>Apply this patch</summary>
 
 ```diff
-diff --git a/example/llm.go b/example/llm.go
+diff --git a/examples/rag-wikipedia-ollama/llm.go b/examples/rag-wikipedia-ollama/llm.go
 index 1fde4ec..7cb81cc 100644
---- a/example/llm.go
-+++ b/example/llm.go
+--- a/examples/rag-wikipedia-ollama/llm.go
++++ b/examples/rag-wikipedia-ollama/llm.go
 @@ -2,23 +2,13 @@ package main
  
  import (
@@ -138,10 +138,10 @@ index 1fde4ec..7cb81cc 100644
    Messages: messages,
   })
   if err != nil {
-diff --git a/example/main.go b/example/main.go
+diff --git a/examples/rag-wikipedia-ollama/main.go b/examples/rag-wikipedia-ollama/main.go
 index 55b3076..044a246 100644
---- a/example/main.go
-+++ b/example/main.go
+--- a/examples/rag-wikipedia-ollama/main.go
++++ b/examples/rag-wikipedia-ollama/main.go
 @@ -12,19 +12,11 @@ import (
   "github.com/philippgille/chromem-go"
  )
