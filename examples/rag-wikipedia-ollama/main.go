@@ -62,6 +62,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		defer f.Close()
 		d := json.NewDecoder(f)
 		log.Println("Reading JSON lines...")
 		for i := 1; ; i++ {
