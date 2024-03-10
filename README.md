@@ -7,9 +7,9 @@
 
 Embeddable vector database for Go with Chroma-like interface and zero third-party dependencies. In-memory with optional persistence.
 
-It's *not* a library to connect to Chroma and also not a reimplementation of it in Go. It's a database on its own.
-
 Because `chromem-go` is embeddable it enables you to add retrieval augmented generation (RAG) and similar embeddings-based features into your Go app *without having to run a separate database*. Like when using SQLite instead of PostgreSQL/MySQL/etc.
+
+It's *not* a library to connect to Chroma and also not a reimplementation of it in Go. It's a database on its own.
 
 The focus is not scale or number of features, but simplicity.
 
@@ -211,3 +211,7 @@ That's when I decided to build my own vector database, embeddable in Go, inspire
   - [Faiss](https://github.com/facebookresearch/faiss): Written in C++; 3rd party Go bindings use CGO
   - [Annoy](https://github.com/spotify/annoy): Written in C++; Go bindings use CGO ([1](https://github.com/spotify/annoy/blob/2be37c9e015544be2cf60c431f0cccc076151a2d/README_GO.rst))
   - [USearch](https://github.com/unum-cloud/usearch): Written in C++; Go bindings use CGO
+- Some all-in-one libraries, inspired by the Python library [LangChain](https://github.com/langchain-ai/langchain):
+  - [LangChain Go](https://github.com/tmc/langchaingo)
+  - [LinGoose](https://github.com/henomis/lingoose)
+  - [GoLC](https://github.com/hupe1980/golc)
