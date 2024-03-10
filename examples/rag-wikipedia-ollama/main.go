@@ -91,10 +91,11 @@ func main() {
 		log.Println("Not reading JSON lines because collection was loaded from persistent storage.")
 	}
 
-	// Search for documents similar to the one we added just by passing the original
-	// question.
+	// Search for documents that are semantically similar to the original question.
 	// We ask for the two most similar documents, but you can use more or less depending
 	// on your needs and the supported context size of the LLM you use.
+	// You can limit the search by filtering on content or metadata (like the article's
+	// category), but we don't do that in this example.
 	log.Println("Querying chromem-go...")
 	docRes, err := collection.Query(ctx, question, 2, nil, nil)
 	if err != nil {

@@ -1,6 +1,6 @@
 # RAG Wikipedia Ollama
 
-This example shows a retrieval augmented generation (RAG) application, using `chromem-go` as knowledge base for finding relevant info for a question.
+This example shows a retrieval augmented generation (RAG) application, using `chromem-go` as knowledge base for finding relevant info for a question. More specifically the app is doing *question answering*. The underlying data is 200 Wikipedia articles (or rather their lead section / introduction).
 
 We run the embeddings model and LLM in [Ollama](https://github.com/ollama/ollama), to showcase how a RAG application can run entirely offline, without relying on OpenAI or other third party APIs. It doesn't require a GPU, and a CPU like an 11th Gen Intel i5-1135G7 (like in the first generation Framework Laptop 13) is fast enough.
 
@@ -35,7 +35,7 @@ The output can differ slightly on each run, but it's along the lines of:
 2024/03/02 20:03:32 Reply after augmenting the question with knowledge: "The Monarch Company existed from 1896 to 1985."
 ```
 
-The majority of the time here is spent during the embeddings creation as well as the LLM conversation, which are not part of `chromem-go`.
+The majority of the time here is spent during the embeddings creation, where we are limited by the performance of the Ollama API, which depends on your CPU/GPU and the embeddings model.
 
 ## OpenAI
 
