@@ -247,6 +247,19 @@ func (c *Collection) Count() int {
 	return len(c.documents)
 }
 
+// Result represents a single result from a query.
+type Result struct {
+	ID        string
+	Metadata  map[string]string
+	Embedding []float32
+	Content   string
+
+	// The cosine similarity between the query and the document.
+	// The higher the value, the more similar the document is to the query.
+	// The value is in the range [-1, 1].
+	Similarity float32
+}
+
 // Performs an exhaustive nearest neighbor search on the collection.
 //
 //   - queryText: The text to search for.
@@ -262,7 +275,7 @@ func (c *Collection) Query(ctx context.Context, queryText string, nResults int, 
 	}
 
 	c.documentsLock.RLock()
-	// We don't defer the unlock because we want to do it earlier.
+	defer c.documentsLock.RUnlock()
 	if len(c.documents) == 0 {
 		return nil, nil
 	}
@@ -276,7 +289,6 @@ func (c *Collection) Query(ctx context.Context, queryText string, nResults int, 
 
 	// Filter docs by metadata and content
 	filteredDocs := filterDocs(c.documents, where, whereDocument)
-	c.documentsLock.RUnlock()
 
 	// No need to continue if the filters got rid of all documents
 	if len(filteredDocs) == 0 {
@@ -289,17 +301,32 @@ func (c *Collection) Query(ctx context.Context, queryText string, nResults int, 
 	}
 
 	// For the remaining documents, calculate cosine similarity.
-	res, err := calcDocSimilarity(ctx, queryVectors, filteredDocs)
+	docSim, err := calcDocSimilarity(ctx, queryVectors, filteredDocs)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't calculate cosine similarity: %w", err)
 	}
 
 	// Sort by similarity
-	sort.Slice(res, func(i, j int) bool {
+	sort.Slice(docSim, func(i, j int) bool {
 		// The `less` function would usually use `<`, but we want to sort descending.
-		return res[i].Similarity > res[j].Similarity
+		return docSim[i].similarity > docSim[j].similarity
 	})
 
+	// Return the top nResults or len(docSim), whichever is smaller
+	if len(docSim) < nResults {
+		nResults = len(docSim)
+	}
+	res := make([]Result, 0, nResults)
+	for i := 0; i < nResults; i++ {
+		res = append(res, Result{
+			ID:         docSim[i].docID,
+			Metadata:   c.documents[docSim[i].docID].Metadata,
+			Embedding:  c.documents[docSim[i].docID].Embedding,
+			Content:    c.documents[docSim[i].docID].Content,
+			Similarity: docSim[i].similarity,
+		})
+	}
+
 	// Return the top nResults
-	return res[:nResults], nil
+	return res, nil
 }
