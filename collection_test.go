@@ -342,28 +342,48 @@ func TestCollection_Count(t *testing.T) {
 // Global var for assignment in the benchmark to avoid compiler optimizations.
 var globalRes []Result
 
+func BenchmarkCollection_Query_NoContent_100(b *testing.B) {
+	benchmarkCollection_Query(b, 100, false)
+}
+
+func BenchmarkCollection_Query_NoContent_1000(b *testing.B) {
+	benchmarkCollection_Query(b, 1000, false)
+}
+
+func BenchmarkCollection_Query_NoContent_5000(b *testing.B) {
+	benchmarkCollection_Query(b, 5000, false)
+}
+
+func BenchmarkCollection_Query_NoContent_25000(b *testing.B) {
+	benchmarkCollection_Query(b, 25000, false)
+}
+
+func BenchmarkCollection_Query_NoContent_100000(b *testing.B) {
+	benchmarkCollection_Query(b, 100_000, false)
+}
+
 func BenchmarkCollection_Query_100(b *testing.B) {
-	benchmarkCollection_Query(b, 100)
+	benchmarkCollection_Query(b, 100, true)
 }
 
 func BenchmarkCollection_Query_1000(b *testing.B) {
-	benchmarkCollection_Query(b, 1000)
+	benchmarkCollection_Query(b, 1000, true)
 }
 
 func BenchmarkCollection_Query_5000(b *testing.B) {
-	benchmarkCollection_Query(b, 5000)
+	benchmarkCollection_Query(b, 5000, true)
 }
 
 func BenchmarkCollection_Query_25000(b *testing.B) {
-	benchmarkCollection_Query(b, 25000)
+	benchmarkCollection_Query(b, 25000, true)
 }
 
 func BenchmarkCollection_Query_100000(b *testing.B) {
-	benchmarkCollection_Query(b, 100_000)
+	benchmarkCollection_Query(b, 100_000, true)
 }
 
 // n is number of documents in the collection
-func benchmarkCollection_Query(b *testing.B, n int) {
+func benchmarkCollection_Query(b *testing.B, n int, withContent bool) {
 	ctx := context.Background()
 
 	// Seed to make deterministic
@@ -404,12 +424,19 @@ func benchmarkCollection_Query(b *testing.B, n int) {
 		}
 		v = normalizeVector(v)
 
-		// Add document without metadata or content.
+		// Add document with some metadata and content depending on parameter.
 		// When providing embeddings, the embedding func is not called.
-		c.AddDocument(ctx, Document{
-			ID:        strconv.Itoa(i),
+		is := strconv.Itoa(i)
+		doc := Document{
+			ID:        is,
+			Metadata:  map[string]string{"i": is, "foo": "bar" + is},
 			Embedding: v,
-		})
+		}
+		if withContent {
+			// Let's say we embed 500 tokens, that's ~375 words, ~1875 characters
+			doc.Content = randomString(r, 1875)
+		}
+		c.AddDocument(ctx, doc)
 	}
 
 	b.ResetTimer()
@@ -423,4 +450,16 @@ func benchmarkCollection_Query(b *testing.B, n int) {
 		b.Fatal("expected nil, got", err)
 	}
 	globalRes = res
+}
+
+// randomString returns a random string of length n using lowercase letters and space.
+func randomString(r *rand.Rand, n int) string {
+	// We add 5 spaces to get roughly one space every 5 characters
+	characters := []rune("abcdefghijklmnopqrstuvwxyz     ")
+
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = characters[r.Intn(len(characters))]
+	}
+	return string(b)
 }
