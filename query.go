@@ -10,17 +10,9 @@ import (
 
 var supportedFilters = []string{"$contains", "$not_contains"}
 
-// Result represents a single result from a query.
-type Result struct {
-	ID        string
-	Metadata  map[string]string
-	Embedding []float32
-	Content   string
-
-	// The cosine similarity between the query and the document.
-	// The higher the value, the more similar the document is to the query.
-	// The value is in the range [-1, 1].
-	Similarity float32
+type docSim struct {
+	docID      string
+	similarity float32
 }
 
 // filterDocs filters a map of documents by metadata and content.
@@ -103,9 +95,9 @@ func documentMatchesFilters(document *Document, where, whereDocument map[string]
 	return true
 }
 
-func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Document) ([]Result, error) {
-	res := make([]Result, 0, len(docs))
-	resLock := sync.Mutex{}
+func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Document) ([]*docSim, error) {
+	similarities := make([]*docSim, 0, len(docs))
+	similaritiesLock := sync.Mutex{}
 
 	// Determine concurrency. Use number of docs or CPUs, whichever is smaller.
 	numCPUs := runtime.NumCPU()
@@ -148,17 +140,10 @@ func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Docu
 					return
 				}
 
-				resLock.Lock()
+				similaritiesLock.Lock()
 				// We don't defer the unlock because we want to unlock much earlier.
-				res = append(res, Result{
-					ID:        doc.ID,
-					Metadata:  doc.Metadata,
-					Embedding: doc.Embedding,
-					Content:   doc.Content,
-
-					Similarity: sim,
-				})
-				resLock.Unlock()
+				similarities = append(similarities, &docSim{docID: doc.ID, similarity: sim})
+				similaritiesLock.Unlock()
 			}
 		}()
 	}
@@ -184,5 +169,5 @@ OuterLoop:
 		return nil, sharedErr
 	}
 
-	return res, nil
+	return similarities, nil
 }
