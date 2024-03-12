@@ -262,7 +262,7 @@ func (c *Collection) Query(ctx context.Context, queryText string, nResults int, 
 	}
 
 	c.documentsLock.RLock()
-	defer c.documentsLock.RUnlock()
+	// We don't defer the unlock because we want to do it earlier.
 	if len(c.documents) == 0 {
 		return nil, nil
 	}
@@ -276,6 +276,7 @@ func (c *Collection) Query(ctx context.Context, queryText string, nResults int, 
 
 	// Filter docs by metadata and content
 	filteredDocs := filterDocs(c.documents, where, whereDocument)
+	c.documentsLock.RUnlock()
 
 	// No need to continue if the filters got rid of all documents
 	if len(filteredDocs) == 0 {
