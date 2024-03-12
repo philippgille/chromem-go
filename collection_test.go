@@ -2,7 +2,10 @@ package chromem
 
 import (
 	"context"
+	"errors"
+	"math/rand"
 	"slices"
+	"strconv"
 	"testing"
 )
 
@@ -334,4 +337,129 @@ func TestCollection_Count(t *testing.T) {
 	if c.Count() != 2 {
 		t.Fatal("expected 2, got", c.Count())
 	}
+}
+
+// Global var for assignment in the benchmark to avoid compiler optimizations.
+var globalRes []Result
+
+func BenchmarkCollection_Query_NoContent_100(b *testing.B) {
+	benchmarkCollection_Query(b, 100, false)
+}
+
+func BenchmarkCollection_Query_NoContent_1000(b *testing.B) {
+	benchmarkCollection_Query(b, 1000, false)
+}
+
+func BenchmarkCollection_Query_NoContent_5000(b *testing.B) {
+	benchmarkCollection_Query(b, 5000, false)
+}
+
+func BenchmarkCollection_Query_NoContent_25000(b *testing.B) {
+	benchmarkCollection_Query(b, 25000, false)
+}
+
+func BenchmarkCollection_Query_NoContent_100000(b *testing.B) {
+	benchmarkCollection_Query(b, 100_000, false)
+}
+
+func BenchmarkCollection_Query_100(b *testing.B) {
+	benchmarkCollection_Query(b, 100, true)
+}
+
+func BenchmarkCollection_Query_1000(b *testing.B) {
+	benchmarkCollection_Query(b, 1000, true)
+}
+
+func BenchmarkCollection_Query_5000(b *testing.B) {
+	benchmarkCollection_Query(b, 5000, true)
+}
+
+func BenchmarkCollection_Query_25000(b *testing.B) {
+	benchmarkCollection_Query(b, 25000, true)
+}
+
+func BenchmarkCollection_Query_100000(b *testing.B) {
+	benchmarkCollection_Query(b, 100_000, true)
+}
+
+// n is number of documents in the collection
+func benchmarkCollection_Query(b *testing.B, n int, withContent bool) {
+	ctx := context.Background()
+
+	// Seed to make deterministic
+	r := rand.New(rand.NewSource(42))
+
+	d := 1536 // dimensions, same as text-embedding-3-small
+	// Random query vector
+	qv := make([]float32, d)
+	for j := 0; j < d; j++ {
+		qv[j] = r.Float32()
+	}
+	// Most embeddings are normalized, so we normalize this one too
+	qv = normalizeVector(qv)
+	embeddingFunc := func(_ context.Context, text string) ([]float32, error) {
+		if text != "foo" {
+			return nil, errors.New("embedding func not expected to be called")
+		}
+		return qv, nil
+	}
+
+	// Create collection
+	db := NewDB()
+	name := "test"
+	c, err := db.CreateCollection(name, nil, embeddingFunc)
+	if err != nil {
+		b.Fatal("expected no error, got", err)
+	}
+	if c == nil {
+		b.Fatal("expected collection, got nil")
+	}
+
+	// Add documents
+	for i := 0; i < n; i++ {
+		// Random embedding
+		v := make([]float32, d)
+		for j := 0; j < d; j++ {
+			v[j] = r.Float32()
+		}
+		v = normalizeVector(v)
+
+		// Add document with some metadata and content depending on parameter.
+		// When providing embeddings, the embedding func is not called.
+		is := strconv.Itoa(i)
+		doc := Document{
+			ID:        is,
+			Metadata:  map[string]string{"i": is, "foo": "bar" + is},
+			Embedding: v,
+		}
+		if withContent {
+			// Let's say we embed 500 tokens, that's ~375 words, ~1875 characters
+			doc.Content = randomString(r, 1875)
+		}
+		c.AddDocument(ctx, doc)
+	}
+
+	b.ResetTimer()
+
+	// Query
+	var res []Result
+	for i := 0; i < b.N; i++ {
+		res, err = c.Query(ctx, "foo", 10, nil, nil)
+	}
+	if err != nil {
+		b.Fatal("expected nil, got", err)
+	}
+	globalRes = res
+}
+
+// randomString returns a random string of length n using lowercase letters and space.
+func randomString(r *rand.Rand, n int) string {
+	// We add 5 spaces to get roughly one space every 5 characters
+	characters := []rune("abcdefghijklmnopqrstuvwxyz     ")
+
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = characters[r.Intn(len(characters))]
+	}
+	return string(b)
 }
