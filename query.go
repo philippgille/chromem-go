@@ -96,9 +96,6 @@ func documentMatchesFilters(document *Document, where, whereDocument map[string]
 }
 
 func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Document) ([]*docSim, error) {
-	similarities := make([]*docSim, 0, len(docs))
-	similaritiesLock := sync.Mutex{}
-
 	// Determine concurrency. Use number of docs or CPUs, whichever is smaller.
 	numCPUs := runtime.NumCPU()
 	numDocs := len(docs)
@@ -122,7 +119,7 @@ func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Docu
 		}
 	}
 
-	wg := sync.WaitGroup{}
+	resChan := make(chan *docSim, concurrency*2)
 	// Instead of using a channel to pass documents into the goroutines, we just
 	// split the slice into sub-slices and pass those to the goroutines.
 	// This turned out to be faster in the query benchmarks.
@@ -136,9 +133,7 @@ func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Docu
 			end += rem
 		}
 
-		wg.Add(1)
 		go func(subSlice []*Document) {
-			defer wg.Done()
 			for _, doc := range subSlice {
 				// Stop work if another goroutine encountered an error.
 				if ctx.Err() != nil {
@@ -151,18 +146,19 @@ func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Docu
 					return
 				}
 
-				similaritiesLock.Lock()
-				// We don't defer the unlock because we want to unlock much earlier.
-				similarities = append(similarities, &docSim{docID: doc.ID, similarity: sim})
-				similaritiesLock.Unlock()
+				resChan <- &docSim{docID: doc.ID, similarity: sim}
 			}
 		}(docs[start:end])
 	}
 
-	wg.Wait()
-
-	if sharedErr != nil {
-		return nil, sharedErr
+	similarities := make([]*docSim, 0, len(docs))
+	for i := 0; i < len(docs); i++ {
+		select {
+		case res := <-resChan:
+			similarities = append(similarities, res)
+		case <-ctx.Done():
+			return nil, sharedErr
+		}
 	}
 
 	return similarities, nil
