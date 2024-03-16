@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 )
 
 // TODO: Turn into const and use as default, but allow user to pass custom URL
@@ -27,6 +28,9 @@ func NewEmbeddingFuncOllama(model string) EmbeddingFunc {
 	// In our case though, the library user can set the timeout on the context,
 	// and it might have to be a long timeout, depending on the text length.
 	client := &http.Client{}
+
+	var checkedNormalized bool
+	checkNormalized := sync.Once{}
 
 	return func(ctx context.Context, text string) ([]float32, error) {
 		// Prepare the request body.
@@ -74,6 +78,18 @@ func NewEmbeddingFuncOllama(model string) EmbeddingFunc {
 			return nil, errors.New("no embeddings found in the response")
 		}
 
-		return embeddingResponse.Embedding, nil
+		v := embeddingResponse.Embedding
+		checkNormalized.Do(func() {
+			if isNormalized(v) {
+				checkedNormalized = true
+			} else {
+				checkedNormalized = false
+			}
+		})
+		if !checkedNormalized {
+			v = normalizeVector(v)
+		}
+
+		return v, nil
 	}
 }

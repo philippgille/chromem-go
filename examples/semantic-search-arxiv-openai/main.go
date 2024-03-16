@@ -93,7 +93,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("Search took", time.Since(start))
+	log.Println("Search (incl query embedding) took", time.Since(start))
 	// Here you could filter out any documents whose similarity is below a certain threshold.
 	// if docRes[...].Similarity < 0.5 { ...
 
@@ -117,7 +117,7 @@ func main() {
 	2024/03/10 18:23:55 Read and parsed 5006 documents.
 	2024/03/10 18:23:55 Adding documents to chromem-go, including creating their embeddings via OpenAI API...
 	2024/03/10 18:28:12 Querying chromem-go...
-	2024/03/10 18:28:12 Search took 529.451163ms
+	2024/03/10 18:28:12 Search (incl query embedding) took 529.451163ms
 	2024/03/10 18:28:12 Search results:
 		1) Similarity 0.488895:
 			URL: https://arxiv.org/abs/2209.15469

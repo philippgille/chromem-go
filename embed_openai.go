@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sync"
 )
 
 const BaseURLOpenAI = "https://api.openai.com/v1"
@@ -39,7 +40,9 @@ func NewEmbeddingFuncDefault() EmbeddingFunc {
 // NewEmbeddingFuncOpenAI returns a function that creates embeddings for a text
 // using the OpenAI API.
 func NewEmbeddingFuncOpenAI(apiKey string, model EmbeddingModelOpenAI) EmbeddingFunc {
-	return NewEmbeddingFuncOpenAICompat(BaseURLOpenAI, apiKey, string(model))
+	// OpenAI embeddings are normalized
+	normalized := true
+	return NewEmbeddingFuncOpenAICompat(BaseURLOpenAI, apiKey, string(model), &normalized)
 }
 
 // NewEmbeddingFuncOpenAICompat returns a function that creates embeddings for a text
@@ -48,11 +51,19 @@ func NewEmbeddingFuncOpenAI(apiKey string, model EmbeddingModelOpenAI) Embedding
 //   - LitLLM: https://github.com/BerriAI/litellm
 //   - Ollama: https://github.com/ollama/ollama/blob/main/docs/openai.md
 //   - etc.
-func NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model string) EmbeddingFunc {
+//
+// The `normalized` parameter indicates whether the vectors returned by the embedding
+// model are already normalized, as is the case for OpenAI's and Mistral's models.
+// The flag is optional. If it's nil, it will be autodetected on the first request
+// (which bears a small risk that the vector just happens to have a length of 1).
+func NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model string, normalized *bool) EmbeddingFunc {
 	// We don't set a default timeout here, although it's usually a good idea.
 	// In our case though, the library user can set the timeout on the context,
 	// and it might have to be a long timeout, depending on the text length.
 	client := &http.Client{}
+
+	var checkedNormalized bool
+	checkNormalized := sync.Once{}
 
 	return func(ctx context.Context, text string) ([]float32, error) {
 		// Prepare the request body.
@@ -101,6 +112,24 @@ func NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model string) EmbeddingFunc {
 			return nil, errors.New("no embeddings found in the response")
 		}
 
-		return embeddingResponse.Data[0].Embedding, nil
+		v := embeddingResponse.Data[0].Embedding
+		if normalized != nil {
+			if *normalized {
+				return v, nil
+			}
+			return normalizeVector(v), nil
+		}
+		checkNormalized.Do(func() {
+			if isNormalized(v) {
+				checkedNormalized = true
+			} else {
+				checkedNormalized = false
+			}
+		})
+		if !checkedNormalized {
+			v = normalizeVector(v)
+		}
+
+		return v, nil
 	}
 }

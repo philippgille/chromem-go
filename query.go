@@ -10,17 +10,9 @@ import (
 
 var supportedFilters = []string{"$contains", "$not_contains"}
 
-// Result represents a single result from a query.
-type Result struct {
-	ID        string
-	Metadata  map[string]string
-	Embedding []float32
-	Content   string
-
-	// The cosine similarity between the query and the document.
-	// The higher the value, the more similar the document is to the query.
-	// The value is in the range [-1, 1].
-	Similarity float32
+type docSim struct {
+	docID      string
+	similarity float32
 }
 
 // filterDocs filters a map of documents by metadata and content.
@@ -103,9 +95,9 @@ func documentMatchesFilters(document *Document, where, whereDocument map[string]
 	return true
 }
 
-func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Document) ([]Result, error) {
-	res := make([]Result, 0, len(docs))
-	resLock := sync.Mutex{}
+func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Document) ([]docSim, error) {
+	similarities := make([]docSim, 0, len(docs))
+	similaritiesLock := sync.Mutex{}
 
 	// Determine concurrency. Use number of docs or CPUs, whichever is smaller.
 	numCPUs := runtime.NumCPU()
@@ -131,52 +123,42 @@ func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Docu
 	}
 
 	wg := sync.WaitGroup{}
-	docChan := make(chan *Document, concurrency*2)
+	// Instead of using a channel to pass documents into the goroutines, we just
+	// split the slice into sub-slices and pass those to the goroutines.
+	// This turned out to be faster in the query benchmarks.
+	subSliceSize := len(docs) / concurrency // Can leave remainder, e.g. 10/3 = 3; leaves 1
+	rem := len(docs) % concurrency
 	for i := 0; i < concurrency; i++ {
+		start := i * subSliceSize
+		end := start + subSliceSize
+		// Add remainder to last goroutine
+		if i == concurrency-1 {
+			end += rem
+		}
+
 		wg.Add(1)
-		go func() {
+		go func(subSlice []*Document) {
 			defer wg.Done()
-			for doc := range docChan {
+			for _, doc := range subSlice {
 				// Stop work if another goroutine encountered an error.
 				if ctx.Err() != nil {
 					return
 				}
 
-				sim, err := cosineSimilarity(queryVectors, doc.Embedding)
+				// As the vectors are normalized, the dot product is the cosine similarity.
+				sim, err := dotProduct(queryVectors, doc.Embedding)
 				if err != nil {
 					setSharedErr(fmt.Errorf("couldn't calculate similarity for document '%s': %w", doc.ID, err))
 					return
 				}
 
-				resLock.Lock()
+				similaritiesLock.Lock()
 				// We don't defer the unlock because we want to unlock much earlier.
-				res = append(res, Result{
-					ID:        doc.ID,
-					Metadata:  doc.Metadata,
-					Embedding: doc.Embedding,
-					Content:   doc.Content,
-
-					Similarity: sim,
-				})
-				resLock.Unlock()
+				similarities = append(similarities, docSim{docID: doc.ID, similarity: sim})
+				similaritiesLock.Unlock()
 			}
-		}()
+		}(docs[start:end])
 	}
-
-OuterLoop:
-	for _, doc := range docs {
-		// The doc channel has limited capacity, so writing to the channel blocks
-		// when a goroutine runs into an error and then all goroutines stop processing
-		// the channel and it gets full.
-		// To avoid a deadlock we check for ctx.Done() here, which is closed by
-		// the goroutine that encountered the error.
-		select {
-		case docChan <- doc:
-		case <-ctx.Done():
-			break OuterLoop
-		}
-	}
-	close(docChan)
 
 	wg.Wait()
 
@@ -184,5 +166,5 @@ OuterLoop:
 		return nil, sharedErr
 	}
 
-	return res, nil
+	return similarities, nil
 }

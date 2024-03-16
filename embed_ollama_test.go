@@ -25,7 +25,7 @@ func TestNewEmbeddingFuncOllama(t *testing.T) {
 	if err != nil {
 		t.Fatal("unexpected error:", err)
 	}
-	wantRes := []float32{-0.1, 0.1, 0.2}
+	wantRes := []float32{-0.40824828, 0.40824828, 0.81649655} // normalized version of `{-0.1, 0.1, 0.2}`
 
 	// Mock server
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

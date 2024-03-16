@@ -33,7 +33,7 @@ func TestNewEmbeddingFuncOpenAICompat(t *testing.T) {
 	if err != nil {
 		t.Fatal("unexpected error:", err)
 	}
-	wantRes := []float32{-0.1, 0.1, 0.2}
+	wantRes := []float32{-0.40824828, 0.40824828, 0.81649655} // normalized version of `{-0.1, 0.1, 0.2}`
 
 	// Mock server
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +75,7 @@ func TestNewEmbeddingFuncOpenAICompat(t *testing.T) {
 	defer ts.Close()
 	baseURL := ts.URL + baseURLSuffix
 
-	f := chromem.NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model)
+	f := chromem.NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model, nil)
 	res, err := f(context.Background(), input)
 	if err != nil {
 		t.Fatal("expected nil, got", err)
