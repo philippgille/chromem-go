@@ -98,7 +98,7 @@ func main() {
     db := chromem.NewDB()
 
     // Create collection. GetCollection, GetOrCreateCollection, DeleteCollection also available!
-    collection, _ := db.CreateCollection("all-my-documents", nil, nil, nil)
+    collection, _ := db.CreateCollection("all-my-documents", nil, nil)
 
     // Add docs to the collection. Update and delete will be added in the future.
     // Can be multi-threaded with AddConcurrently()!

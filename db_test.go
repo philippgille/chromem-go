@@ -18,7 +18,7 @@ func TestDB_CreateCollection(t *testing.T) {
 	db := NewDB()
 
 	t.Run("OK", func(t *testing.T) {
-		c, err := db.CreateCollection(name, metadata, embeddingFunc, nil)
+		c, err := db.CreateCollection(name, metadata, embeddingFunc)
 		if err != nil {
 			t.Fatal("expected no error, got", err)
 		}
@@ -70,7 +70,7 @@ func TestDB_CreateCollection(t *testing.T) {
 	})
 
 	t.Run("NOK - Empty name", func(t *testing.T) {
-		_, err := db.CreateCollection("", metadata, embeddingFunc, nil)
+		_, err := db.CreateCollection("", metadata, embeddingFunc)
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -89,7 +89,7 @@ func TestDB_ListCollections(t *testing.T) {
 	// Create initial collection
 	db := NewDB()
 	// We ignore the return value. CreateCollection is tested elsewhere.
-	_, err := db.CreateCollection(name, metadata, embeddingFunc, nil)
+	_, err := db.CreateCollection(name, metadata, embeddingFunc)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
@@ -155,7 +155,7 @@ func TestDB_GetCollection(t *testing.T) {
 	// Create initial collection
 	db := NewDB()
 	// We ignore the return value. CreateCollection is tested elsewhere.
-	_, err := db.CreateCollection(name, metadata, embeddingFunc, nil)
+	_, err := db.CreateCollection(name, metadata, embeddingFunc)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
@@ -207,7 +207,7 @@ func TestDB_GetOrCreateCollection(t *testing.T) {
 		// Create collection so that the GetOrCreateCollection() call below only
 		// gets it.
 		// We ignore the return value. CreateCollection is tested elsewhere.
-		_, err := db.CreateCollection(name, metadata, embeddingFunc, nil)
+		_, err := db.CreateCollection(name, metadata, embeddingFunc)
 		if err != nil {
 			t.Fatal("expected no error, got", err)
 		}
@@ -215,7 +215,7 @@ func TestDB_GetOrCreateCollection(t *testing.T) {
 		// Call GetOrCreateCollection() with the same name to only get it. We pass
 		// nil for the metadata and embeddingFunc so we can check that the returned
 		// collection is the original one, and not a new one.
-		c, err := db.GetOrCreateCollection(name, nil, embeddingFunc, nil)
+		c, err := db.GetOrCreateCollection(name, nil, nil)
 		if err != nil {
 			t.Fatal("expected no error, got", err)
 		}
@@ -257,7 +257,7 @@ func TestDB_GetOrCreateCollection(t *testing.T) {
 		db := NewDB()
 
 		// Call GetOrCreateCollection()
-		c, err := db.GetOrCreateCollection(name, metadata, embeddingFunc, nil)
+		c, err := db.GetOrCreateCollection(name, metadata, embeddingFunc)
 		if err != nil {
 			t.Fatal("expected no error, got", err)
 		}
@@ -307,7 +307,7 @@ func TestDB_DeleteCollection(t *testing.T) {
 	// Create initial collection
 	db := NewDB()
 	// We ignore the return value. CreateCollection is tested elsewhere.
-	_, err := db.CreateCollection(name, metadata, embeddingFunc, nil)
+	_, err := db.CreateCollection(name, metadata, embeddingFunc)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
@@ -339,7 +339,7 @@ func TestDB_Reset(t *testing.T) {
 	// Create initial collection
 	db := NewDB()
 	// We ignore the return value. CreateCollection is tested elsewhere.
-	_, err := db.CreateCollection(name, metadata, embeddingFunc, nil)
+	_, err := db.CreateCollection(name, metadata, embeddingFunc)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}

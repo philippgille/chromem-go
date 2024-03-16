@@ -22,12 +22,11 @@ type Collection struct {
 	documents        map[string]*Document
 	documentsLock    sync.RWMutex
 	embed            EmbeddingFunc
-	normalized       *bool
 }
 
 // We don't export this yet to keep the API surface to the bare minimum.
 // Users create collections via [Client.CreateCollection].
-func newCollection(name string, metadata map[string]string, embed EmbeddingFunc, normalized *bool, dir string) (*Collection, error) {
+func newCollection(name string, metadata map[string]string, embed EmbeddingFunc, dir string) (*Collection, error) {
 	// We copy the metadata to avoid data races in case the caller modifies the
 	// map after creating the collection while we range over it.
 	m := make(map[string]string, len(metadata))
@@ -38,10 +37,9 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 	c := &Collection{
 		Name: name,
 
-		metadata:   m,
-		documents:  make(map[string]*Document),
-		embed:      embed,
-		normalized: normalized,
+		metadata:  m,
+		documents: make(map[string]*Document),
+		embed:     embed,
 	}
 
 	// Persistence
@@ -303,7 +301,7 @@ func (c *Collection) Query(ctx context.Context, queryText string, nResults int, 
 	}
 
 	// For the remaining documents, calculate cosine similarity.
-	docSim, err := calcDocSimilarity(ctx, queryVectors, filteredDocs, c.normalized)
+	docSim, err := calcDocSimilarity(ctx, queryVectors, filteredDocs)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't calculate cosine similarity: %w", err)
 	}

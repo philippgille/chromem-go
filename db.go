@@ -142,17 +142,14 @@ func NewPersistentDB(path string) (*DB, error) {
 //   - metadata: Optional metadata to associate with the collection.
 //   - embeddingFunc: Optional function to use to embed documents.
 //     Uses the default embedding function if not provided.
-//   - normalized: Optional flag to indicate if the embeddings of the collection
-//     are normalized (when you add embeddings yourself, or the embeddings created
-//     by the embeddingFunc). If nil it will be autodetected.
-func (db *DB) CreateCollection(name string, metadata map[string]string, embeddingFunc EmbeddingFunc, normalized *bool) (*Collection, error) {
+func (db *DB) CreateCollection(name string, metadata map[string]string, embeddingFunc EmbeddingFunc) (*Collection, error) {
 	if name == "" {
 		return nil, errors.New("collection name is empty")
 	}
 	if embeddingFunc == nil {
 		embeddingFunc = NewEmbeddingFuncDefault()
 	}
-	collection, err := newCollection(name, metadata, embeddingFunc, normalized, db.persistDirectory)
+	collection, err := newCollection(name, metadata, embeddingFunc, db.persistDirectory)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create collection: %w", err)
 	}
@@ -216,15 +213,12 @@ func (db *DB) GetCollection(name string, embeddingFunc EmbeddingFunc) *Collectio
 //   - metadata: Optional metadata to associate with the collection.
 //   - embeddingFunc: Optional function to use to embed documents.
 //     Uses the default embedding function if not provided.
-//   - normalized: Optional flag to indicate if the embeddings of the collection
-//     are normalized (when you add embeddings yourself, or the embeddings created
-//     by the embeddingFunc). If nil it will be autodetected.
-func (db *DB) GetOrCreateCollection(name string, metadata map[string]string, embeddingFunc EmbeddingFunc, normalized *bool) (*Collection, error) {
+func (db *DB) GetOrCreateCollection(name string, metadata map[string]string, embeddingFunc EmbeddingFunc) (*Collection, error) {
 	// No need to lock here, because the methods we call do that.
 	collection := db.GetCollection(name, embeddingFunc)
 	if collection == nil {
 		var err error
-		collection, err = db.CreateCollection(name, metadata, embeddingFunc, normalized)
+		collection, err = db.CreateCollection(name, metadata, embeddingFunc)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't create collection: %w", err)
 		}

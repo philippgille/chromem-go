@@ -20,7 +20,7 @@ func TestCollection_Add(t *testing.T) {
 
 	// Create collection
 	db := NewDB()
-	c, err := db.CreateCollection(name, metadata, embeddingFunc, nil)
+	c, err := db.CreateCollection(name, metadata, embeddingFunc)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
@@ -116,7 +116,7 @@ func TestCollection_Add_Error(t *testing.T) {
 
 	// Create collection
 	db := NewDB()
-	c, err := db.CreateCollection(name, metadata, embeddingFunc, nil)
+	c, err := db.CreateCollection(name, metadata, embeddingFunc)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
@@ -167,7 +167,7 @@ func TestCollection_AddConcurrently(t *testing.T) {
 
 	// Create collection
 	db := NewDB()
-	c, err := db.CreateCollection(name, metadata, embeddingFunc, nil)
+	c, err := db.CreateCollection(name, metadata, embeddingFunc)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
@@ -263,7 +263,7 @@ func TestCollection_AddConcurrently_Error(t *testing.T) {
 
 	// Create collection
 	db := NewDB()
-	c, err := db.CreateCollection(name, metadata, embeddingFunc, nil)
+	c, err := db.CreateCollection(name, metadata, embeddingFunc)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
@@ -316,7 +316,7 @@ func TestCollection_Count(t *testing.T) {
 	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
 		return []float32{-0.1, 0.1, 0.2}, nil
 	}
-	c, err := db.CreateCollection(name, metadata, embeddingFunc, nil)
+	c, err := db.CreateCollection(name, metadata, embeddingFunc)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
@@ -407,7 +407,7 @@ func benchmarkCollection_Query(b *testing.B, n int, withContent bool) {
 	// Create collection
 	db := NewDB()
 	name := "test"
-	c, err := db.CreateCollection(name, nil, embeddingFunc, &trueVal)
+	c, err := db.CreateCollection(name, nil, embeddingFunc)
 	if err != nil {
 		b.Fatal("expected no error, got", err)
 	}
