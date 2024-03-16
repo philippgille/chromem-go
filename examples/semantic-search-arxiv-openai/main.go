@@ -16,6 +16,9 @@ import (
 
 const searchTerm = "semantic search with vector databases"
 
+// OpenAI embeddings are already normalized.
+var normalized = true
+
 func main() {
 	ctx := context.Background()
 
@@ -30,7 +33,7 @@ func main() {
 	// We pass nil as embedding function to use the default (OpenAI text-embedding-3-small),
 	// which is very good and cheap. It requires the OPENAI_API_KEY environment
 	// variable to be set.
-	collection, err := db.GetOrCreateCollection("arXiv cs.CL 2023", nil, nil)
+	collection, err := db.GetOrCreateCollection("arXiv cs.CL 2023", nil, nil, &normalized)
 	if err != nil {
 		panic(err)
 	}
