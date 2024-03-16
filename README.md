@@ -155,7 +155,7 @@ See the Godoc for details: <https://pkg.go.dev/github.com/philippgille/chromem-g
 ### Roadmap
 
 - Performance:
-  - Add SIMD / Assembler to speed up dot product calculation
+  - Use SIMD for dot product calculation on supported CPUs (draft PR: [#48](https://github.com/philippgille/chromem-go/pull/48))
   - Add [roaring bitmaps](https://github.com/RoaringBitmap/roaring) to speed up full text filtering
 - Embedding creators:
   - Add an `EmbeddingFunc` that downloads and shells out to [llamafile](https://github.com/Mozilla-Ocho/llamafile)
