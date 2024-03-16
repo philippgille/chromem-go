@@ -95,8 +95,8 @@ func documentMatchesFilters(document *Document, where, whereDocument map[string]
 	return true
 }
 
-func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Document) ([]*docSim, error) {
-	similarities := make([]*docSim, 0, len(docs))
+func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Document) ([]docSim, error) {
+	similarities := make([]docSim, 0, len(docs))
 	similaritiesLock := sync.Mutex{}
 
 	// Determine concurrency. Use number of docs or CPUs, whichever is smaller.
@@ -153,7 +153,7 @@ func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Docu
 
 				similaritiesLock.Lock()
 				// We don't defer the unlock because we want to unlock much earlier.
-				similarities = append(similarities, &docSim{docID: doc.ID, similarity: sim})
+				similarities = append(similarities, docSim{docID: doc.ID, similarity: sim})
 				similaritiesLock.Unlock()
 			}
 		}(docs[start:end])
