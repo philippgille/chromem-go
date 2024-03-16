@@ -11,9 +11,7 @@ Because `chromem-go` is embeddable it enables you to add retrieval augmented gen
 
 It's *not* a library to connect to Chroma and also not a reimplementation of it in Go. It's a database on its own.
 
-The focus is not scale or number of features, but simplicity.
-
-Performance has not been a priority yet. Without optimizations (except some parallelization with goroutines) querying 5,000 documents takes ~500ms on a mid-range laptop CPU (11th Gen Intel i5-1135G7, like in the first generation Framework Laptop 13).
+The focus is not scale (millions of documents) or number of features, but simplicity and performance for the most common use cases. On a mid-range 2020 Intel laptop CPU you can query 1,000 documents in 0.5 ms and 100,000 documents in 56 ms, both with just 44 memory allocations. See [Benchmarks](#benchmarks) for details.
 
 > ⚠️ The project is in beta, under heavy construction, and may introduce breaking changes in releases before `v1.0.0`. All changes are documented in the [`CHANGELOG`](./CHANGELOG.md).
 
@@ -23,8 +21,9 @@ Performance has not been a priority yet. Without optimizations (except some para
 2. [Interface](#interface)
 3. [Features](#features)
 4. [Usage](#usage)
-5. [Motivation](#motivation)
-6. [Related projects](#related-projects)
+5. [Benchmarks](#benchmarks)
+6. [Motivation](#motivation)
+7. [Related projects](#related-projects)
 
 ## Use cases
 
@@ -156,31 +155,53 @@ See the Godoc for details: <https://pkg.go.dev/github.com/philippgille/chromem-g
 ### Roadmap
 
 - Performance:
-  - [ ] Add Go benchmark code
-  - [ ] Improve code based on CPU and memory profiles
+  - Add SIMD / Assembler to speed up dot product calculation
+  - Add [roaring bitmaps](https://github.com/RoaringBitmap/roaring) to speed up full text filtering
 - Embedding creators:
-  - [ ] Add an `EmbeddingFunc` that downloads and shells out to [llamafile](https://github.com/Mozilla-Ocho/llamafile)
+  - Add an `EmbeddingFunc` that downloads and shells out to [llamafile](https://github.com/Mozilla-Ocho/llamafile)
 - Similarity search:
-  - [ ] Approximate nearest neighbor search with index (ANN)
-    - [ ] Hierarchical Navigable Small World (HNSW)
-    - [ ] Inverted file flat (IVFFlat)
+  - Approximate nearest neighbor search with index (ANN)
+    - Hierarchical Navigable Small World (HNSW)
+    - Inverted file flat (IVFFlat)
 - Filters:
-  - [ ] Operators (`$and`, `$or` etc.)
+  - Operators (`$and`, `$or` etc.)
 - Storage:
-  - [ ] JSON as second encoding format
-  - [ ] Write-ahead log (WAL) as second file format
-  - [ ] Compression
-  - [ ] Encryption (at rest)
-  - [ ] Optional remote storage (S3, PostgreSQL, ...)
+  - JSON as second encoding format
+  - Write-ahead log (WAL) as second file format
+  - Compression
+  - Encryption (at rest)
+  - Optional remote storage (S3, PostgreSQL, ...)
 - Data types:
-  - [ ] Images
-  - [ ] Videos
+  - Images
+  - Videos
 
 ## Usage
 
 See the Godoc for a reference: <https://pkg.go.dev/github.com/philippgille/chromem-go>
 
 For full, working examples, using the vector database for retrieval augmented generation (RAG) and semantic search and using either OpenAI or locally running the embeddings model and LLM (in Ollama), see the [example code](examples).
+
+## Benchmarks
+
+```console
+$ go test -benchmem -run=^$  -bench .
+goos: linux
+goarch: amd64
+pkg: github.com/philippgille/chromem-go
+cpu: 11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz
+BenchmarkCollection_Query_NoContent_100-8          10000     110126 ns/op     6492 B/op       44 allocs/op
+BenchmarkCollection_Query_NoContent_1000-8          2020     537416 ns/op    35669 B/op       44 allocs/op
+BenchmarkCollection_Query_NoContent_5000-8           351    4264192 ns/op   166728 B/op       44 allocs/op
+BenchmarkCollection_Query_NoContent_25000-8           75   16411744 ns/op   813928 B/op       44 allocs/op
+BenchmarkCollection_Query_NoContent_100000-8          18   64670962 ns/op  3205962 B/op       44 allocs/op
+BenchmarkCollection_Query_100-8                    10923     109936 ns/op     6480 B/op       44 allocs/op
+BenchmarkCollection_Query_1000-8                    2184     562778 ns/op    35667 B/op       44 allocs/op
+BenchmarkCollection_Query_5000-8                     400    2986732 ns/op   166750 B/op       44 allocs/op
+BenchmarkCollection_Query_25000-8                     88   15433911 ns/op   813896 B/op       44 allocs/op
+BenchmarkCollection_Query_100000-8                    19   63696478 ns/op  3205982 B/op       44 allocs/op
+PASS
+ok   github.com/philippgille/chromem-go 31.373s
+```
 
 ## Motivation
 
