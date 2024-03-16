@@ -5,6 +5,8 @@ import (
 	"math"
 )
 
+const isNormalizedPrecisionTolerance = 1e-6
+
 // cosineSimilarity calculates the cosine similarity between two vectors.
 // Vectors are normalized first.
 // The resulting value represents the similarity, so a higher value means the
@@ -15,10 +17,12 @@ func cosineSimilarity(a, b []float32) (float32, error) {
 		return 0, errors.New("vectors must have the same length")
 	}
 
-	x, y := normalizeVector(a), normalizeVector(b)
+	if !isNormalized(a) || !isNormalized(b) {
+		a, b = normalizeVector(a), normalizeVector(b)
+	}
 	var dotProduct float32
-	for i := range x {
-		dotProduct += x[i] * y[i]
+	for i := range a {
+		dotProduct += a[i] * b[i]
 	}
 	// Vectors are already normalized, so no need to divide by magnitudes
 
@@ -38,4 +42,14 @@ func normalizeVector(v []float32) []float32 {
 	}
 
 	return res
+}
+
+// isNormalized checks if the vector is normalized.
+func isNormalized(v []float32) bool {
+	var sqSum float64
+	for _, val := range v {
+		sqSum += float64(val) * float64(val)
+	}
+	magnitude := math.Sqrt(sqSum)
+	return math.Abs(magnitude-1) < isNormalizedPrecisionTolerance
 }
