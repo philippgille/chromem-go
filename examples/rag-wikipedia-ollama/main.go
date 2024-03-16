@@ -104,7 +104,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("Search took", time.Since(start))
+	log.Println("Search (incl query embedding) took", time.Since(start))
 	// Here you could filter out any documents whose similarity is below a certain threshold.
 	// if docRes[...].Similarity < 0.5 { ...
 
@@ -129,7 +129,7 @@ func main() {
 	2024/03/02 20:02:34 Reading JSON lines...
 	2024/03/02 20:02:34 Adding documents to chromem-go, including creating their embeddings via Ollama API...
 	2024/03/02 20:03:11 Querying chromem-go...
-	2024/03/02 20:03:11 Search took 231.672667ms
+	2024/03/02 20:03:11 Search (incl query embedding) took 231.672667ms
 	2024/03/02 20:03:11 Document 1 (similarity: 0.723627): "Malleable Iron Range Company was a company that existed from 1896 to 1985 and primarily produced kitchen ranges made of malleable iron but also produced a variety of other related products. The company's primary trademark was 'Monarch' and was colloquially often referred to as the Monarch Company or just Monarch."
 	2024/03/02 20:03:11 Document 2 (similarity: 0.550584): "The American Motor Car Company was a short-lived company in the automotive industry founded in 1906 lasting until 1913. It was based in Indianapolis Indiana United States. The American Motor Car Company pioneered the underslung design."
 	2024/03/02 20:03:11 Asking LLM with augmented question...
