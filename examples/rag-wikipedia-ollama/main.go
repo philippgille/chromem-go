@@ -19,6 +19,9 @@ const (
 	embeddingModel = "nomic-embed-text"
 )
 
+// The nomic-embed-text-v1.5 model doesn't return normalized embeddings
+var normalized = false
+
 func main() {
 	ctx := context.Background()
 
@@ -49,7 +52,7 @@ func main() {
 	// variable to be set.
 	// For this example we choose to use a locally running embedding model though.
 	// It requires Ollama to serve its API at "http://localhost:11434/api".
-	collection, err := db.GetOrCreateCollection("Wikipedia", nil, chromem.NewEmbeddingFuncOllama(embeddingModel))
+	collection, err := db.GetOrCreateCollection("Wikipedia", nil, chromem.NewEmbeddingFuncOllama(embeddingModel), &normalized)
 	if err != nil {
 		panic(err)
 	}

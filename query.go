@@ -95,7 +95,7 @@ func documentMatchesFilters(document *Document, where, whereDocument map[string]
 	return true
 }
 
-func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Document) ([]docSim, error) {
+func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Document, isNormalized *bool) ([]docSim, error) {
 	similarities := make([]docSim, 0, len(docs))
 	similaritiesLock := sync.Mutex{}
 
@@ -145,7 +145,7 @@ func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Docu
 					return
 				}
 
-				sim, err := cosineSimilarity(queryVectors, doc.Embedding)
+				sim, err := cosineSimilarity(queryVectors, doc.Embedding, isNormalized)
 				if err != nil {
 					setSharedErr(fmt.Errorf("couldn't calculate similarity for document '%s': %w", doc.ID, err))
 					return
