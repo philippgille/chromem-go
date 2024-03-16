@@ -2,6 +2,7 @@ package chromem
 
 import (
 	"errors"
+	"fmt"
 	"math"
 )
 
@@ -20,11 +21,30 @@ func cosineSimilarity(a, b []float32) (float32, error) {
 	if !isNormalized(a) || !isNormalized(b) {
 		a, b = normalizeVector(a), normalizeVector(b)
 	}
+	dotProduct, err := dotProduct(a, b)
+	if err != nil {
+		return 0, fmt.Errorf("couldn't calculate dot product: %w", err)
+	}
+
+	// Vectors are already normalized, so no need to divide by magnitudes
+
+	return dotProduct, nil
+}
+
+// dotProduct calculates the dot product between two vectors.
+// It's the same as cosine similarity for normalized vectors.
+// The resulting value represents the similarity, so a higher value means the
+// vectors are more similar.
+func dotProduct(a, b []float32) (float32, error) {
+	// The vectors must have the same length
+	if len(a) != len(b) {
+		return 0, errors.New("vectors must have the same length")
+	}
+
 	var dotProduct float32
 	for i := range a {
 		dotProduct += a[i] * b[i]
 	}
-	// Vectors are already normalized, so no need to divide by magnitudes
 
 	return dotProduct, nil
 }

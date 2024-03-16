@@ -13,7 +13,7 @@ func TestCollection_Add(t *testing.T) {
 	ctx := context.Background()
 	name := "test"
 	metadata := map[string]string{"foo": "bar"}
-	vectors := []float32{-0.1, 0.1, 0.2}
+	vectors := []float32{-0.40824828, 0.40824828, 0.81649655} // normalized version of `{-0.1, 0.1, 0.2}`
 	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
 		return vectors, nil
 	}
@@ -109,7 +109,7 @@ func TestCollection_Add_Error(t *testing.T) {
 	ctx := context.Background()
 	name := "test"
 	metadata := map[string]string{"foo": "bar"}
-	vectors := []float32{-0.1, 0.1, 0.2}
+	vectors := []float32{-0.40824828, 0.40824828, 0.81649655} // normalized version of `{-0.1, 0.1, 0.2}`
 	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
 		return vectors, nil
 	}
@@ -160,7 +160,7 @@ func TestCollection_AddConcurrently(t *testing.T) {
 	ctx := context.Background()
 	name := "test"
 	metadata := map[string]string{"foo": "bar"}
-	vectors := []float32{-0.1, 0.1, 0.2}
+	vectors := []float32{-0.40824828, 0.40824828, 0.81649655} // normalized version of `{-0.1, 0.1, 0.2}`
 	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
 		return vectors, nil
 	}
@@ -256,7 +256,7 @@ func TestCollection_AddConcurrently_Error(t *testing.T) {
 	ctx := context.Background()
 	name := "test"
 	metadata := map[string]string{"foo": "bar"}
-	vectors := []float32{-0.1, 0.1, 0.2}
+	vectors := []float32{-0.40824828, 0.40824828, 0.81649655} // normalized version of `{-0.1, 0.1, 0.2}`
 	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
 		return vectors, nil
 	}
@@ -313,8 +313,9 @@ func TestCollection_Count(t *testing.T) {
 	db := NewDB()
 	name := "test"
 	metadata := map[string]string{"foo": "bar"}
+	vectors := []float32{-0.40824828, 0.40824828, 0.81649655} // normalized version of `{-0.1, 0.1, 0.2}`
 	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
-		return []float32{-0.1, 0.1, 0.2}, nil
+		return vectors, nil
 	}
 	c, err := db.CreateCollection(name, metadata, embeddingFunc)
 	if err != nil {

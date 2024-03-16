@@ -213,13 +213,17 @@ func (c *Collection) AddDocument(ctx context.Context, doc Document) error {
 		m[k] = v
 	}
 
-	// Create embedding if they don't exist
+	// Create embedding if they don't exist, otherwise normalize if necessary
 	if len(doc.Embedding) == 0 {
 		embedding, err := c.embed(ctx, doc.Content)
 		if err != nil {
 			return fmt.Errorf("couldn't create embedding of document: %w", err)
 		}
 		doc.Embedding = embedding
+	} else {
+		if !isNormalized(doc.Embedding) {
+			doc.Embedding = normalizeVector(doc.Embedding)
+		}
 	}
 
 	c.documentsLock.Lock()

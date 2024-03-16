@@ -13,6 +13,9 @@ import (
 // EmbeddingFunc is a function that creates embeddings for a given text.
 // chromem-go will use OpenAI`s "text-embedding-3-small" model by default,
 // but you can provide your own function, using any model you like.
+// The function must return a *normalized* vector, i.e. the length of the vector
+// must be 1. OpenAI's and Mistral's embedding models do this by default. Some
+// others like Nomic's "nomic-embed-text-v1.5" don't.
 type EmbeddingFunc func(ctx context.Context, text string) ([]float32, error)
 
 // DB is the chromem-go database. It holds collections, which hold documents.

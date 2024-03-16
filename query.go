@@ -145,7 +145,8 @@ func calcDocSimilarity(ctx context.Context, queryVectors []float32, docs []*Docu
 					return
 				}
 
-				sim, err := cosineSimilarity(queryVectors, doc.Embedding)
+				// As the vectors are normalized, the dot product is the cosine similarity.
+				sim, err := dotProduct(queryVectors, doc.Embedding)
 				if err != nil {
 					setSharedErr(fmt.Errorf("couldn't calculate similarity for document '%s': %w", doc.ID, err))
 					return

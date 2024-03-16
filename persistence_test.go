@@ -23,7 +23,7 @@ func TestPersistence(t *testing.T) {
 	}
 	obj := s{
 		Foo: "test",
-		Bar: []float32{-0.1, 0.1, 0.2},
+		Bar: []float32{-0.40824828, 0.40824828, 0.81649655}, // normalized version of `{-0.1, 0.1, 0.2}`
 	}
 
 	persist(tempDir, obj)
