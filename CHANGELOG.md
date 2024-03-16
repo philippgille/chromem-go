@@ -8,9 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 vNext
 -----
 
+In this release the main feature is query performance improvement (4x faster, 99% fewer memory allocations). There's also a new code example for semantic search across 5,000 arXiv papers.
+
+### Added
+
+- Added arXiv semantic search example (PR [#45](https://github.com/philippgille/chromem-go/pull/45))
+- Added basic query benchmark (PR [#46](https://github.com/philippgille/chromem-go/pull/46))
+
 ### Improved
 
 - Changed the example link target to directory instead of `main.go` file (PR [#43](https://github.com/philippgille/chromem-go/pull/43))
+- Improved query performance (4x faster, 99% fewer memory allocations) (PR [#47](https://github.com/philippgille/chromem-go/pull/47))
+
+### Fixed
+
+- Fixed path joining (PR [#44](https://github.com/philippgille/chromem-go/pull/44))
 
 v0.4.0 (2024-03-06)
 -------------------
