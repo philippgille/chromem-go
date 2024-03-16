@@ -183,8 +183,16 @@ For full, working examples, using the vector database for retrieval augmented ge
 
 ## Benchmarks
 
+Benchmarked on 2024-03-16 with:
+
+- Computer: Framework Laptop 13 (first generation, 2021)
+- CPU: 11th Gen Intel Core i5-1135G7 (2020)
+- Memory: 32 GB
+- OS: Fedora Linux 39
+- Kernel: 6.7
+
 ```console
-$ go test -benchmem -run=^$  -bench .
+$ go test -benchmem -run=^$ -bench .
 goos: linux
 goarch: amd64
 pkg: github.com/philippgille/chromem-go
