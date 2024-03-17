@@ -1,13 +1,13 @@
 package chromem
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
-	"sort"
 	"sync"
 )
 
@@ -324,29 +324,29 @@ func (c *Collection) QueryEmbedding(ctx context.Context, queryEmbedding []float3
 	}
 
 	// For the remaining documents, calculate cosine similarity.
-	docSim, err := calcDocSimilarity(ctx, queryEmbedding, filteredDocs)
+	docSims, err := calcDocSimilarity(ctx, queryEmbedding, filteredDocs)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't calculate cosine similarity: %w", err)
 	}
 
 	// Sort by similarity
-	sort.Slice(docSim, func(i, j int) bool {
-		// The `less` function would usually use `<`, but we want to sort descending.
-		return docSim[i].similarity > docSim[j].similarity
+	slices.SortFunc(docSims, func(i, j docSim) int {
+		// i, j; for descending order
+		return cmp.Compare(j.similarity, i.similarity)
 	})
 
 	// Return the top nResults or len(docSim), whichever is smaller
-	if len(docSim) < nResults {
-		nResults = len(docSim)
+	if len(docSims) < nResults {
+		nResults = len(docSims)
 	}
 	res := make([]Result, 0, nResults)
 	for i := 0; i < nResults; i++ {
 		res = append(res, Result{
-			ID:         docSim[i].docID,
-			Metadata:   c.documents[docSim[i].docID].Metadata,
-			Embedding:  c.documents[docSim[i].docID].Embedding,
-			Content:    c.documents[docSim[i].docID].Content,
-			Similarity: docSim[i].similarity,
+			ID:         docSims[i].docID,
+			Metadata:   c.documents[docSims[i].docID].Metadata,
+			Embedding:  c.documents[docSims[i].docID].Embedding,
+			Content:    c.documents[docSims[i].docID].Content,
+			Similarity: docSims[i].similarity,
 		})
 	}
 
