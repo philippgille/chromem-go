@@ -2,10 +2,69 @@ package chromem
 
 import (
 	"context"
+	"math/rand"
+	"os"
+	"path/filepath"
 	"reflect"
 	"slices"
 	"testing"
 )
+
+func TestNewPersistentDB(t *testing.T) {
+	t.Run("Create directory", func(t *testing.T) {
+		randString := randomString(rand.New(rand.NewSource(rand.Int63())), 10)
+		path := filepath.Join(os.TempDir(), randString)
+		defer os.RemoveAll(path)
+
+		// Path shouldn't exist yet
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Fatal("expected path to not exist, got", err)
+		}
+
+		db, err := NewPersistentDB(path)
+		if err != nil {
+			t.Fatal("expected no error, got", err)
+		}
+		if db == nil {
+			t.Fatal("expected DB, got nil")
+		}
+
+		// Path should exist now
+		if _, err := os.Stat(path); err != nil {
+			t.Fatal("expected path to exist, got", err)
+		}
+	})
+	t.Run("Existing directory", func(t *testing.T) {
+		path, err := os.MkdirTemp(os.TempDir(), "")
+		if err != nil {
+			t.Fatal("couldn't create temp dir:", err)
+		}
+		defer os.RemoveAll(path)
+
+		db, err := NewPersistentDB(path)
+		if err != nil {
+			t.Fatal("expected no error, got", err)
+		}
+		if db == nil {
+			t.Fatal("expected DB, got nil")
+		}
+	})
+}
+
+func TestNewPersistentDB_Errors(t *testing.T) {
+	t.Run("Path is an existing file", func(t *testing.T) {
+		f, err := os.CreateTemp(os.TempDir(), "")
+		if err != nil {
+			t.Fatal("couldn't create temp file:", err)
+		}
+		defer os.RemoveAll(f.Name())
+
+		_, err = NewPersistentDB(f.Name())
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+}
 
 func TestDB_CreateCollection(t *testing.T) {
 	// Values in the collection
