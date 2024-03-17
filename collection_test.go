@@ -477,16 +477,13 @@ func benchmarkCollection_Query(b *testing.B, n int, withContent bool) {
 	}
 	// Most embeddings are normalized, so we normalize this one too
 	qv = normalizeVector(qv)
-	embeddingFunc := func(_ context.Context, text string) ([]float32, error) {
-		if text != "foo" {
-			return nil, errors.New("embedding func not expected to be called")
-		}
-		return qv, nil
-	}
 
 	// Create collection
 	db := NewDB()
 	name := "test"
+	embeddingFunc := func(_ context.Context, text string) ([]float32, error) {
+		return nil, errors.New("embedding func not expected to be called")
+	}
 	c, err := db.CreateCollection(name, nil, embeddingFunc)
 	if err != nil {
 		b.Fatal("expected no error, got", err)
@@ -524,7 +521,7 @@ func benchmarkCollection_Query(b *testing.B, n int, withContent bool) {
 	// Query
 	var res []Result
 	for i := 0; i < b.N; i++ {
-		res, err = c.Query(ctx, "foo", 10, nil, nil)
+		res, err = c.QueryEmbedding(ctx, qv, 10, nil, nil)
 	}
 	if err != nil {
 		b.Fatal("expected nil, got", err)
