@@ -1,7 +1,6 @@
 package chromem
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -323,30 +322,20 @@ func (c *Collection) QueryEmbedding(ctx context.Context, queryEmbedding []float3
 		return nil, nil
 	}
 
-	// For the remaining documents, calculate cosine similarity.
-	docSims, err := calcDocSimilarity(ctx, queryEmbedding, filteredDocs)
+	// For the remaining documents, get the most similar docs.
+	nMaxDocs, err := getMostSimilarDocs(ctx, queryEmbedding, filteredDocs, nResults)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't calculate cosine similarity: %w", err)
+		return nil, fmt.Errorf("couldn't get most similar docs: %w", err)
 	}
 
-	// Sort by similarity
-	slices.SortFunc(docSims, func(i, j docSim) int {
-		// i, j; for descending order
-		return cmp.Compare(j.similarity, i.similarity)
-	})
-
-	// Return the top nResults or len(docSim), whichever is smaller
-	if len(docSims) < nResults {
-		nResults = len(docSims)
-	}
 	res := make([]Result, 0, nResults)
 	for i := 0; i < nResults; i++ {
 		res = append(res, Result{
-			ID:         docSims[i].docID,
-			Metadata:   c.documents[docSims[i].docID].Metadata,
-			Embedding:  c.documents[docSims[i].docID].Embedding,
-			Content:    c.documents[docSims[i].docID].Content,
-			Similarity: docSims[i].similarity,
+			ID:         nMaxDocs[i].docID,
+			Metadata:   c.documents[nMaxDocs[i].docID].Metadata,
+			Embedding:  c.documents[nMaxDocs[i].docID].Embedding,
+			Content:    c.documents[nMaxDocs[i].docID].Content,
+			Similarity: nMaxDocs[i].similarity,
 		})
 	}
 
