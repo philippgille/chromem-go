@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 vNext
 -----
 
-In this release the main feature is query performance improvement (5x faster, 99% fewer memory allocations). There's also a new code example for semantic search across 5,000 arXiv papers.
+In this release the main feature is query performance improvement (5x faster, 98% fewer memory allocations). There's also a new code example for semantic search across 5,000 arXiv papers.
 
 ### Added
 
@@ -18,7 +18,7 @@ In this release the main feature is query performance improvement (5x faster, 99
 ### Improved
 
 - Changed the example link target to directory instead of `main.go` file (PR [#43](https://github.com/philippgille/chromem-go/pull/43))
-- Improved query performance (5x faster, 99% fewer memory allocations) (PR [#47](https://github.com/philippgille/chromem-go/pull/47), [#53](https://github.com/philippgille/chromem-go/pull/53))
+- Improved query performance (5x faster, 98% fewer memory allocations) (PR [#47](https://github.com/philippgille/chromem-go/pull/47), [#53](https://github.com/philippgille/chromem-go/pull/53))
 
 ### Fixed
 
