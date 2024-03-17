@@ -11,7 +11,7 @@ Because `chromem-go` is embeddable it enables you to add retrieval augmented gen
 
 It's *not* a library to connect to Chroma and also not a reimplementation of it in Go. It's a database on its own.
 
-The focus is not scale (millions of documents) or number of features, but simplicity and performance for the most common use cases. On a mid-range 2020 Intel laptop CPU you can query 1,000 documents in 0.5 ms and 100,000 documents in 50-60 ms, both with just 44 memory allocations. See [Benchmarks](#benchmarks) for details.
+The focus is not scale (millions of documents) or number of features, but simplicity and performance for the most common use cases. On a mid-range 2020 Intel laptop CPU you can query 1,000 documents in 0.3 ms and 100,000 documents in 50-60 ms, both with just 41 memory allocations. See [Benchmarks](#benchmarks) for details.
 
 > ⚠️ The project is in beta, under heavy construction, and may introduce breaking changes in releases before `v1.0.0`. All changes are documented in the [`CHANGELOG`](./CHANGELOG.md).
 
@@ -197,18 +197,18 @@ goos: linux
 goarch: amd64
 pkg: github.com/philippgille/chromem-go
 cpu: 11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz
-BenchmarkCollection_Query_NoContent_100-8          10000     109957 ns/op     6487 B/op       44 allocs/op
-BenchmarkCollection_Query_NoContent_1000-8          2043     541337 ns/op    35667 B/op       44 allocs/op
-BenchmarkCollection_Query_NoContent_5000-8           361    4230542 ns/op   166729 B/op       44 allocs/op
-BenchmarkCollection_Query_NoContent_25000-8           79   16343977 ns/op   813902 B/op       44 allocs/op
-BenchmarkCollection_Query_NoContent_100000-8          18   63417540 ns/op  3205961 B/op       44 allocs/op
-BenchmarkCollection_Query_100-8                    10861     110167 ns/op     6480 B/op       44 allocs/op
-BenchmarkCollection_Query_1000-8                    2146     540489 ns/op    35669 B/op       44 allocs/op
-BenchmarkCollection_Query_5000-8                     442    4913970 ns/op   166748 B/op       44 allocs/op
-BenchmarkCollection_Query_25000-8                     88   15213089 ns/op   813909 B/op       44 allocs/op
-BenchmarkCollection_Query_100000-8                    19   55963675 ns/op  3206027 B/op       44 allocs/op
+BenchmarkCollection_Query_NoContent_100-8          10000     106441 ns/op     6393 B/op       41 allocs/op
+BenchmarkCollection_Query_NoContent_1000-8          2278     494254 ns/op    35570 B/op       41 allocs/op
+BenchmarkCollection_Query_NoContent_5000-8           416    2767125 ns/op   166634 B/op       41 allocs/op
+BenchmarkCollection_Query_NoContent_25000-8           70   15165139 ns/op   813800 B/op       41 allocs/op
+BenchmarkCollection_Query_NoContent_100000-8          19   58823464 ns/op  3205865 B/op       41 allocs/op
+BenchmarkCollection_Query_100-8                    11269     105990 ns/op     6385 B/op       41 allocs/op
+BenchmarkCollection_Query_1000-8                    2364     494212 ns/op    35574 B/op       41 allocs/op
+BenchmarkCollection_Query_5000-8                     481    2750438 ns/op   166647 B/op       41 allocs/op
+BenchmarkCollection_Query_25000-8                     93   13143419 ns/op   813805 B/op       41 allocs/op
+BenchmarkCollection_Query_100000-8                    20   51727357 ns/op  3205871 B/op       41 allocs/op
 PASS
-ok   github.com/philippgille/chromem-go 27.887s
+ok   github.com/philippgille/chromem-go 26.187s
 ```
 
 ## Motivation
