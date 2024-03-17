@@ -266,13 +266,34 @@ type Result struct {
 
 // Performs an exhaustive nearest neighbor search on the collection.
 //
-//   - queryText: The text to search for.
+//   - queryText: The text to search for. Its embedding will be created using the
+//     collection's embedding function.
 //   - nResults: The number of results to return. Must be > 0.
 //   - where: Conditional filtering on metadata. Optional.
 //   - whereDocument: Conditional filtering on documents. Optional.
 func (c *Collection) Query(ctx context.Context, queryText string, nResults int, where, whereDocument map[string]string) ([]Result, error) {
 	if queryText == "" {
 		return nil, errors.New("queryText is empty")
+	}
+
+	queryVectors, err := c.embed(ctx, queryText)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't create embedding of query: %w", err)
+	}
+
+	return c.QueryEmbedding(ctx, queryVectors, nResults, where, whereDocument)
+}
+
+// Performs an exhaustive nearest neighbor search on the collection.
+//
+//   - queryEmbedding: The embedding of the query to search for. It must be created
+//     with the same embedding model as the document embeddings in the collection.
+//   - nResults: The number of results to return. Must be > 0.
+//   - where: Conditional filtering on metadata. Optional.
+//   - whereDocument: Conditional filtering on documents. Optional.
+func (c *Collection) QueryEmbedding(ctx context.Context, queryEmbedding []float32, nResults int, where, whereDocument map[string]string) ([]Result, error) {
+	if len(queryEmbedding) == 0 {
+		return nil, errors.New("queryEmbedding is empty")
 	}
 	if nResults <= 0 {
 		return nil, errors.New("nResults must be > 0")
@@ -302,13 +323,8 @@ func (c *Collection) Query(ctx context.Context, queryText string, nResults int, 
 		return nil, nil
 	}
 
-	queryVectors, err := c.embed(ctx, queryText)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't create embedding of query: %w", err)
-	}
-
 	// For the remaining documents, calculate cosine similarity.
-	docSim, err := calcDocSimilarity(ctx, queryVectors, filteredDocs)
+	docSim, err := calcDocSimilarity(ctx, queryEmbedding, filteredDocs)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't calculate cosine similarity: %w", err)
 	}
