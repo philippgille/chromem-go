@@ -2,7 +2,7 @@ package chromem
 
 import (
 	"context"
-	"slices"
+	"reflect"
 	"testing"
 )
 
@@ -49,17 +49,15 @@ func TestDocument_New(t *testing.T) {
 			if err != nil {
 				t.Fatal("expected no error, got", err)
 			}
-			if d.ID != id {
-				t.Fatal("expected id", id, "got", d.ID)
+			// We can compare with DeepEqual after removing the embedding function
+			d.Embedding = nil
+			exp := Document{
+				ID:       id,
+				Metadata: metadata,
+				Content:  content,
 			}
-			if d.Metadata["foo"] != metadata["foo"] {
-				t.Fatal("expected metadata", metadata, "got", d.Metadata)
-			}
-			if !slices.Equal(d.Embedding, vectors) {
-				t.Fatal("expected vectors", vectors, "got", d.Embedding)
-			}
-			if d.Content != content {
-				t.Fatal("expected content", content, "got", d.Content)
+			if !reflect.DeepEqual(exp, d) {
+				t.Fatalf("expected %+v, got %+v", exp, d)
 			}
 		})
 	}
