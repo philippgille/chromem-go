@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"os"
-	"slices"
+	"reflect"
 	"testing"
 )
 
@@ -44,10 +44,7 @@ func TestPersistence(t *testing.T) {
 	if err != nil {
 		t.Fatal("expected nil, got", err)
 	}
-	if res.Foo != obj.Foo {
-		t.Fatal("expected", obj.Foo, "got", res.Foo)
-	}
-	if slices.Compare[[]float32](res.Bar, obj.Bar) != 0 {
-		t.Fatal("expected", obj.Bar, "got", res.Bar)
+	if !reflect.DeepEqual(obj, res) {
+		t.Fatalf("expected %+v, got %+v", obj, res)
 	}
 }

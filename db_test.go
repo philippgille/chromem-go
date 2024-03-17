@@ -2,6 +2,7 @@ package chromem
 
 import (
 	"context"
+	"reflect"
 	"slices"
 	"testing"
 )
@@ -37,35 +38,17 @@ func TestDB_CreateCollection(t *testing.T) {
 		if !ok {
 			t.Fatal("expected collection", name, "not found")
 		}
-		if c2.Name != name {
-			t.Fatal("expected name", name, "got", c2.Name)
-		}
-		// The returned collection should also be the same
-		if c.Name != name {
-			t.Fatal("expected name", name, "got", c.Name)
-		}
-		// The collection's persistent dir should be empty
-		if c.persistDirectory != "" {
-			t.Fatal("expected empty persistent directory, got", c.persistDirectory)
-		}
-		// It's metadata should match
-		if len(c.metadata) != 1 || c.metadata["foo"] != "bar" {
-			t.Fatal("expected metadata", metadata, "got", c.metadata)
-		}
-		// Documents should be empty, but not nil
-		if c.documents == nil {
-			t.Fatal("expected non-nil documents, got nil")
-		}
-		if len(c.documents) != 0 {
-			t.Fatal("expected empty documents, got", len(c.documents))
-		}
-		// The embedding function should be the one we passed
+		// Check the embedding function first, then the rest with DeepEqual
 		gotVectors, err := c.embed(context.Background(), "test")
 		if err != nil {
 			t.Fatal("expected no error, got", err)
 		}
 		if !slices.Equal(gotVectors, vectors) {
 			t.Fatal("expected vectors", vectors, "got", gotVectors)
+		}
+		c.embed, c2.embed = nil, nil
+		if !reflect.DeepEqual(c, c2) {
+			t.Fatalf("expected collection %+v, got %+v", c, c2)
 		}
 	})
 
@@ -88,8 +71,7 @@ func TestDB_ListCollections(t *testing.T) {
 
 	// Create initial collection
 	db := NewDB()
-	// We ignore the return value. CreateCollection is tested elsewhere.
-	_, err := db.CreateCollection(name, metadata, embeddingFunc)
+	orig, err := db.CreateCollection(name, metadata, embeddingFunc)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
@@ -108,31 +90,17 @@ func TestDB_ListCollections(t *testing.T) {
 	if !ok {
 		t.Fatal("expected collection", name, "not found")
 	}
-	if c.Name != name {
-		t.Fatal("expected name", name, "got", c.Name)
-	}
-	// The collection's persistent dir should be empty
-	if c.persistDirectory != "" {
-		t.Fatal("expected empty persistent directory, got", c.persistDirectory)
-	}
-	// It's metadata should match
-	if len(c.metadata) != 1 || c.metadata["foo"] != "bar" {
-		t.Fatal("expected metadata", metadata, "got", c.metadata)
-	}
-	// Documents should be empty, but not nil
-	if c.documents == nil {
-		t.Fatal("expected non-nil documents, got nil")
-	}
-	if len(c.documents) != 0 {
-		t.Fatal("expected empty documents, got", len(c.documents))
-	}
-	// The embedding function should be the one we passed
+	// Check the embedding function first, then the rest with DeepEqual
 	gotVectors, err := c.embed(context.Background(), "test")
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
 	if !slices.Equal(gotVectors, vectors) {
 		t.Fatal("expected vectors", vectors, "got", gotVectors)
+	}
+	orig.embed, c.embed = nil, nil
+	if !reflect.DeepEqual(orig, c) {
+		t.Fatalf("expected collection %+v, got %+v", orig, c)
 	}
 
 	// And it should be a copy. Adding a value here should not reflect on the DB's
@@ -154,8 +122,7 @@ func TestDB_GetCollection(t *testing.T) {
 
 	// Create initial collection
 	db := NewDB()
-	// We ignore the return value. CreateCollection is tested elsewhere.
-	_, err := db.CreateCollection(name, metadata, embeddingFunc)
+	orig, err := db.CreateCollection(name, metadata, embeddingFunc)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
@@ -163,32 +130,17 @@ func TestDB_GetCollection(t *testing.T) {
 	// Get collection
 	c := db.GetCollection(name, nil)
 
-	// Check expectations
-	if c.Name != name {
-		t.Fatal("expected name", name, "got", c.Name)
-	}
-	// The collection's persistent dir should be empty
-	if c.persistDirectory != "" {
-		t.Fatal("expected empty persistent directory, got", c.persistDirectory)
-	}
-	// It's metadata should match
-	if len(c.metadata) != 1 || c.metadata["foo"] != "bar" {
-		t.Fatal("expected metadata", metadata, "got", c.metadata)
-	}
-	// Documents should be empty, but not nil
-	if c.documents == nil {
-		t.Fatal("expected non-nil documents, got nil")
-	}
-	if len(c.documents) != 0 {
-		t.Fatal("expected empty documents, got", len(c.documents))
-	}
-	// The embedding function should be the one we passed
+	// Check the embedding function first, then the rest with DeepEqual
 	gotVectors, err := c.embed(context.Background(), "test")
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
 	if !slices.Equal(gotVectors, vectors) {
 		t.Fatal("expected vectors", vectors, "got", gotVectors)
+	}
+	orig.embed, c.embed = nil, nil
+	if !reflect.DeepEqual(orig, c) {
+		t.Fatalf("expected collection %+v, got %+v", orig, c)
 	}
 }
 
@@ -206,8 +158,7 @@ func TestDB_GetOrCreateCollection(t *testing.T) {
 		db := NewDB()
 		// Create collection so that the GetOrCreateCollection() call below only
 		// gets it.
-		// We ignore the return value. CreateCollection is tested elsewhere.
-		_, err := db.CreateCollection(name, metadata, embeddingFunc)
+		orig, err := db.CreateCollection(name, metadata, embeddingFunc)
 		if err != nil {
 			t.Fatal("expected no error, got", err)
 		}
@@ -223,32 +174,17 @@ func TestDB_GetOrCreateCollection(t *testing.T) {
 			t.Fatal("expected collection, got nil")
 		}
 
-		// Check expectations
-		if c.Name != name {
-			t.Fatal("expected name", name, "got", c.Name)
-		}
-		// The collection's persistent dir should be empty
-		if c.persistDirectory != "" {
-			t.Fatal("expected empty persistent directory, got", c.persistDirectory)
-		}
-		// It's metadata should match
-		if len(c.metadata) != 1 || c.metadata["foo"] != "bar" {
-			t.Fatal("expected metadata", metadata, "got", c.metadata)
-		}
-		// Documents should be empty, but not nil
-		if c.documents == nil {
-			t.Fatal("expected non-nil documents, got nil")
-		}
-		if len(c.documents) != 0 {
-			t.Fatal("expected empty documents, got", len(c.documents))
-		}
-		// The embedding function should be the one we passed
+		// Check the embedding function first, then the rest with DeepEqual
 		gotVectors, err := c.embed(context.Background(), "test")
 		if err != nil {
 			t.Fatal("expected no error, got", err)
 		}
 		if !slices.Equal(gotVectors, vectors) {
 			t.Fatal("expected vectors", vectors, "got", gotVectors)
+		}
+		orig.embed, c.embed = nil, nil
+		if !reflect.DeepEqual(orig, c) {
+			t.Fatalf("expected collection %+v, got %+v", orig, c)
 		}
 	})
 
@@ -266,31 +202,20 @@ func TestDB_GetOrCreateCollection(t *testing.T) {
 		}
 
 		// Check like we check CreateCollection()
-		if c.Name != name {
-			t.Fatal("expected name", name, "got", c.Name)
+		c2, ok := db.collections[name]
+		if !ok {
+			t.Fatal("expected collection", name, "not found")
 		}
-		// The collection's persistent dir should be empty
-		if c.persistDirectory != "" {
-			t.Fatal("expected empty persistent directory, got", c.persistDirectory)
-		}
-		// It's metadata should match
-		if len(c.metadata) != 1 || c.metadata["foo"] != "bar" {
-			t.Fatal("expected metadata", metadata, "got", c.metadata)
-		}
-		// Documents should be empty, but not nil
-		if c.documents == nil {
-			t.Fatal("expected non-nil documents, got nil")
-		}
-		if len(c.documents) != 0 {
-			t.Fatal("expected empty documents, got", len(c.documents))
-		}
-		// The embedding function should be the one we passed
 		gotVectors, err := c.embed(context.Background(), "test")
 		if err != nil {
 			t.Fatal("expected no error, got", err)
 		}
 		if !slices.Equal(gotVectors, vectors) {
 			t.Fatal("expected vectors", vectors, "got", gotVectors)
+		}
+		c.embed, c2.embed = nil, nil
+		if !reflect.DeepEqual(c, c2) {
+			t.Fatalf("expected collection %+v, got %+v", c, c2)
 		}
 	})
 }
