@@ -8,17 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 vNext
 -----
 
-In this release the main feature is query performance improvement (5x faster, 98% fewer memory allocations). There's also a new code example for semantic search across 5,000 arXiv papers.
+Highlights in this release are query performance improvements (5x faster, 98% fewer memory allocations), an extended interface, and a new code example for semantic search across 5,000 arXiv papers.
 
 ### Added
 
 - Added arXiv semantic search example (PR [#45](https://github.com/philippgille/chromem-go/pull/45))
 - Added basic query benchmark (PR [#46](https://github.com/philippgille/chromem-go/pull/46))
+- Added unit test for collection query errors (PR [#51](https://github.com/philippgille/chromem-go/pull/51))
+- Added `Collection.QueryEmbedding()` method for when you already have the embedding of your query (PR [#52](https://github.com/philippgille/chromem-go/pull/52))
 
 ### Improved
 
 - Changed the example link target to directory instead of `main.go` file (PR [#43](https://github.com/philippgille/chromem-go/pull/43))
-- Improved query performance (5x faster, 98% fewer memory allocations) (PR [#47](https://github.com/philippgille/chromem-go/pull/47), [#53](https://github.com/philippgille/chromem-go/pull/53))
+- Improved query performance (5x faster, 98% fewer memory allocations) (PR [#47](https://github.com/philippgille/chromem-go/pull/47), [#53](https://github.com/philippgille/chromem-go/pull/53), [#54](https://github.com/philippgille/chromem-go/pull/54))
+- Extended parameter validation (PR [#50](https://github.com/philippgille/chromem-go/pull/50), [#51](https://github.com/philippgille/chromem-go/pull/51))
 
 ### Fixed
 
@@ -31,7 +34,7 @@ In this release the main feature is query performance improvement (5x faster, 98
 v0.4.0 (2024-03-06)
 -------------------
 
-In this release the main features are optional persistence, an extended interface, support for creating embeddings with [Ollama](https://github.com/ollama/ollama/), the exporting of the `Document` struct, and more Go-idiomatic methods to add documents to collections.
+Highlights in this release are optional persistence, an extended interface, support for creating embeddings with [Ollama](https://github.com/ollama/ollama/), the exporting of the `Document` struct, and more Go-idiomatic methods to add documents to collections.
 
 ### Added
 
