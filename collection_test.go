@@ -129,6 +129,7 @@ func TestCollection_Add_Error(t *testing.T) {
 	embeddings := [][]float32{vectors, vectors}
 	metadatas := []map[string]string{{"foo": "bar"}, {"a": "b"}}
 	contents := []string{"hello world", "hallo welt"}
+
 	// Empty IDs
 	err = c.Add(ctx, []string{}, embeddings, metadatas, contents)
 	if err == nil {
