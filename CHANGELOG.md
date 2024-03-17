@@ -24,6 +24,10 @@ In this release the main feature is query performance improvement (4x faster, 99
 
 - Fixed path joining (PR [#44](https://github.com/philippgille/chromem-go/pull/44))
 
+### Breaking changes
+
+- Due to vectors now being normalized at the time of adding the document to the collection instead of when querying, the persisted data from prior versions is incompatible with this version (PR [#47](https://github.com/philippgille/chromem-go/pull/47))
+
 v0.4.0 (2024-03-06)
 -------------------
 
