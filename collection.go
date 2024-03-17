@@ -279,8 +279,8 @@ func (c *Collection) Query(ctx context.Context, queryText string, nResults int, 
 	}
 	c.documentsLock.RLock()
 	defer c.documentsLock.RUnlock()
-	if nResults < len(c.documents) {
-		return nil, errors.New("nResults must be greater than the number of documents in the collection")
+	if nResults > len(c.documents) {
+		return nil, errors.New("nResults must be <= the number of documents in the collection")
 	}
 
 	if len(c.documents) == 0 {
