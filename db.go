@@ -1,9 +1,16 @@
 package chromem
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"encoding/gob"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -153,6 +160,106 @@ func NewPersistentDB(path string) (*DB, error) {
 	}
 
 	return db, nil
+}
+
+// TODO: Godoc
+func (db *DB) Import(filePath string, decryptionKey string) error {
+	return errors.New("not implemented") // TODO: implement
+}
+
+// TODO: Godoc
+func (db *DB) Export(filePath string, compress bool, encryptionKey string) error {
+	if filePath == "" {
+		filePath = "./chromem-go.gob"
+		if encryptionKey != "" {
+			filePath += ".enc"
+		}
+		if compress {
+			filePath += ".gz"
+		}
+	}
+
+	// AES 256 requires a 32 byte key
+	if encryptionKey != "" {
+		if len(encryptionKey) != 32 {
+			return errors.New("encryption key must be 32 bytes long")
+		}
+	}
+
+	// If path doesn't exist, create the parent path.
+	// If path exists and it's a directory, return an error.
+	fi, err := os.Stat(filePath)
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("couldn't get info about export path: %w", err)
+		} else {
+			// If the file doesn't exist, create the parent path
+			err := os.MkdirAll(filepath.Dir(filePath), 0o700)
+			if err != nil {
+				return fmt.Errorf("couldn't create export directory: %w", err)
+			}
+		}
+	} else if fi.IsDir() {
+		return fmt.Errorf("path is a directory: %s", filePath)
+	}
+
+	// Open file for writing
+	f, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("couldn't create file: %w", err)
+	}
+	defer f.Close()
+
+	// We want to:
+	// Encode as gob -> compress with flate -> encrypt with AES-GCM -> write file.
+	// To reduce memory usage we chain the writers instead of buffering, so we start
+	// from the end. For AES GCM sealing the stdlib doesn't provide a writer though.
+
+	var w io.Writer
+	if encryptionKey == "" {
+		w = f
+	} else {
+		w = &bytes.Buffer{}
+	}
+	if compress {
+		gzw := gzip.NewWriter(w)
+		defer gzw.Close()
+		w = gzw
+	}
+	enc := gob.NewEncoder(w)
+
+	// Start encoding, it will write to the chain of writers.
+	if err := enc.Encode(db); err != nil {
+		return fmt.Errorf("couldn't encode DB as gob: %w", err)
+	}
+
+	// Without encyrption, the chain is done and the file is written.
+	if encryptionKey == "" {
+		return nil
+	}
+
+	// Otherwise, encrypt and then write to the file
+	block, err := aes.NewCipher([]byte(encryptionKey))
+	if err != nil {
+		return fmt.Errorf("couldn't create new AES cipher: %w", err)
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return fmt.Errorf("couldn't create GCM wrapper: %w", err)
+	}
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return fmt.Errorf("couldn't read random bytes for nonce: %w", err)
+	}
+	// w is a *bytes.Buffer
+	buf := w.(*bytes.Buffer)
+	encrypted := gcm.Seal(nonce, nonce, buf.Bytes(), nil)
+	_, err = f.Write(encrypted)
+	if err != nil {
+		return fmt.Errorf("couldn't write encrypted data: %w", err)
+	}
+
+	return nil
 }
 
 // CreateCollection creates a new collection with the given name and metadata.
