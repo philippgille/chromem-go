@@ -163,7 +163,13 @@ func (db *DB) Import(filePath string, decryptionKey string) error {
 	return errors.New("not implemented") // TODO: implement
 }
 
-// TODO: Godoc
+// Export exports the DB to a file at the given path. The file is encoded as gob,
+// optionally compressed with flate (as gzip) and optionally encrypted with AES-GCM.
+// This works for both the in-memory and persistent DBs.
+//
+// If filePath is empty, it defaults to "./chromem-go.gob" (+ ".gz" + ".enc").
+// If the file exists, it's overwritten, otherwise created.
+// For encryption you must provide a 32 bytes long key.
 func (db *DB) Export(filePath string, compress bool, encryptionKey string) error {
 	if filePath == "" {
 		filePath = "./chromem-go.gob"
