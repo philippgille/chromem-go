@@ -123,7 +123,7 @@ func NewPersistentDB(path string) (*DB, error) {
 					Name     string
 					Metadata map[string]string
 				}{}
-				err := read(fPath, &pc)
+				err := read(fPath, &pc, "")
 				if err != nil {
 					return nil, fmt.Errorf("couldn't read collection metadata: %w", err)
 				}
@@ -132,7 +132,7 @@ func NewPersistentDB(path string) (*DB, error) {
 			} else if filepath.Ext(collectionDirEntry.Name()) == ".gob" {
 				// Read document
 				d := &Document{}
-				err := read(fPath, d)
+				err := read(fPath, d, "")
 				if err != nil {
 					return nil, fmt.Errorf("couldn't read document: %w", err)
 				}
@@ -198,8 +198,7 @@ func (db *DB) Import(filePath string, decryptionKey string) error {
 	db.collectionsLock.Lock()
 	defer db.collectionsLock.Unlock()
 
-	// TODO: Implement decryption and decompression
-	err = read(filePath, &persistenceDB)
+	err = read(filePath, &persistenceDB, decryptionKey)
 	if err != nil {
 		return fmt.Errorf("couldn't read file: %w", err)
 	}
