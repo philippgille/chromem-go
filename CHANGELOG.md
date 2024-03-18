@@ -21,6 +21,57 @@ Highlights in this release are query performance improvements (5x faster, 98% fe
 
 - Changed the example link target to directory instead of `main.go` file (PR [#43](https://github.com/philippgille/chromem-go/pull/43))
 - Improved query performance (5x faster, 98% fewer memory allocations) (PR [#47](https://github.com/philippgille/chromem-go/pull/47), [#53](https://github.com/philippgille/chromem-go/pull/53), [#54](https://github.com/philippgille/chromem-go/pull/54))
+  - <details><summary>benchstat output</summary>
+
+    ```text
+    goos: linux
+    goarch: amd64
+    pkg: github.com/philippgille/chromem-go
+    cpu: 11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz
+                                        │    before     │               after                 │
+                                        │    sec/op     │    sec/op     vs base               │
+    Collection_Query_NoContent_100-8      413.69µ ±  4%   90.79µ ±  2%  -78.05% (p=0.002 n=6)
+    Collection_Query_NoContent_1000-8     2759.4µ ±  0%   518.8µ ±  1%  -81.20% (p=0.002 n=6)
+    Collection_Query_NoContent_5000-8     12.980m ±  1%   2.144m ±  1%  -83.49% (p=0.002 n=6)
+    Collection_Query_NoContent_25000-8    66.559m ±  1%   9.947m ±  2%  -85.06% (p=0.002 n=6)
+    Collection_Query_NoContent_100000-8   282.41m ±  3%   39.75m ±  1%  -85.92% (p=0.002 n=6)
+    Collection_Query_100-8                416.75µ ±  2%   90.99µ ±  1%  -78.17% (p=0.002 n=6)
+    Collection_Query_1000-8               2792.8µ ± 23%   595.2µ ± 13%  -78.69% (p=0.002 n=6)
+    Collection_Query_5000-8               15.643m ±  1%   2.556m ±  1%  -83.66% (p=0.002 n=6)
+    Collection_Query_25000-8               78.29m ±  1%   11.66m ±  1%  -85.11% (p=0.002 n=6)
+    Collection_Query_100000-8             338.54m ±  5%   39.70m ± 12%  -88.27% (p=0.002 n=6)
+    geomean                                12.97m         2.192m        -83.10%
+
+                                        │      before      │               after                 │
+                                        │       B/op       │     B/op      vs base               │
+    Collection_Query_NoContent_100-8       1211.007Ki ± 0%   5.030Ki ± 0%  -99.58% (p=0.002 n=6)
+    Collection_Query_NoContent_1000-8      12082.16Ki ± 0%   13.24Ki ± 0%  -99.89% (p=0.002 n=6)
+    Collection_Query_NoContent_5000-8      60394.23Ki ± 0%   45.99Ki ± 0%  -99.92% (p=0.002 n=6)
+    Collection_Query_NoContent_25000-8     301962.1Ki ± 0%   206.7Ki ± 0%  -99.93% (p=0.002 n=6)
+    Collection_Query_NoContent_100000-8   1207818.1Ki ± 0%   791.4Ki ± 0%  -99.93% (p=0.002 n=6)
+    Collection_Query_100-8                 1211.006Ki ± 0%   5.033Ki ± 0%  -99.58% (p=0.002 n=6)
+    Collection_Query_1000-8                12082.11Ki ± 0%   13.25Ki ± 0%  -99.89% (p=0.002 n=6)
+    Collection_Query_5000-8                60394.10Ki ± 0%   46.04Ki ± 0%  -99.92% (p=0.002 n=6)
+    Collection_Query_25000-8               301962.1Ki ± 0%   206.8Ki ± 0%  -99.93% (p=0.002 n=6)
+    Collection_Query_100000-8             1207818.1Ki ± 0%   791.4Ki ± 0%  -99.93% (p=0.002 n=6)
+    geomean                                   49.13Mi        54.97Ki       -99.89%
+
+                                        │    before     │              after                │
+                                        │   allocs/op   │ allocs/op   vs base               │
+    Collection_Query_NoContent_100-8        238.00 ± 0%   94.00 ± 1%  -60.50% (p=0.002 n=6)
+    Collection_Query_NoContent_1000-8       2038.5 ± 0%   140.5 ± 0%  -93.11% (p=0.002 n=6)
+    Collection_Query_NoContent_5000-8      10039.0 ± 0%   172.0 ± 1%  -98.29% (p=0.002 n=6)
+    Collection_Query_NoContent_25000-8     50038.0 ± 0%   204.0 ± 1%  -99.59% (p=0.002 n=6)
+    Collection_Query_NoContent_100000-8   200038.0 ± 0%   232.0 ± 3%  -99.88% (p=0.002 n=6)
+    Collection_Query_100-8                  238.00 ± 0%   94.50 ± 1%  -60.29% (p=0.002 n=6)
+    Collection_Query_1000-8                 2038.0 ± 0%   141.0 ± 1%  -93.08% (p=0.002 n=6)
+    Collection_Query_5000-8                10038.0 ± 0%   174.5 ± 2%  -98.26% (p=0.002 n=6)
+    Collection_Query_25000-8               50038.0 ± 0%   205.5 ± 2%  -99.59% (p=0.002 n=6)
+    Collection_Query_100000-8             200038.5 ± 0%   233.0 ± 1%  -99.88% (p=0.002 n=6)
+    geomean                                 8.661k        161.4       -98.14%
+    ```
+
+    </details>
 - Extended parameter validation (PR [#50](https://github.com/philippgille/chromem-go/pull/50), [#51](https://github.com/philippgille/chromem-go/pull/51))
 
 ### Fixed
