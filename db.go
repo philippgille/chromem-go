@@ -167,11 +167,11 @@ func (db *DB) Import(filePath string, decryptionKey string) error {
 func (db *DB) Export(filePath string, compress bool, encryptionKey string) error {
 	if filePath == "" {
 		filePath = "./chromem-go.gob"
-		if encryptionKey != "" {
-			filePath += ".enc"
-		}
 		if compress {
 			filePath += ".gz"
+		}
+		if encryptionKey != "" {
+			filePath += ".enc"
 		}
 	}
 
