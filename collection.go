@@ -23,7 +23,7 @@ type Collection struct {
 	embed            EmbeddingFunc
 
 	// ⚠️ When adding fields here, consider adding them to the persistence struct
-	// version in [DB.Export] as well!
+	// versions in [DB.Export] and [DB.Import] as well!
 }
 
 // We don't export this yet to keep the API surface to the bare minimum.

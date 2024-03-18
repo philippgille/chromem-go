@@ -29,7 +29,7 @@ type DB struct {
 	persistDirectory string
 
 	// ⚠️ When adding fields here, consider adding them to the persistence struct
-	// version in [DB.Export] as well!
+	// versions in [DB.Export] and [DB.Import] as well!
 }
 
 // NewDB creates a new in-memory chromem-go DB.
@@ -160,7 +160,55 @@ func NewPersistentDB(path string) (*DB, error) {
 
 // TODO: Godoc
 func (db *DB) Import(filePath string, decryptionKey string) error {
-	return errors.New("not implemented") // TODO: implement
+	if filePath == "" {
+		return fmt.Errorf("file path is empty")
+	}
+
+	// If the file doesn't exist or is a directory, return an error.
+	fi, err := os.Stat(filePath)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("file doesn't exist: %s", filePath)
+		}
+		return fmt.Errorf("couldn't get info about the file: %w", err)
+	} else if fi.IsDir() {
+		return fmt.Errorf("path is a directory: %s", filePath)
+	}
+
+	// Create persistence structs with exported fields so that they can be decoded
+	// from gob.
+	type persistenceCollection struct {
+		Name      string
+		Metadata  map[string]string
+		Documents map[string]*Document
+	}
+	persistenceDB := struct {
+		Collections map[string]*persistenceCollection
+	}{
+		Collections: make(map[string]*persistenceCollection, len(db.collections)),
+	}
+
+	db.collectionsLock.Lock()
+	defer db.collectionsLock.Unlock()
+
+	// TODO: Implement decryption and decompression
+	err = read(filePath, &persistenceDB)
+	if err != nil {
+		return fmt.Errorf("couldn't read file: %w", err)
+	}
+
+	for _, pc := range persistenceDB.Collections {
+		c := &Collection{
+			Name: pc.Name,
+
+			persistDirectory: filepath.Join(db.persistDirectory, hash2hex(pc.Name)),
+			metadata:         pc.Metadata,
+			documents:        pc.Documents,
+		}
+		db.collections[c.Name] = c
+	}
+
+	return nil
 }
 
 // Export exports the DB to a file at the given path. The file is encoded as gob,

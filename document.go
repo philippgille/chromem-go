@@ -13,7 +13,7 @@ type Document struct {
 	Content   string
 
 	// ⚠️ When adding unexported fields here, consider adding a persistence struct
-	// version of this in [DB.Export].
+	// version of this in [DB.Export] and [DB.Import].
 }
 
 // NewDocument creates a new document, including its embeddings.
