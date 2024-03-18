@@ -26,7 +26,8 @@ func TestPersistence(t *testing.T) {
 		Bar: []float32{-0.40824828, 0.40824828, 0.81649655}, // normalized version of `{-0.1, 0.1, 0.2}`
 	}
 
-	persist(tempDir, obj)
+	tempFilePath := tempDir + ".gob"
+	persist(tempFilePath, obj, false, "")
 
 	// Check if the file exists.
 	_, err = os.Stat(tempDir + ".gob")
