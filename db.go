@@ -98,9 +98,10 @@ func NewPersistentDB(path string) (*DB, error) {
 			return nil, fmt.Errorf("couldn't read collection directory: %w", err)
 		}
 		c := &Collection{
-			// We can fill Name, persistDirectory and metadata only after reading
+			persistDirectory: collectionPath,
+			documents:        make(map[string]*Document),
+			// We can fill Name and metadata only after reading
 			// the metadata.
-			documents: make(map[string]*Document),
 			// We can fill embed only when the user calls DB.GetCollection() or
 			// DB.GetOrCreateCollection().
 		}
@@ -124,7 +125,6 @@ func NewPersistentDB(path string) (*DB, error) {
 					return nil, fmt.Errorf("couldn't read collection metadata: %w", err)
 				}
 				c.Name = pc.Name
-				c.persistDirectory = filepath.Dir(collectionPath)
 				c.metadata = pc.Metadata
 			} else if filepath.Ext(collectionDirEntry.Name()) == ".gob" {
 				// Read document
@@ -139,6 +139,16 @@ func NewPersistentDB(path string) (*DB, error) {
 				continue
 			}
 		}
+		// If we have neither name nor documents, it was likely a user-added
+		// directory, so skip it.
+		if c.Name == "" && len(c.documents) == 0 {
+			continue
+		}
+		// If we have no name, it means there was no metadata file
+		if c.Name == "" {
+			return nil, fmt.Errorf("collection metadata file not found: %s", collectionPath)
+		}
+
 		db.collections[c.Name] = c
 	}
 
