@@ -21,6 +21,9 @@ type Collection struct {
 	documents        map[string]*Document
 	documentsLock    sync.RWMutex
 	embed            EmbeddingFunc
+
+	// ⚠️ When adding fields here, consider adding them to the persistence struct
+	// version in [DB.Export] as well!
 }
 
 // We don't export this yet to keep the API surface to the bare minimum.
