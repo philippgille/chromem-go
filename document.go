@@ -11,6 +11,9 @@ type Document struct {
 	Metadata  map[string]string
 	Embedding []float32
 	Content   string
+
+	// ⚠️ When adding unexported fields here, consider adding a persistence struct
+	// version of this in [DB.Export].
 }
 
 // NewDocument creates a new document, including its embeddings.

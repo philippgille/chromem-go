@@ -27,6 +27,9 @@ type DB struct {
 	collections      map[string]*Collection
 	collectionsLock  sync.RWMutex
 	persistDirectory string
+
+	// ⚠️ When adding fields here, consider adding them to the persistence struct
+	// version in [DB.Export] as well!
 }
 
 // NewDB creates a new in-memory chromem-go DB.
@@ -172,7 +175,31 @@ func (db *DB) Export(filePath string, compress bool, encryptionKey string) error
 		}
 	}
 
-	return persist(filePath, db, compress, encryptionKey)
+	// Create persistence structs with exported fields so that they can be encoded
+	// as gob.
+	type persistenceCollection struct {
+		Name      string
+		Metadata  map[string]string
+		Documents map[string]*Document
+	}
+	persistenceDB := struct {
+		Collections map[string]*persistenceCollection
+	}{
+		Collections: make(map[string]*persistenceCollection, len(db.collections)),
+	}
+
+	db.collectionsLock.RLock()
+	defer db.collectionsLock.RUnlock()
+
+	for k, v := range db.collections {
+		persistenceDB.Collections[k] = &persistenceCollection{
+			Name:      v.Name,
+			Metadata:  v.metadata,
+			Documents: v.documents,
+		}
+	}
+
+	return persist(filePath, persistenceDB, compress, encryptionKey)
 }
 
 // CreateCollection creates a new collection with the given name and metadata.
