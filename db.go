@@ -170,6 +170,12 @@ func (db *DB) Import(filePath string, decryptionKey string) error {
 	if filePath == "" {
 		return fmt.Errorf("file path is empty")
 	}
+	if decryptionKey != "" {
+		// AES 256 requires a 32 byte key
+		if len(decryptionKey) != 32 {
+			return errors.New("decryption key must be 32 bytes long")
+		}
+	}
 
 	// If the file doesn't exist or is a directory, return an error.
 	fi, err := os.Stat(filePath)
@@ -232,6 +238,12 @@ func (db *DB) Export(filePath string, compress bool, encryptionKey string) error
 		}
 		if encryptionKey != "" {
 			filePath += ".enc"
+		}
+	}
+	if encryptionKey != "" {
+		// AES 256 requires a 32 byte key
+		if len(encryptionKey) != 32 {
+			return errors.New("encryption key must be 32 bytes long")
 		}
 	}
 
