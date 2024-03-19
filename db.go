@@ -247,6 +247,13 @@ func (db *DB) Export(filePath string, compress bool, encryptionKey string) error
 		}
 	}
 
+	// Create parent dir if it doesn't exist
+	parentDir := filepath.Dir(filePath)
+	err := os.MkdirAll(parentDir, 0o700)
+	if err != nil {
+		return fmt.Errorf("couldn't create parent directory: %w", err)
+	}
+
 	// Create persistence structs with exported fields so that they can be encoded
 	// as gob.
 	type persistenceCollection struct {
