@@ -271,7 +271,12 @@ func (db *DB) Export(filePath string, compress bool, encryptionKey string) error
 		}
 	}
 
-	return persist(filePath, persistenceDB, compress, encryptionKey)
+	err = persist(filePath, persistenceDB, compress, encryptionKey)
+	if err != nil {
+		return fmt.Errorf("couldn't export DB: %w", err)
+	}
+
+	return nil
 }
 
 // CreateCollection creates a new collection with the given name and metadata.
