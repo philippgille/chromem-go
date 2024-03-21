@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"slices"
 	"sync"
@@ -48,11 +47,6 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 	if dbDir != "" {
 		safeName := hash2hex(name)
 		c.persistDirectory = filepath.Join(dbDir, safeName)
-		// Create dir
-		err := os.MkdirAll(c.persistDirectory, 0o700)
-		if err != nil {
-			return nil, fmt.Errorf("couldn't create collection directory: %w", err)
-		}
 		// Persist name and metadata
 		metadataPath := filepath.Join(c.persistDirectory, metadataFileName)
 		metadataPath += ".gob"
@@ -63,7 +57,7 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 			Name:     name,
 			Metadata: m,
 		}
-		err = persist(metadataPath, pc, false, "")
+		err := persist(metadataPath, pc, false, "")
 		if err != nil {
 			return nil, fmt.Errorf("couldn't persist collection metadata: %w", err)
 		}
