@@ -77,16 +77,30 @@ func persist(filePath string, obj any, compress bool, encryptionKey string) erro
 	} else {
 		w = &bytes.Buffer{}
 	}
+
+	var gzw *gzip.Writer
+	var enc *gob.Encoder
 	if compress {
-		gzw := gzip.NewWriter(w)
-		defer gzw.Close()
-		w = gzw
+		gzw = gzip.NewWriter(w)
+		enc = gob.NewEncoder(gzw)
+	} else {
+		enc = gob.NewEncoder(w)
 	}
-	enc := gob.NewEncoder(w)
 
 	// Start encoding, it will write to the chain of writers.
 	if err := enc.Encode(obj); err != nil {
 		return fmt.Errorf("couldn't encode or write object: %w", err)
+	}
+
+	// If compressing, close the gzip writer. Otherwise the gzip footer won't be
+	// written yet. When using encryption (and w is a buffer) then we'll encrypt
+	// an incomplete file. Without encryption when we return here and having
+	// a deferred Close(), there might be a silenced error.
+	if compress {
+		err = gzw.Close()
+		if err != nil {
+			return fmt.Errorf("couldn't close gzip writer: %w", err)
+		}
 	}
 
 	// Without encyrption, the chain is done and the file is written.
