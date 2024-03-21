@@ -213,9 +213,11 @@ func (db *DB) Import(filePath string, decryptionKey string) error {
 		c := &Collection{
 			Name: pc.Name,
 
-			persistDirectory: filepath.Join(db.persistDirectory, hash2hex(pc.Name)),
-			metadata:         pc.Metadata,
-			documents:        pc.Documents,
+			metadata:  pc.Metadata,
+			documents: pc.Documents,
+		}
+		if db.persistDirectory != "" {
+			c.persistDirectory = filepath.Join(db.persistDirectory, hash2hex(pc.Name))
 		}
 		db.collections[c.Name] = c
 	}
