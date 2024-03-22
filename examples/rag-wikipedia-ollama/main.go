@@ -39,7 +39,7 @@ func main() {
 	// Set up chromem-go with persistence, so that when the program restarts, the
 	// DB's data is still available.
 	log.Println("Setting up chromem-go...")
-	db, err := chromem.NewPersistentDB("./db")
+	db, err := chromem.NewPersistentDB("./db", false)
 	if err != nil {
 		panic(err)
 	}
