@@ -22,7 +22,7 @@ func TestNewPersistentDB(t *testing.T) {
 			t.Fatal("expected path to not exist, got", err)
 		}
 
-		db, err := NewPersistentDB(path)
+		db, err := NewPersistentDB(path, false)
 		if err != nil {
 			t.Fatal("expected no error, got", err)
 		}
@@ -42,7 +42,7 @@ func TestNewPersistentDB(t *testing.T) {
 		}
 		defer os.RemoveAll(path)
 
-		db, err := NewPersistentDB(path)
+		db, err := NewPersistentDB(path, false)
 		if err != nil {
 			t.Fatal("expected no error, got", err)
 		}
@@ -60,7 +60,7 @@ func TestNewPersistentDB_Errors(t *testing.T) {
 		}
 		defer os.RemoveAll(f.Name())
 
-		_, err = NewPersistentDB(f.Name())
+		_, err = NewPersistentDB(f.Name(), false)
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}

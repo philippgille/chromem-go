@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -24,9 +25,11 @@ type EmbeddingFunc func(ctx context.Context, text string) ([]float32, error)
 //	| DB |-----------| Collection |-----------| Document |
 //	+----+           +------------+           +----------+
 type DB struct {
-	collections      map[string]*Collection
-	collectionsLock  sync.RWMutex
+	collections     map[string]*Collection
+	collectionsLock sync.RWMutex
+
 	persistDirectory string
+	compress         bool
 
 	// ⚠️ When adding fields here, consider adding them to the persistence struct
 	// versions in [DB.Export] and [DB.Import] as well!
@@ -44,6 +47,7 @@ func NewDB() *DB {
 
 // NewPersistentDB creates a new persistent chromem-go DB.
 // If the path is empty, it defaults to "./chromem-go".
+// If compress is true, the files are compressed with gzip.
 //
 // The persistence covers the collections (including their documents) and the metadata.
 // However it doesn't cover the EmbeddingFunc, as functions can't be serialized.
@@ -58,7 +62,7 @@ func NewDB() *DB {
 // In addition to persistence for each added collection and document you can use
 // [DB.Export] and [DB.Import] to export and import the entire DB to/from a file,
 // which also works for the pure in-memory DB.
-func NewPersistentDB(path string) (*DB, error) {
+func NewPersistentDB(path string, compress bool) (*DB, error) {
 	if path == "" {
 		path = "./chromem-go"
 	} else {
@@ -66,9 +70,16 @@ func NewPersistentDB(path string) (*DB, error) {
 		path = filepath.Clean(path)
 	}
 
+	// We check for this file extension and skip others
+	ext := ".gob"
+	if compress {
+		ext += ".gz"
+	}
+
 	db := &DB{
-		persistDirectory: path,
 		collections:      make(map[string]*Collection),
+		persistDirectory: path,
+		compress:         compress,
 	}
 
 	// If the directory doesn't exist, create it and return an empty DB.
@@ -108,8 +119,9 @@ func NewPersistentDB(path string) (*DB, error) {
 			return nil, fmt.Errorf("couldn't read collection directory: %w", err)
 		}
 		c := &Collection{
-			persistDirectory: collectionPath,
 			documents:        make(map[string]*Document),
+			persistDirectory: collectionPath,
+			compress:         compress,
 			// We can fill Name and metadata only after reading
 			// the metadata.
 			// We can fill embed only when the user calls DB.GetCollection() or
@@ -124,7 +136,7 @@ func NewPersistentDB(path string) (*DB, error) {
 
 			fPath := filepath.Join(collectionPath, collectionDirEntry.Name())
 			// Differentiate between collection metadata, documents and other files.
-			if collectionDirEntry.Name() == metadataFileName+".gob" {
+			if collectionDirEntry.Name() == metadataFileName+ext {
 				// Read name and metadata
 				pc := struct {
 					Name     string
@@ -136,7 +148,7 @@ func NewPersistentDB(path string) (*DB, error) {
 				}
 				c.Name = pc.Name
 				c.metadata = pc.Metadata
-			} else if filepath.Ext(collectionDirEntry.Name()) == ".gob" {
+			} else if strings.HasSuffix(collectionDirEntry.Name(), ext) {
 				// Read document
 				d := &Document{}
 				err := read(fPath, d, "")
@@ -225,6 +237,7 @@ func (db *DB) Import(filePath string, encryptionKey string) error {
 		}
 		if db.persistDirectory != "" {
 			c.persistDirectory = filepath.Join(db.persistDirectory, hash2hex(pc.Name))
+			c.compress = db.compress
 		}
 		db.collections[c.Name] = c
 	}
@@ -303,7 +316,7 @@ func (db *DB) CreateCollection(name string, metadata map[string]string, embeddin
 	if embeddingFunc == nil {
 		embeddingFunc = NewEmbeddingFuncDefault()
 	}
-	collection, err := newCollection(name, metadata, embeddingFunc, db.persistDirectory)
+	collection, err := newCollection(name, metadata, embeddingFunc, db.persistDirectory, db.compress)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create collection: %w", err)
 	}
