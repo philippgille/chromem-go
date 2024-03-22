@@ -12,7 +12,8 @@ import (
 
 func TestNewPersistentDB(t *testing.T) {
 	t.Run("Create directory", func(t *testing.T) {
-		randString := randomString(rand.New(rand.NewSource(rand.Int63())), 10)
+		r := rand.New(rand.NewSource(rand.Int63()))
+		randString := randomString(r, 10)
 		path := filepath.Join(os.TempDir(), randString)
 		defer os.RemoveAll(path)
 
@@ -64,6 +65,102 @@ func TestNewPersistentDB_Errors(t *testing.T) {
 			t.Fatal("expected error, got nil")
 		}
 	})
+}
+
+func TestDB_ImportExport(t *testing.T) {
+	r := rand.New(rand.NewSource(rand.Int63()))
+	randString := randomString(r, 10)
+	path := filepath.Join(os.TempDir(), randString)
+	defer os.RemoveAll(path)
+
+	// Values in the collection
+	name := "test"
+	metadata := map[string]string{"foo": "bar"}
+	vectors := []float32{-0.40824828, 0.40824828, 0.81649655} // normalized version of `{-0.1, 0.1, 0.2}`
+	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
+		return vectors, nil
+	}
+
+	tt := []struct {
+		name          string
+		filePath      string
+		compress      bool
+		encryptionKey string
+	}{
+		{
+			name:          "gob",
+			filePath:      path + ".gob",
+			compress:      false,
+			encryptionKey: "",
+		},
+		{
+			name:          "gob compressed",
+			filePath:      path + ".gob.gz",
+			compress:      true,
+			encryptionKey: "",
+		},
+		{
+			name:          "gob compressed encrypted",
+			filePath:      path + ".gob.gz.enc",
+			compress:      true,
+			encryptionKey: randomString(r, 32),
+		},
+		{
+			name:          "gob encrypted",
+			filePath:      path + ".gob.enc",
+			compress:      false,
+			encryptionKey: randomString(r, 32),
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create DB, can just be in-memory
+			orig := NewDB()
+
+			// Create collection
+			c, err := orig.CreateCollection(name, metadata, embeddingFunc)
+			if err != nil {
+				t.Fatal("expected no error, got", err)
+			}
+			if c == nil {
+				t.Fatal("expected collection, got nil")
+			}
+			// Add document
+			doc := Document{
+				ID:        name,
+				Metadata:  metadata,
+				Embedding: vectors,
+				Content:   "test",
+			}
+			err = c.AddDocument(context.Background(), doc)
+			if err != nil {
+				t.Fatal("expected no error, got", err)
+			}
+
+			// Export
+			err = orig.Export(tc.filePath, tc.compress, tc.encryptionKey)
+			if err != nil {
+				t.Fatal("expected no error, got", err)
+			}
+
+			new := NewDB()
+
+			// Import
+			err = new.Import(tc.filePath, tc.encryptionKey)
+			if err != nil {
+				t.Fatal("expected no error, got", err)
+			}
+
+			// Check expectations
+			// We have to reset the embed function, but otherwise the DB objects
+			// should be deep equal.
+			c.embed = nil
+			if !reflect.DeepEqual(orig, new) {
+				t.Fatalf("expected DB %+v, got %+v", orig, new)
+			}
+		})
+	}
 }
 
 func TestDB_CreateCollection(t *testing.T) {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"slices"
 	"sync"
@@ -21,11 +20,14 @@ type Collection struct {
 	documents        map[string]*Document
 	documentsLock    sync.RWMutex
 	embed            EmbeddingFunc
+
+	// ⚠️ When adding fields here, consider adding them to the persistence struct
+	// versions in [DB.Export] and [DB.Import] as well!
 }
 
 // We don't export this yet to keep the API surface to the bare minimum.
 // Users create collections via [Client.CreateCollection].
-func newCollection(name string, metadata map[string]string, embed EmbeddingFunc, dir string) (*Collection, error) {
+func newCollection(name string, metadata map[string]string, embed EmbeddingFunc, dbDir string) (*Collection, error) {
 	// We copy the metadata to avoid data races in case the caller modifies the
 	// map after creating the collection while we range over it.
 	m := make(map[string]string, len(metadata))
@@ -42,16 +44,12 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 	}
 
 	// Persistence
-	if dir != "" {
+	if dbDir != "" {
 		safeName := hash2hex(name)
-		c.persistDirectory = filepath.Join(dir, safeName)
-		// Create dir
-		err := os.MkdirAll(c.persistDirectory, 0o700)
-		if err != nil {
-			return nil, fmt.Errorf("couldn't create collection directory: %w", err)
-		}
+		c.persistDirectory = filepath.Join(dbDir, safeName)
 		// Persist name and metadata
 		metadataPath := filepath.Join(c.persistDirectory, metadataFileName)
+		metadataPath += ".gob"
 		pc := struct {
 			Name     string
 			Metadata map[string]string
@@ -59,7 +57,7 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 			Name:     name,
 			Metadata: m,
 		}
-		err = persist(metadataPath, pc)
+		err := persist(metadataPath, pc, false, "")
 		if err != nil {
 			return nil, fmt.Errorf("couldn't persist collection metadata: %w", err)
 		}
@@ -233,8 +231,9 @@ func (c *Collection) AddDocument(ctx context.Context, doc Document) error {
 	// Persist the document
 	if c.persistDirectory != "" {
 		safeID := hash2hex(doc.ID)
-		filePath := filepath.Join(c.persistDirectory, safeID)
-		err := persist(filePath, doc)
+		docPath := filepath.Join(c.persistDirectory, safeID)
+		docPath += ".gob"
+		err := persist(docPath, doc, false, "")
 		if err != nil {
 			return fmt.Errorf("couldn't persist document: %w", err)
 		}

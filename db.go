@@ -27,9 +27,15 @@ type DB struct {
 	collections      map[string]*Collection
 	collectionsLock  sync.RWMutex
 	persistDirectory string
+
+	// ⚠️ When adding fields here, consider adding them to the persistence struct
+	// versions in [DB.Export] and [DB.Import] as well!
 }
 
 // NewDB creates a new in-memory chromem-go DB.
+// While it doesn't write files when you add collections and documents, you can
+// still use [DB.Export] and [DB.Import] to export and import the the entire DB
+// from a file.
 func NewDB() *DB {
 	return &DB{
 		collections: make(map[string]*Collection),
@@ -48,6 +54,10 @@ func NewDB() *DB {
 // Currently the persistence is done synchronously on each write operation, and
 // each document addition leads to a new file, encoded as gob. In the future we
 // will make this configurable (encoding, async writes, WAL-based writes, etc.).
+//
+// In addition to persistence for each added collection and document you can use
+// [DB.Export] and [DB.Import] to export and import the entire DB to/from a file,
+// which also works for the pure in-memory DB.
 func NewPersistentDB(path string) (*DB, error) {
 	if path == "" {
 		path = "./chromem-go"
@@ -120,7 +130,7 @@ func NewPersistentDB(path string) (*DB, error) {
 					Name     string
 					Metadata map[string]string
 				}{}
-				err := read(fPath, &pc)
+				err := read(fPath, &pc, "")
 				if err != nil {
 					return nil, fmt.Errorf("couldn't read collection metadata: %w", err)
 				}
@@ -129,7 +139,7 @@ func NewPersistentDB(path string) (*DB, error) {
 			} else if filepath.Ext(collectionDirEntry.Name()) == ".gob" {
 				// Read document
 				d := &Document{}
-				err := read(fPath, d)
+				err := read(fPath, d, "")
 				if err != nil {
 					return nil, fmt.Errorf("couldn't read document: %w", err)
 				}
@@ -153,6 +163,131 @@ func NewPersistentDB(path string) (*DB, error) {
 	}
 
 	return db, nil
+}
+
+// Import imports the DB from a file at the given path. The file must be encoded
+// as gob and can optionally be compressed with flate (as gzip) and encrypted
+// with AES-GCM.
+// This works for both the in-memory and persistent DBs.
+// Existing collections are overwritten.
+//
+// - filePath: Mandatory, must not be empty
+// - encryptionKey: Optional, must be 32 bytes long if provided
+func (db *DB) Import(filePath string, encryptionKey string) error {
+	if filePath == "" {
+		return fmt.Errorf("file path is empty")
+	}
+	if encryptionKey != "" {
+		// AES 256 requires a 32 byte key
+		if len(encryptionKey) != 32 {
+			return errors.New("encryption key must be 32 bytes long")
+		}
+	}
+
+	// If the file doesn't exist or is a directory, return an error.
+	fi, err := os.Stat(filePath)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("file doesn't exist: %s", filePath)
+		}
+		return fmt.Errorf("couldn't get info about the file: %w", err)
+	} else if fi.IsDir() {
+		return fmt.Errorf("path is a directory: %s", filePath)
+	}
+
+	// Create persistence structs with exported fields so that they can be decoded
+	// from gob.
+	type persistenceCollection struct {
+		Name      string
+		Metadata  map[string]string
+		Documents map[string]*Document
+	}
+	persistenceDB := struct {
+		Collections map[string]*persistenceCollection
+	}{
+		Collections: make(map[string]*persistenceCollection, len(db.collections)),
+	}
+
+	db.collectionsLock.Lock()
+	defer db.collectionsLock.Unlock()
+
+	err = read(filePath, &persistenceDB, encryptionKey)
+	if err != nil {
+		return fmt.Errorf("couldn't read file: %w", err)
+	}
+
+	for _, pc := range persistenceDB.Collections {
+		c := &Collection{
+			Name: pc.Name,
+
+			metadata:  pc.Metadata,
+			documents: pc.Documents,
+		}
+		if db.persistDirectory != "" {
+			c.persistDirectory = filepath.Join(db.persistDirectory, hash2hex(pc.Name))
+		}
+		db.collections[c.Name] = c
+	}
+
+	return nil
+}
+
+// Export exports the DB to a file at the given path. The file is encoded as gob,
+// optionally compressed with flate (as gzip) and optionally encrypted with AES-GCM.
+// This works for both the in-memory and persistent DBs.
+// If the file exists, it's overwritten, otherwise created.
+//
+//   - filePath: If empty, it defaults to "./chromem-go.gob" (+ ".gz" + ".enc")
+//   - compress: Optional. Compresses as gzip if true.
+//   - encryptionKey: Optional. Encrypts with AES-GCM if provided. Must be 32 bytes
+//     long if provided.
+func (db *DB) Export(filePath string, compress bool, encryptionKey string) error {
+	if filePath == "" {
+		filePath = "./chromem-go.gob"
+		if compress {
+			filePath += ".gz"
+		}
+		if encryptionKey != "" {
+			filePath += ".enc"
+		}
+	}
+	if encryptionKey != "" {
+		// AES 256 requires a 32 byte key
+		if len(encryptionKey) != 32 {
+			return errors.New("encryption key must be 32 bytes long")
+		}
+	}
+
+	// Create persistence structs with exported fields so that they can be encoded
+	// as gob.
+	type persistenceCollection struct {
+		Name      string
+		Metadata  map[string]string
+		Documents map[string]*Document
+	}
+	persistenceDB := struct {
+		Collections map[string]*persistenceCollection
+	}{
+		Collections: make(map[string]*persistenceCollection, len(db.collections)),
+	}
+
+	db.collectionsLock.RLock()
+	defer db.collectionsLock.RUnlock()
+
+	for k, v := range db.collections {
+		persistenceDB.Collections[k] = &persistenceCollection{
+			Name:      v.Name,
+			Metadata:  v.metadata,
+			Documents: v.documents,
+		}
+	}
+
+	err := persist(filePath, persistenceDB, compress, encryptionKey)
+	if err != nil {
+		return fmt.Errorf("couldn't export DB: %w", err)
+	}
+
+	return nil
 }
 
 // CreateCollection creates a new collection with the given name and metadata.
