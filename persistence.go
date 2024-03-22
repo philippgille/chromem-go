@@ -134,16 +134,16 @@ func persist(filePath string, obj any, compress bool, encryptionKey string) erro
 
 // read reads an object from a file at the given path. The object is deserialized
 // from gob. `obj` must be a pointer to an instantiated object. The file may
-// optionally be compressed as gzip and/or encrypted with AES-GCM. The decryption
+// optionally be compressed as gzip and/or encrypted with AES-GCM. The encryption
 // key must be 32 bytes long.
-func read(filePath string, obj any, decryptionKey string) error {
+func read(filePath string, obj any, encryptionKey string) error {
 	if filePath == "" {
 		return fmt.Errorf("file path is empty")
 	}
 	// AES 256 requires a 32 byte key
-	if decryptionKey != "" {
-		if len(decryptionKey) != 32 {
-			return errors.New("decryption key must be 32 bytes long")
+	if encryptionKey != "" {
+		if len(encryptionKey) != 32 {
+			return errors.New("encryption key must be 32 bytes long")
 		}
 	}
 
@@ -155,12 +155,12 @@ func read(filePath string, obj any, decryptionKey string) error {
 	var r io.Reader
 
 	// Decrypt if an encryption key is provided
-	if decryptionKey != "" {
+	if encryptionKey != "" {
 		encrypted, err := os.ReadFile(filePath)
 		if err != nil {
 			return fmt.Errorf("couldn't read file: %w", err)
 		}
-		block, err := aes.NewCipher([]byte(decryptionKey))
+		block, err := aes.NewCipher([]byte(encryptionKey))
 		if err != nil {
 			return fmt.Errorf("couldn't create AES cipher: %w", err)
 		}

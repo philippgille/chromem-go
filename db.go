@@ -172,15 +172,15 @@ func NewPersistentDB(path string) (*DB, error) {
 // Existing collections are overwritten.
 //
 // - filePath: Mandatory, must not be empty
-// - decryptionKey: Optional, must be 32 bytes long if provided
-func (db *DB) Import(filePath string, decryptionKey string) error {
+// - encryptionKey: Optional, must be 32 bytes long if provided
+func (db *DB) Import(filePath string, encryptionKey string) error {
 	if filePath == "" {
 		return fmt.Errorf("file path is empty")
 	}
-	if decryptionKey != "" {
+	if encryptionKey != "" {
 		// AES 256 requires a 32 byte key
-		if len(decryptionKey) != 32 {
-			return errors.New("decryption key must be 32 bytes long")
+		if len(encryptionKey) != 32 {
+			return errors.New("encryption key must be 32 bytes long")
 		}
 	}
 
@@ -211,7 +211,7 @@ func (db *DB) Import(filePath string, decryptionKey string) error {
 	db.collectionsLock.Lock()
 	defer db.collectionsLock.Unlock()
 
-	err = read(filePath, &persistenceDB, decryptionKey)
+	err = read(filePath, &persistenceDB, encryptionKey)
 	if err != nil {
 		return fmt.Errorf("couldn't read file: %w", err)
 	}
