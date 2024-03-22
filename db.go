@@ -33,6 +33,9 @@ type DB struct {
 }
 
 // NewDB creates a new in-memory chromem-go DB.
+// While it doesn't write files when you add collections and documents, you can
+// still use [DB.Export] and [DB.Import] to export and import the the entire DB
+// from a file.
 func NewDB() *DB {
 	return &DB{
 		collections: make(map[string]*Collection),
@@ -51,6 +54,10 @@ func NewDB() *DB {
 // Currently the persistence is done synchronously on each write operation, and
 // each document addition leads to a new file, encoded as gob. In the future we
 // will make this configurable (encoding, async writes, WAL-based writes, etc.).
+//
+// In addition to persistence for each added collection and document you can use
+// [DB.Export] and [DB.Import] to export and import the entire DB to/from a file,
+// which also works for the pure in-memory DB.
 func NewPersistentDB(path string) (*DB, error) {
 	if path == "" {
 		path = "./chromem-go"
