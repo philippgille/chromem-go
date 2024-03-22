@@ -148,7 +148,8 @@ See the Godoc for details: <https://pkg.go.dev/github.com/philippgille/chromem-g
   - [X] Metadata filters: Exact matches
 - Storage:
   - [X] In-memory
-  - [X] Optional local persistence (file based, encoded as [gob](https://go.dev/blog/gob))
+  - [X] Backups: Export and import of the entire DB to/from a single file (optionally gzip-compressed and AES-GCM encrypted)
+  - [X] Optional immediate persistence (writes one file for each added collection and document, encoded as [gob](https://go.dev/blog/gob))
 - Data types:
   - [X] Documents (text)
 
@@ -168,8 +169,7 @@ See the Godoc for details: <https://pkg.go.dev/github.com/philippgille/chromem-g
 - Storage:
   - JSON as second encoding format
   - Write-ahead log (WAL) as second file format
-  - Compression
-  - Encryption (at rest)
+  - Compression and encryption not only for the export, but also for each collection/document file
   - Optional remote storage (S3, PostgreSQL, ...)
 - Data types:
   - Images
