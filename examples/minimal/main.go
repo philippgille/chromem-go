@@ -18,7 +18,7 @@ func main() {
 		panic(err)
 	}
 
-	c.AddDocuments(ctx, []chromem.Document{
+	err = c.AddDocuments(ctx, []chromem.Document{
 		{
 			ID:      "1",
 			Content: "The sky is blue because of Rayleigh scattering.",
@@ -28,6 +28,9 @@ func main() {
 			Content: "Leaves are green because chlorophyll absorbs red and blue light.",
 		},
 	}, runtime.NumCPU())
+	if err != nil {
+		panic(err)
+	}
 
 	res, err := c.Query(ctx, "Why is the sky blue?", 1, nil, nil)
 	if err != nil {
