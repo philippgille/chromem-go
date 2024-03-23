@@ -308,7 +308,7 @@ That's when I decided to build my own vector database, embeddable in Go, inspire
   - [Pinecone](https://www.pinecone.io/): Closed source
   - [Qdrant](https://github.com/qdrant/qdrant): Written in Rust
   - [Milvus](https://github.com/milvus-io/milvus): Written in Go and C++, but not embeddable as of December 2023
-  - [Weaviate](https://github.com/weaviate/weaviate): Written in Go, but not embeddable as of December 2023
+  - [Weaviate](https://github.com/weaviate/weaviate): Written in Go, but not embeddable in Go as of March 2024 (only in Python and JavaScript/TypeScript and that's experimental))
 - Some non-specialized SQL, NoSQL and Key-Value databases added support for storing vectors and (some of them) querying based on similarity:
   - [pgvector](https://github.com/pgvector/pgvector) extension for [PostgreSQL](https://www.postgresql.org/): Client-server model
   - [Redis](https://github.com/redis/redis) ([1](https://redis.io/docs/interact/search-and-query/query/vector-search/), [2](https://redis.io/docs/interact/search-and-query/advanced-concepts/vectors/)): Client-server model
