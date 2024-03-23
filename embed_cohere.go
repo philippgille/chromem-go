@@ -66,6 +66,19 @@ type cohereResponse struct {
 // prefix before adding the document to the collection. Otherwise when you query
 // the collection, the returned documents will still have the prefix in their content.
 //
+//	cohereFunc := chromem.NewEmbeddingFuncCohere(cohereApiKey, chromem.EmbeddingModelCohereEnglishV3)
+//	content := "The sky is blue because of Rayleigh scattering."
+//	// Create the document with the prefix.
+//	contentWithPrefix := chromem.InputTypeCohereSearchDocumentPrefix + content
+//	doc, _ := NewDocument(ctx, id, metadata, nil, contentWithPrefix, cohereFunc)
+//	// Remove the prefix so that later query results don't have it.
+//	doc.Content = content
+//	_ = collection.AddDocument(ctx, doc)
+//
+// This is not necessary if you don't keep the content in the documents, as chromem-go
+// also works when documents only have embeddings.
+// You can also keep the prefix in the document, and only remove it after querying.
+//
 // We plan to improve this in the future.
 func NewEmbeddingFuncCohere(apiKey string, model EmbeddingModelCohere) EmbeddingFunc {
 	// We don't set a default timeout here, although it's usually a good idea.
