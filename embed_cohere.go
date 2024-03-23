@@ -24,22 +24,29 @@ const (
 	EmbeddingModelCohereEnglishV3           EmbeddingModelCohere = "embed-english-v3.0"
 )
 
-type InputTypeCohere string
-
+// Prefixes for external use.
 const (
-	InputTypeCohereSearchDocument InputTypeCohere = "search_document"
-	InputTypeCohereSearchQuery    InputTypeCohere = "search_query"
-	InputTypeCohereClassification InputTypeCohere = "classification"
-	InputTypeCohereClustering     InputTypeCohere = "clustering"
+	InputTypeCohereSearchDocumentPrefix string = "search_document: "
+	InputTypeCohereSearchQueryPrefix    string = "search_query: "
+	InputTypeCohereClassificationPrefix string = "classification: "
+	InputTypeCohereClusteringPrefix     string = "clustering: "
+)
+
+// Input types for internal use.
+const (
+	inputTypeCohereSearchDocument string = "search_document"
+	inputTypeCohereSearchQuery    string = "search_query"
+	inputTypeCohereClassification string = "classification"
+	inputTypeCohereClustering     string = "clustering"
 )
 
 const baseURLCohere = "https://api.cohere.ai/v1"
 
-var validInputTypesCohere = []string{
-	string(InputTypeCohereSearchDocument),
-	string(InputTypeCohereSearchQuery),
-	string(InputTypeCohereClassification),
-	string(InputTypeCohereClustering),
+var validInputTypesCohere = map[string]string{
+	inputTypeCohereSearchDocument: InputTypeCohereSearchDocumentPrefix,
+	inputTypeCohereSearchQuery:    InputTypeCohereSearchQueryPrefix,
+	inputTypeCohereClassification: InputTypeCohereClassificationPrefix,
+	inputTypeCohereClustering:     InputTypeCohereClusteringPrefix,
 }
 
 type cohereResponse struct {
@@ -71,10 +78,10 @@ func NewEmbeddingFuncCohere(apiKey string, model EmbeddingModelCohere) Embedding
 
 	return func(ctx context.Context, text string) ([]float32, error) {
 		var inputType string
-		for _, validInputType := range validInputTypesCohere {
-			if strings.HasPrefix(text, validInputType+": ") {
+		for validInputType, validInputTypePrefix := range validInputTypesCohere {
+			if strings.HasPrefix(text, validInputTypePrefix) {
 				inputType = validInputType
-				text = strings.TrimPrefix(text, validInputType+": ")
+				text = strings.TrimPrefix(text, validInputTypePrefix)
 				break
 			}
 		}
