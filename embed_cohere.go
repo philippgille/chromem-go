@@ -15,13 +15,13 @@ import (
 type EmbeddingModelCohere string
 
 const (
-	EmbeddingModelMultilingualV2Cohere      EmbeddingModelCohere = "embed-multilingual-v2.0"
-	EmbeddingModelEnglishLightV2Cohere      EmbeddingModelCohere = "embed-english-light-v2.0"
-	EmbeddingModelEnglishV2Cohere           EmbeddingModelCohere = "embed-english-v2.0"
-	EmbeddingModelMultilingualLightV3Cohere EmbeddingModelCohere = "embed-multilingual-light-v3.0"
-	EmbeddingModelEnglishLightV3Cohere      EmbeddingModelCohere = "embed-english-light-v3.0"
-	EmbeddingModelMultilingualV3Cohere      EmbeddingModelCohere = "embed-multilingual-v3.0"
-	EmbeddingModelEnglishV3Cohere           EmbeddingModelCohere = "embed-english-v3.0"
+	EmbeddingModelCohereMultilingualV2      EmbeddingModelCohere = "embed-multilingual-v2.0"
+	EmbeddingModelCohereEnglishLightV2      EmbeddingModelCohere = "embed-english-light-v2.0"
+	EmbeddingModelCohereEnglishV2           EmbeddingModelCohere = "embed-english-v2.0"
+	EmbeddingModelCohereMultilingualLightV3 EmbeddingModelCohere = "embed-multilingual-light-v3.0"
+	EmbeddingModelCohereEnglishLightV3      EmbeddingModelCohere = "embed-english-light-v3.0"
+	EmbeddingModelCohereMultilingualV3      EmbeddingModelCohere = "embed-multilingual-v3.0"
+	EmbeddingModelCohereEnglishV3           EmbeddingModelCohere = "embed-english-v3.0"
 )
 
 type InputTypeCohere string
