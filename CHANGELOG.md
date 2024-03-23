@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 vNext
 -----
 
+v0.5.0 (2024-03-23)
+-------------------
+
 Highlights in this release are query performance improvements (5x faster, 98% fewer memory allocations), export/import of the entire DB to/from a single file with optional gzip-compression and AES-GCM encryption, optional gzip-compression for the regular persistence, a new code example for semantic search across 5,000 arXiv papers, and an embedding func for [Cohere](https://cohere.com/models/embed).
 
 ### Added
