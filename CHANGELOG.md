@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 vNext
 -----
 
-Highlights in this release are query performance improvements (5x faster, 98% fewer memory allocations), an extended interface, and a new code example for semantic search across 5,000 arXiv papers.
+Highlights in this release are query performance improvements (5x faster, 98% fewer memory allocations), export/import of the entire DB to/from a single file with optional gzip-compression and AES-GCM encryption, optional gzip-compression for the regular persistence, a new code example for semantic search across 5,000 arXiv papers, and an embedding func for [Cohere](https://cohere.com/models/embed).
 
 ### Added
 
@@ -16,6 +16,10 @@ Highlights in this release are query performance improvements (5x faster, 98% fe
 - Added basic query benchmark (PR [#46](https://github.com/philippgille/chromem-go/pull/46))
 - Added unit test for collection query errors (PR [#51](https://github.com/philippgille/chromem-go/pull/51))
 - Added `Collection.QueryEmbedding()` method for when you already have the embedding of your query (PR [#52](https://github.com/philippgille/chromem-go/pull/52))
+- Added export and import of the entire DB to/from a single file, with optional gzip-compression and AES-GCM encryption (PR [#58](https://github.com/philippgille/chromem-go/pull/58))
+- Added optional gzip-compression to the regular persistence (i.e. the DB from `NewPersistentDB()` which writes a file for each added collection and document) (PR [#59](https://github.com/philippgille/chromem-go/pull/59))
+- Added minimal example (PR [#60](https://github.com/philippgille/chromem-go/pull/60), [#62](https://github.com/philippgille/chromem-go/pull/62))
+- Added embedding func for [Cohere](https://cohere.com/models/embed) (PR [#61](https://github.com/philippgille/chromem-go/pull/61))
 
 ### Improved
 
@@ -73,6 +77,10 @@ Highlights in this release are query performance improvements (5x faster, 98% fe
 
     </details>
 - Extended parameter validation (PR [#50](https://github.com/philippgille/chromem-go/pull/50), [#51](https://github.com/philippgille/chromem-go/pull/51))
+- Simplified unit tests (PR [#55](https://github.com/philippgille/chromem-go/pull/55))
+- Improve `NewPersistentDB()` path handling (PR [#56](https://github.com/philippgille/chromem-go/pull/56))
+- Improve loading of persistent DB (PR [#57](https://github.com/philippgille/chromem-go/pull/57))
+- Increased unit test coverage in various of the other listed PRs
 
 ### Fixed
 
