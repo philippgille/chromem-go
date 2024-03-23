@@ -19,11 +19,13 @@ The focus is not scale (millions of documents) or number of features, but simpli
 
 1. [Use cases](#use-cases)
 2. [Interface](#interface)
-3. [Features](#features)
-4. [Usage](#usage)
-5. [Benchmarks](#benchmarks)
-6. [Motivation](#motivation)
-7. [Related projects](#related-projects)
+3. [Features + Roadmap](#features)
+4. [Intallation](#installation)
+5. [Usage](#usage)
+6. [Benchmarks](#benchmarks)
+7. [Development](#development)
+8. [Motivation](#motivation)
+9. [Related projects](#related-projects)
 
 ## Use cases
 
@@ -56,9 +58,9 @@ Check out the [example code](examples) to see it in action!
 
 ## Interface
 
-For the full interface see <https://pkg.go.dev/github.com/philippgille/chromem-go>.
+Our original inspiration was the [Chroma](https://www.trychroma.com/) interface, whose core API is the following (taken from their [README](https://github.com/chroma-core/chroma/blob/0.4.21/README.md)):
 
-Our inspiration was the [Chroma](https://www.trychroma.com/) interface, whose core API is the following (taken from their [README](https://github.com/chroma-core/chroma/blob/0.4.21/README.md)):
+<details><summary>Chroma core interface</summary>
 
 ```python
 import chromadb
@@ -84,7 +86,11 @@ results = collection.query(
 )
 ```
 
+</details>
+
 Our Go library exposes the same interface:
+
+<details><summary>chromem-go equivalent</summary>
 
 ```go
 package main
@@ -119,10 +125,12 @@ func main() {
 }
 ```
 
+</details>
+
 Initially `chromem-go` started with just the four core methods, but we added more over time. We intentionally don't want to cover 100% of Chroma's API surface though.  
 We're providing some alternative methods that are more Go-idiomatic instead.
 
-See the Godoc for details: <https://pkg.go.dev/github.com/philippgille/chromem-go>
+For the full interface see the Godoc: <https://pkg.go.dev/github.com/philippgille/chromem-go>
 
 ## Features
 
@@ -132,6 +140,7 @@ See the Godoc for details: <https://pkg.go.dev/github.com/philippgille/chromem-g
 - Embedding creators:
   - Hosted:
     - [X] [OpenAI](https://platform.openai.com/docs/guides/embeddings/embedding-models) (default)
+    - [X] [Cohere](https://cohere.com/models/embed)
     - [X] [Mistral](https://docs.mistral.ai/platform/endpoints/#embedding-models)
     - [X] [Jina](https://jina.ai/embeddings)
     - [X] [mixedbread.ai](https://www.mixedbread.ai/)
@@ -141,15 +150,14 @@ See the Godoc for details: <https://pkg.go.dev/github.com/philippgille/chromem-g
   - Bring your own (implement [`chromem.EmbeddingFunc`](https://pkg.go.dev/github.com/philippgille/chromem-go#EmbeddingFunc))
   - You can also pass existing embeddings when adding documents to a collection, instead of letting `chromem-go` create them
 - Similarity search:
-  - [X] Exhaustive nearest neighbor search using cosine similarity
-    - A.k.a. "exact" or brute-force search. Sometimes called FLAT index.
+  - [X] Exhaustive nearest neighbor search using cosine similarity (sometimes also called exact search or brute-force search or FLAT index)
 - Filters:
   - [X] Document filters: `$contains`, `$not_contains`
   - [X] Metadata filters: Exact matches
 - Storage:
   - [X] In-memory
-  - [X] Backups: Export and import of the entire DB to/from a single file (optionally gzip-compressed and AES-GCM encrypted)
-  - [X] Optional immediate persistence (writes one file for each added collection and document, encoded as [gob](https://go.dev/blog/gob))
+  - [X] Optional immediate persistence (writes one file for each added collection and document, encoded as [gob](https://go.dev/blog/gob), optionally gzip-compressed)
+  - [X] Backups: Export and import of the entire DB to/from a single file (encoded as [gob](https://go.dev/blog/gob), optionally gzip-compressed and AES-GCM encrypted)
 - Data types:
   - [X] Documents (text)
 
@@ -168,18 +176,77 @@ See the Godoc for details: <https://pkg.go.dev/github.com/philippgille/chromem-g
   - Operators (`$and`, `$or` etc.)
 - Storage:
   - JSON as second encoding format
-  - Write-ahead log (WAL) as second file format
-  - Compression and encryption not only for the export, but also for each collection/document file
+  - Write-ahead log (WAL) as second file format)
   - Optional remote storage (S3, PostgreSQL, ...)
 - Data types:
   - Images
   - Videos
+
+## Installation
+
+`go get github.com/philippgille/chromem-go@latest`
 
 ## Usage
 
 See the Godoc for a reference: <https://pkg.go.dev/github.com/philippgille/chromem-go>
 
 For full, working examples, using the vector database for retrieval augmented generation (RAG) and semantic search and using either OpenAI or locally running the embeddings model and LLM (in Ollama), see the [example code](examples).
+
+### Quickstart
+
+This is taken from the ["minimal" example](examples/minimal):
+
+```go
+package main
+
+import (
+ "context"
+ "fmt"
+ "runtime"
+
+ "github.com/philippgille/chromem-go"
+)
+
+func main() {
+  ctx := context.Background()
+
+  db := chromem.NewDB()
+
+  c, err := db.CreateCollection("knowledge-base", nil, nil)
+  if err != nil {
+    panic(err)
+  }
+
+  err = c.AddDocuments(ctx, []chromem.Document{
+    {
+      ID:      "1",
+      Content: "The sky is blue because of Rayleigh scattering.",
+    },
+    {
+      ID:      "2",
+      Content: "Leaves are green because chlorophyll absorbs red and blue light.",
+    },
+  }, runtime.NumCPU())
+  if err != nil {
+    panic(err)
+  }
+
+  res, err := c.Query(ctx, "Why is the sky blue?", 1, nil, nil)
+  if err != nil {
+    panic(err)
+  }
+
+  fmt.Printf("ID: %v\nSimilarity: %v\nContent: %v\n", res[0].ID, res[0].Similarity, res[0].Content)
+}
+```
+
+Output:
+
+```text
+ID: 1
+Similarity: 0.6833369
+Content: The sky is blue because of Rayleigh scattering.
+```
 
 ## Benchmarks
 
@@ -211,6 +278,18 @@ PASS
 ok   github.com/philippgille/chromem-go 28.402s
 ```
 
+## Development
+
+- Build: `go build ./...`
+- Test: `go test -v -race -count 1 ./...`
+- Benchmark:
+  - `go test -benchmem -run=^$ -bench .` (add `> bench.out` or similar to write to a file)
+  - With profiling: `go test -benchmem -run ^$ -cpuprofile cpu.out -bench .`
+    - (profiles: `-cpuprofile`, `-memprofile`, `-blockprofile`, `-mutexprofile`)
+- Compare benchmarks:
+  1. Install `benchstat`: `go install golang.org/x/perf/cmd/benchstat@latest`
+  2. Compare two benchmark results: `benchstat before.out after.out`
+
 ## Motivation
 
 In December 2023, when I wanted to play around with retrieval augmented generation (RAG) in a Go program, I looked for a vector database that could be embedded in the Go program, just like you would embed SQLite in order to not require any separate DB setup and maintenance. I was surprised when I didn't find any, given the abundance of embedded key-value stores in the Go ecosystem.
@@ -240,7 +319,7 @@ That's when I decided to build my own vector database, embeddable in Go, inspire
   - [Faiss](https://github.com/facebookresearch/faiss): Written in C++; 3rd party Go bindings use CGO
   - [Annoy](https://github.com/spotify/annoy): Written in C++; Go bindings use CGO ([1](https://github.com/spotify/annoy/blob/2be37c9e015544be2cf60c431f0cccc076151a2d/README_GO.rst))
   - [USearch](https://github.com/unum-cloud/usearch): Written in C++; Go bindings use CGO
-- Some all-in-one libraries, inspired by the Python library [LangChain](https://github.com/langchain-ai/langchain):
+- Some orchestration libraries, inspired by the Python library [LangChain](https://github.com/langchain-ai/langchain), but with no or only rudimentary embedded vector DB:
   - [LangChain Go](https://github.com/tmc/langchaingo)
   - [LinGoose](https://github.com/henomis/lingoose)
   - [GoLC](https://github.com/hupe1980/golc)
