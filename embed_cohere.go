@@ -53,6 +53,13 @@ type cohereResponse struct {
 // the text with either "search_document" or "search_query". We'll cut off that
 // prefix before sending the document/query body to the API, we'll just use the
 // prefix to choose the right "input type" as they call it.
+//
+// When you set up a chromem-go collection with this embedding function, you might
+// want to create the document separately with [NewDocument] and then cut off the
+// prefix before adding the document to the collection. Otherwise when you query
+// the collection, the returned documents will still have the prefix in their content.
+//
+// We plan to improve this in the future.
 func NewEmbeddingFuncCohere(apiKey string, model EmbeddingModelCohere) EmbeddingFunc {
 	// We don't set a default timeout here, although it's usually a good idea.
 	// In our case though, the library user can set the timeout on the context,
@@ -72,7 +79,7 @@ func NewEmbeddingFuncCohere(apiKey string, model EmbeddingModelCohere) Embedding
 			}
 		}
 		if inputType == "" {
-			return nil, errors.New("text must start with a valid input type")
+			return nil, errors.New("text must start with a valid input type plus colon and space")
 		}
 
 		// Prepare the request body.
