@@ -27,19 +27,19 @@ const (
 type InputTypeCohere string
 
 const (
-	InputTypeSearchDocumentCohere InputTypeCohere = "search_document"
-	InputTypeSearchQueryCohere    InputTypeCohere = "search_query"
-	InputTypeClassificationCohere InputTypeCohere = "classification"
-	InputTypeClusteringCohere     InputTypeCohere = "clustering"
+	InputTypeCohereSearchDocument InputTypeCohere = "search_document"
+	InputTypeCohereSearchQuery    InputTypeCohere = "search_query"
+	InputTypeCohereClassification InputTypeCohere = "classification"
+	InputTypeCohereClustering     InputTypeCohere = "clustering"
 )
 
 const baseURLCohere = "https://api.cohere.ai/v1"
 
 var validInputTypesCohere = []string{
-	string(InputTypeSearchDocumentCohere),
-	string(InputTypeSearchQueryCohere),
-	string(InputTypeClassificationCohere),
-	string(InputTypeClusteringCohere),
+	string(InputTypeCohereSearchDocument),
+	string(InputTypeCohereSearchQuery),
+	string(InputTypeCohereClassification),
+	string(InputTypeCohereClustering),
 }
 
 type cohereResponse struct {
