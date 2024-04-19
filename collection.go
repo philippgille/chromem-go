@@ -236,19 +236,37 @@ func (c *Collection) AddDocument(ctx context.Context, doc Document) error {
 
 	// Persist the document
 	if c.persistDirectory != "" {
-		safeID := hash2hex(doc.ID)
-		docPath := filepath.Join(c.persistDirectory, safeID)
-		docPath += ".gob"
-		if c.compress {
-			docPath += ".gz"
-		}
+		docPath := c.getDocPath(doc.ID)
 		err := persist(docPath, doc, c.compress, "")
 		if err != nil {
-			return fmt.Errorf("couldn't persist document: %w", err)
+			return fmt.Errorf("couldn't persist document to %q: %w", docPath, err)
 		}
 	}
 
 	return nil
+}
+
+// RemoveDocument removes a document from the collection.
+func (c *Collection) RemoveDocument(_ context.Context, documentID string) error {
+	if documentID == "" {
+		return errors.New("documentID is empty")
+	}
+
+	c.documentsLock.Lock()
+	defer c.documentsLock.Unlock()
+	delete(c.documents, documentID)
+
+	// Remove the document from disk
+	if c.persistDirectory != "" {
+		docPath := c.getDocPath(documentID)
+		err := remove(docPath)
+		if err != nil {
+			return fmt.Errorf("couldn't remove document at %q: %w", docPath, err)
+		}
+	}
+
+	return nil
+
 }
 
 // Count returns the number of documents in the collection.
@@ -349,4 +367,15 @@ func (c *Collection) QueryEmbedding(ctx context.Context, queryEmbedding []float3
 
 	// Return the top nResults
 	return res, nil
+}
+
+// getDocPath generates the path to the document file.
+func (c *Collection) getDocPath(docID string) string {
+	safeID := hash2hex(docID)
+	docPath := filepath.Join(c.persistDirectory, safeID)
+	docPath += ".gob"
+	if c.compress {
+		docPath += ".gz"
+	}
+	return docPath
 }
