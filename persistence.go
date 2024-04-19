@@ -225,3 +225,19 @@ func read(filePath string, obj any, encryptionKey string) error {
 
 	return nil
 }
+
+// remove removes a file at the given path. If the file doesn't exist, it's a no-op.
+func remove(filePath string) error {
+	if filePath == "" {
+		return fmt.Errorf("file path is empty")
+	}
+
+	err := os.Remove(filePath)
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("couldn't remove file %q: %w", filePath, err)
+		}
+	}
+
+	return nil
+}
