@@ -64,11 +64,8 @@ func TestNewEmbeddingFuncOllama(t *testing.T) {
 	if err != nil {
 		t.Fatal("unexpected error:", err)
 	}
-	// TODO: It's bad to overwrite a global var for testing. Follow-up with a change
-	// to allow passing custom URLs to the function.
-	baseURLOllama = strings.Replace(baseURLOllama, "11434", u.Port(), 1)
 
-	f := NewEmbeddingFuncOllama(model)
+	f := NewEmbeddingFuncOllama(model, strings.Replace(defaultBaseURLOllama, "11434", u.Port(), 1))
 	res, err := f(context.Background(), prompt)
 	if err != nil {
 		t.Fatal("expected nil, got", err)

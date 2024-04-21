@@ -11,9 +11,7 @@ import (
 	"sync"
 )
 
-// TODO: Turn into const and use as default, but allow user to pass custom URL
-// as well as custom API key, in case Ollama runs on a remote (secured) server.
-var baseURLOllama = "http://localhost:11434/api"
+const defaultBaseURLOllama = "http://localhost:11434/api"
 
 type ollamaResponse struct {
 	Embedding []float32 `json:"embedding"`
@@ -23,7 +21,13 @@ type ollamaResponse struct {
 // using Ollama's embedding API. You can pass any model that Ollama supports and
 // that supports embeddings. A good one as of 2024-03-02 is "nomic-embed-text".
 // See https://ollama.com/library/nomic-embed-text
-func NewEmbeddingFuncOllama(model string) EmbeddingFunc {
+// baseURLOllama is the base URL of the Ollama API. If it's empty,
+// "http://localhost:11434/api" is used.
+func NewEmbeddingFuncOllama(model string, baseURLOllama string) EmbeddingFunc {
+	if baseURLOllama == "" {
+		baseURLOllama = defaultBaseURLOllama
+	}
+
 	// We don't set a default timeout here, although it's usually a good idea.
 	// In our case though, the library user can set the timeout on the context,
 	// and it might have to be a long timeout, depending on the text length.
