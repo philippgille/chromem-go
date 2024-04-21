@@ -65,7 +65,7 @@ func TestNewEmbeddingFuncOllama(t *testing.T) {
 		t.Fatal("unexpected error:", err)
 	}
 
-	f := NewEmbeddingFuncOllamaWithURL(model, strings.Replace(defaultBaseURLOllama, "11434", u.Port(), 1))
+	f := NewEmbeddingFuncOllama(model, strings.Replace(defaultBaseURLOllama, "11434", u.Port(), 1))
 	res, err := f(context.Background(), prompt)
 	if err != nil {
 		t.Fatal("expected nil, got", err)

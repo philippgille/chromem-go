@@ -21,17 +21,9 @@ type ollamaResponse struct {
 // using Ollama's embedding API. You can pass any model that Ollama supports and
 // that supports embeddings. A good one as of 2024-03-02 is "nomic-embed-text".
 // See https://ollama.com/library/nomic-embed-text
-func NewEmbeddingFuncOllama(model string) EmbeddingFunc {
-	return NewEmbeddingFuncOllamaWithURL(model, defaultBaseURLOllama)
-}
-
-// NewEmbeddingFuncOllamaWithURL returns a function that creates embeddings for a text
-// using Ollama's embedding API. You can pass any model that Ollama supports and
-// that supports embeddings. A good one as of 2024-03-02 is "nomic-embed-text".
-// See https://ollama.com/library/nomic-embed-text
 // baseURLOllama is the base URL of the Ollama API. If it's empty,
 // "http://localhost:11434/api" is used.
-func NewEmbeddingFuncOllamaWithURL(model string, baseURLOllama string) EmbeddingFunc {
+func NewEmbeddingFuncOllama(model string, baseURLOllama string) EmbeddingFunc {
 	if baseURLOllama == "" {
 		baseURLOllama = defaultBaseURLOllama
 	}
