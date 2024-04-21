@@ -110,7 +110,7 @@ func main() {
 	start := time.Now()
 	log.Println("Querying chromem-go...")
 	// "nomic-embed-text" specific prefix (not required with OpenAI's or other models)
-	query := "search_document: " + question
+	query := "search_query: " + question
 	docRes, err := collection.Query(ctx, query, 2, nil, nil)
 	if err != nil {
 		panic(err)
