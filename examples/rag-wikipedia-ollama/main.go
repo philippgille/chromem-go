@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/philippgille/chromem-go"
@@ -78,10 +79,18 @@ func main() {
 				panic(err)
 			}
 
+			// The embeddings model we use in this example ("nomic-embed-text")
+			// fare better with a prefix to differentiate between document and query.
+			// We'll have to cut it off later when we retrieve the documents.
+			// An alternative is to create the embedding with `chromem.NewDocument()`,
+			// and then change back the content before adding it do the collection
+			// with `collection.AddDocument()`.
+			content := "search_document: " + article.Text
+
 			docs = append(docs, chromem.Document{
 				ID:       strconv.Itoa(i),
 				Metadata: map[string]string{"category": article.Category},
-				Content:  article.Text,
+				Content:  content,
 			})
 		}
 		log.Println("Adding documents to chromem-go, including creating their embeddings via Ollama API...")
@@ -100,7 +109,9 @@ func main() {
 	// category), but we don't do that in this example.
 	start := time.Now()
 	log.Println("Querying chromem-go...")
-	docRes, err := collection.Query(ctx, question, 2, nil, nil)
+	// "nomic-embed-text" specific prefix (not required with OpenAI's or other models)
+	query := "search_query: " + question
+	docRes, err := collection.Query(ctx, query, 2, nil, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -110,7 +121,10 @@ func main() {
 
 	// Print the retrieved documents and their similarity to the question.
 	for i, res := range docRes {
-		log.Printf("Document %d (similarity: %f): \"%s\"\n", i+1, res.Similarity, res.Content)
+		// Cut off the prefix we added before adding the document (see comment above).
+		// This is specific to the "nomic-embed-text" model.
+		content := strings.TrimPrefix(res.Content, "search_document: ")
+		log.Printf("Document %d (similarity: %f): \"%s\"\n", i+1, res.Similarity, content)
 	}
 
 	// Now we can ask the LLM again, augmenting the question with the knowledge we retrieved.
@@ -130,8 +144,8 @@ func main() {
 	2024/03/02 20:02:34 Adding documents to chromem-go, including creating their embeddings via Ollama API...
 	2024/03/02 20:03:11 Querying chromem-go...
 	2024/03/02 20:03:11 Search (incl query embedding) took 231.672667ms
-	2024/03/02 20:03:11 Document 1 (similarity: 0.723627): "Malleable Iron Range Company was a company that existed from 1896 to 1985 and primarily produced kitchen ranges made of malleable iron but also produced a variety of other related products. The company's primary trademark was 'Monarch' and was colloquially often referred to as the Monarch Company or just Monarch."
-	2024/03/02 20:03:11 Document 2 (similarity: 0.550584): "The American Motor Car Company was a short-lived company in the automotive industry founded in 1906 lasting until 1913. It was based in Indianapolis Indiana United States. The American Motor Car Company pioneered the underslung design."
+	2024/03/02 20:03:11 Document 1 (similarity: 0.704056): "Malleable Iron Range Company was a company that existed from 1896 to 1985 and primarily produced kitchen ranges made of malleable iron but also produced a variety of other related products. The company's primary trademark was 'Monarch' and was colloquially often referred to as the Monarch Company or just Monarch."
+	2024/03/02 20:03:11 Document 2 (similarity: 0.620080): "The American Motor Car Company was a short-lived company in the automotive industry founded in 1906 lasting until 1913. It was based in Indianapolis Indiana United States. The American Motor Car Company pioneered the underslung design."
 	2024/03/02 20:03:11 Asking LLM with augmented question...
 	2024/03/02 20:03:32 Reply after augmenting the question with knowledge: "The Monarch Company existed from 1896 to 1985."
 	*/
