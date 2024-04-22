@@ -270,6 +270,9 @@ func (c *Collection) Delete(_ context.Context, where, whereDocument map[string]s
 
 	var docIDs []string
 
+	c.documentsLock.Lock()
+	defer c.documentsLock.Unlock()
+
 	if where != nil || whereDocument != nil {
 		// metadata + content filters
 		filteredDocs := filterDocs(c.documents, where, whereDocument)
@@ -284,9 +287,6 @@ func (c *Collection) Delete(_ context.Context, where, whereDocument map[string]s
 	if len(docIDs) == 0 {
 		return nil
 	}
-
-	c.documentsLock.Lock()
-	defer c.documentsLock.Unlock()
 
 	for _, docID := range docIDs {
 		delete(c.documents, docID)
