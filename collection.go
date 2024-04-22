@@ -246,22 +246,58 @@ func (c *Collection) AddDocument(ctx context.Context, doc Document) error {
 	return nil
 }
 
-// RemoveDocument removes a document from the collection.
-func (c *Collection) RemoveDocument(_ context.Context, documentID string) error {
-	if documentID == "" {
-		return errors.New("documentID is empty")
+// Delete removes document(s) from the collection.
+//
+//   - where: Conditional filtering on metadata. Optional.
+//   - whereDocument: Conditional filtering on documents. Optional.
+//   - ids: The ids of the documents to delete. If empty, all documents are deleted.
+func (c *Collection) Delete(_ context.Context, where, whereDocument map[string]string, ids ...string) error {
+
+	// must have at least one of where, whereDocument or ids
+	if len(where) == 0 && len(whereDocument) == 0 && len(ids) == 0 {
+		return fmt.Errorf("must have at least one of where, whereDocument or ids")
+	}
+
+	if len(c.documents) == 0 {
+		return nil
+	}
+
+	for k := range whereDocument {
+		if !slices.Contains(supportedFilters, k) {
+			return errors.New("unsupported whereDocument operator")
+		}
+	}
+
+	var docIDs []string
+
+	if where != nil || whereDocument != nil {
+		// metadata + content filters
+		filteredDocs := filterDocs(c.documents, where, whereDocument)
+		for _, doc := range filteredDocs {
+			docIDs = append(docIDs, doc.ID)
+		}
+	} else {
+		docIDs = ids
+	}
+
+	// No-op if no docs are left
+	if len(docIDs) == 0 {
+		return nil
 	}
 
 	c.documentsLock.Lock()
 	defer c.documentsLock.Unlock()
-	delete(c.documents, documentID)
 
-	// Remove the document from disk
-	if c.persistDirectory != "" {
-		docPath := c.getDocPath(documentID)
-		err := remove(docPath)
-		if err != nil {
-			return fmt.Errorf("couldn't remove document at %q: %w", docPath, err)
+	for _, docID := range docIDs {
+		delete(c.documents, docID)
+
+		// Remove the document from disk
+		if c.persistDirectory != "" {
+			docPath := c.getDocPath(docID)
+			err := remove(docPath)
+			if err != nil {
+				return fmt.Errorf("couldn't remove document at %q: %w", docPath, err)
+			}
 		}
 	}
 
