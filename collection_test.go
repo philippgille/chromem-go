@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/rand"
+	"os"
 	"slices"
 	"strconv"
 	"testing"
@@ -418,6 +419,95 @@ func TestCollection_Count(t *testing.T) {
 	if c.Count() != 2 {
 		t.Fatal("expected 2, got", c.Count())
 	}
+}
+
+func TestCollection_Delete(t *testing.T) {
+	// Create persistent collection
+	tmpdir, err := os.MkdirTemp(os.TempDir(), "chromem-test-*")
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+	db, err := NewPersistentDB(tmpdir, false)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+	name := "test"
+	metadata := map[string]string{"foo": "bar"}
+	vectors := []float32{-0.40824828, 0.40824828, 0.81649655} // normalized version of `{-0.1, 0.1, 0.2}`
+	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
+		return vectors, nil
+	}
+	c, err := db.CreateCollection(name, metadata, embeddingFunc)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+	if c == nil {
+		t.Fatal("expected collection, got nil")
+	}
+
+	// Add documents
+	ids := []string{"1", "2", "3", "4"}
+	metadatas := []map[string]string{{"foo": "bar"}, {"a": "b"}, {"foo": "bar"}, {"e": "f"}}
+	contents := []string{"hello world", "hallo welt", "bonjour le monde", "hola mundo"}
+	err = c.Add(context.Background(), ids, nil, metadatas, contents)
+	if err != nil {
+		t.Fatal("expected nil, got", err)
+	}
+
+	// Check count
+	if c.Count() != 4 {
+		t.Fatal("expected 4 documents, got", c.Count())
+	}
+
+	// Check number of files in the persist directory
+	d, err := os.ReadDir(c.persistDirectory)
+
+	if err != nil {
+		t.Fatal("expected nil, got", err)
+	}
+	if len(d) != 5 { // 4 documents + 1 metadata file
+		t.Fatal("expected 4 document files + 1 metadata file in persist_dir, got", len(d))
+	}
+
+	checkCount := func(expected int) {
+		// Check count
+		if c.Count() != expected {
+			t.Fatalf("expected %d documents, got %d", expected, c.Count())
+		}
+
+		// Check number of files in the persist directory
+		d, err = os.ReadDir(c.persistDirectory)
+		if err != nil {
+			t.Fatal("expected nil, got", err)
+		}
+		if len(d) != expected+1 { // 3 document + 1 metadata file
+			t.Fatalf("expected %d document files + 1 metadata file in persist_dir, got %d", expected, len(d))
+		}
+	}
+
+	// Test 1 - Remove document by ID: should delete one document
+	err = c.Delete(context.Background(), nil, nil, "4")
+	if err != nil {
+		t.Fatal("expected nil, got", err)
+	}
+	checkCount(3)
+
+	// Test 2 - Remove document by metadata
+	err = c.Delete(context.Background(), map[string]string{"foo": "bar"}, nil)
+	if err != nil {
+		t.Fatal("expected nil, got", err)
+	}
+
+	checkCount(1)
+
+	// Test 3 - Remove document by content
+	err = c.Delete(context.Background(), nil, map[string]string{"$contains": "hallo welt"})
+	if err != nil {
+		t.Fatal("expected nil, got", err)
+	}
+
+	checkCount(0)
+
 }
 
 // Global var for assignment in the benchmark to avoid compiler optimizations.

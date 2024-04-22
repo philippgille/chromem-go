@@ -236,19 +236,73 @@ func (c *Collection) AddDocument(ctx context.Context, doc Document) error {
 
 	// Persist the document
 	if c.persistDirectory != "" {
-		safeID := hash2hex(doc.ID)
-		docPath := filepath.Join(c.persistDirectory, safeID)
-		docPath += ".gob"
-		if c.compress {
-			docPath += ".gz"
-		}
+		docPath := c.getDocPath(doc.ID)
 		err := persist(docPath, doc, c.compress, "")
 		if err != nil {
-			return fmt.Errorf("couldn't persist document: %w", err)
+			return fmt.Errorf("couldn't persist document to %q: %w", docPath, err)
 		}
 	}
 
 	return nil
+}
+
+// Delete removes document(s) from the collection.
+//
+//   - where: Conditional filtering on metadata. Optional.
+//   - whereDocument: Conditional filtering on documents. Optional.
+//   - ids: The ids of the documents to delete. If empty, all documents are deleted.
+func (c *Collection) Delete(_ context.Context, where, whereDocument map[string]string, ids ...string) error {
+
+	// must have at least one of where, whereDocument or ids
+	if len(where) == 0 && len(whereDocument) == 0 && len(ids) == 0 {
+		return fmt.Errorf("must have at least one of where, whereDocument or ids")
+	}
+
+	if len(c.documents) == 0 {
+		return nil
+	}
+
+	for k := range whereDocument {
+		if !slices.Contains(supportedFilters, k) {
+			return errors.New("unsupported whereDocument operator")
+		}
+	}
+
+	var docIDs []string
+
+	c.documentsLock.Lock()
+	defer c.documentsLock.Unlock()
+
+	if where != nil || whereDocument != nil {
+		// metadata + content filters
+		filteredDocs := filterDocs(c.documents, where, whereDocument)
+		for _, doc := range filteredDocs {
+			docIDs = append(docIDs, doc.ID)
+		}
+	} else {
+		docIDs = ids
+	}
+
+	// No-op if no docs are left
+	if len(docIDs) == 0 {
+		return nil
+	}
+
+	for _, docID := range docIDs {
+		delete(c.documents, docID)
+
+		// Remove the document from disk
+		if c.persistDirectory != "" {
+			docPath := c.getDocPath(docID)
+			err := remove(docPath)
+			if err != nil {
+				return fmt.Errorf("couldn't remove document at %q: %w", docPath, err)
+			}
+		}
+	}
+
+	return nil
+
 }
 
 // Count returns the number of documents in the collection.
@@ -349,4 +403,15 @@ func (c *Collection) QueryEmbedding(ctx context.Context, queryEmbedding []float3
 
 	// Return the top nResults
 	return res, nil
+}
+
+// getDocPath generates the path to the document file.
+func (c *Collection) getDocPath(docID string) string {
+	safeID := hash2hex(docID)
+	docPath := filepath.Join(c.persistDirectory, safeID)
+	docPath += ".gob"
+	if c.compress {
+		docPath += ".gz"
+	}
+	return docPath
 }
