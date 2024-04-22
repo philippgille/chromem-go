@@ -421,7 +421,7 @@ func TestCollection_Count(t *testing.T) {
 	}
 }
 
-func TestCollection_RemoveDocument(t *testing.T) {
+func TestCollection_Delete(t *testing.T) {
 	// Create persistent collection
 	tmpdir, err := os.MkdirTemp(os.TempDir(), "chromem-test-*")
 	if err != nil {
@@ -446,47 +446,67 @@ func TestCollection_RemoveDocument(t *testing.T) {
 	}
 
 	// Add documents
-	ids := []string{"1", "2"}
-	metadatas := []map[string]string{{"foo": "bar"}, {"a": "b"}}
-	contents := []string{"hello world", "hallo welt"}
+	ids := []string{"1", "2", "3", "4"}
+	metadatas := []map[string]string{{"foo": "bar"}, {"a": "b"}, {"foo": "bar"}, {"e": "f"}}
+	contents := []string{"hello world", "hallo welt", "bonjour le monde", "hola mundo"}
 	err = c.Add(context.Background(), ids, nil, metadatas, contents)
 	if err != nil {
 		t.Fatal("expected nil, got", err)
 	}
 
 	// Check count
-	if c.Count() != 2 {
-		t.Fatal("expected 2, got", c.Count())
+	if c.Count() != 4 {
+		t.Fatal("expected 4 documents, got", c.Count())
 	}
 
 	// Check number of files in the persist directory
 	d, err := os.ReadDir(c.persistDirectory)
+
 	if err != nil {
 		t.Fatal("expected nil, got", err)
 	}
-	if len(d) != 3 { // 2 documents + 1 metadata file
-		t.Fatal("expected 2 files in persist_dir, got", len(d))
+	if len(d) != 5 { // 4 documents + 1 metadata file
+		t.Fatal("expected 4 document files + 1 metadata file in persist_dir, got", len(d))
 	}
 
-	// Remove document
-	err = c.RemoveDocument(context.Background(), "1")
+	checkCount := func(expected int) {
+		// Check count
+		if c.Count() != expected {
+			t.Fatalf("expected %d documents, got %d", expected, c.Count())
+		}
+
+		// Check number of files in the persist directory
+		d, err = os.ReadDir(c.persistDirectory)
+		if err != nil {
+			t.Fatal("expected nil, got", err)
+		}
+		if len(d) != expected+1 { // 3 document + 1 metadata file
+			t.Fatalf("expected %d document files + 1 metadata file in persist_dir, got %d", expected, len(d))
+		}
+	}
+
+	// Test 1 - Remove document by ID: should delete one document
+	err = c.Delete(context.Background(), nil, nil, "4")
+	if err != nil {
+		t.Fatal("expected nil, got", err)
+	}
+	checkCount(3)
+
+	// Test 2 - Remove document by metadata
+	err = c.Delete(context.Background(), map[string]string{"foo": "bar"}, nil)
 	if err != nil {
 		t.Fatal("expected nil, got", err)
 	}
 
-	// Check count
-	if c.Count() != 1 {
-		t.Fatal("expected 1, got", c.Count())
-	}
+	checkCount(1)
 
-	// Check number of files in the persist directory
-	d, err = os.ReadDir(c.persistDirectory)
+	// Test 3 - Remove document by content
+	err = c.Delete(context.Background(), nil, map[string]string{"$contains": "hallo welt"})
 	if err != nil {
 		t.Fatal("expected nil, got", err)
 	}
-	if len(d) != 2 { // 1 document + 1 metadata file
-		t.Fatal("expected 1 file in persist_dir, got", len(d))
-	}
+
+	checkCount(0)
 
 }
 
