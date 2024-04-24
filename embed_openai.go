@@ -12,7 +12,7 @@ import (
 	"sync"
 )
 
-const BaseURLOpenAI = "https://api.openai.com/v1"
+const baseURLOpenAI = "https://api.openai.com/v1"
 
 type EmbeddingModelOpenAI string
 
@@ -42,7 +42,7 @@ func NewEmbeddingFuncDefault() EmbeddingFunc {
 func NewEmbeddingFuncOpenAI(apiKey string, model EmbeddingModelOpenAI) EmbeddingFunc {
 	// OpenAI embeddings are normalized
 	normalized := true
-	return NewEmbeddingFuncOpenAICompat(BaseURLOpenAI, apiKey, string(model), &normalized)
+	return NewEmbeddingFuncOpenAICompat(baseURLOpenAI, apiKey, string(model), &normalized)
 }
 
 // NewEmbeddingFuncOpenAICompat returns a function that creates embeddings for a text
