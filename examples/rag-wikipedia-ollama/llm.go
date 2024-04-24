@@ -32,7 +32,7 @@ Answer the question in a very concise manner. Use an unbiased and journalistic t
 {{- if . -}}
 Answer the question solely based on the provided search results from the knowledge base. If the search results from the knowledge base are not relevant to the question at hand, just say that you don't know. Don't make anything up.
 
-Anything between the following 'context' HTML blocks is retrieved from the knowledge base, not part of the conversation with the user. The bullet points are ordered by relevance, so the first one is the most relevant.
+Anything between the following 'context' XML blocks is retrieved from the knowledge base, not part of the conversation with the user. The bullet points are ordered by relevance, so the first one is the most relevant.
 
 <context>
     {{- if . -}}
