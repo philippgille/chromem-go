@@ -8,6 +8,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 vNext
 -----
 
+Highlights in this release are an extended interface, experimental WebAssembly bindings, and the option to use a custom Ollama URL. But also the fact that three people contributed to this release! Thank you so much! 🙇‍♂️
+
+### Added
+
+- Added `Collection.Delete()` to delete documents from a collection (PR [#63](https://github.com/philippgille/chromem-go/pull/63) by [@iwilltry42](https://github.com/iwilltry42))
+- Added an experimental WebAssembly binding (package `wasm`) and example (PR [#69](https://github.com/philippgille/chromem-go/pull/69))
+
+### Improved
+
+- Use prefixes for `nomic-embed-text` model in RAG-Wikipedia-Ollama example (PR [#49](https://github.com/philippgille/chromem-go/pull/49), [#65](https://github.com/philippgille/chromem-go/pull/65))
+  - Thanks [@rinor](https://github.com/rinor) for pointing out the bug!
+- Made Ollama URL configurable (PR [#64](https://github.com/philippgille/chromem-go/pull/64) by [@erikdubbelboer](https://github.com/@erikdubbelboer))
+- Added building of code examples to CI (PR [#66](https://github.com/philippgille/chromem-go/pull/66))
+- Improved RAG template (PR [#67](https://github.com/philippgille/chromem-go/pull/67))
+
+### Breaking changes
+
+- `NewEmbeddingFuncOllama` now requires a second parameter for the base URL. But it can be empty to use the default which was also used in the past.
+
+### New Contributors
+
+- [@rinor](https://github.com/rinor) made their first contribution by suggesting a fix in <https://github.com/philippgille/chromem-go/pull/49>
+- [@iwilltry42](https://github.com/iwilltry42) made their first contribution in <https://github.com/philippgille/chromem-go/pull/63>
+- [@erikdubbelboer](https://github.com/@erikdubbelboer) made their first contribution in <https://github.com/philippgille/chromem-go/pull/64>
+
+**Full Changelog**: <https://github.com/philippgille/chromem-go/compare/v0.5.0...v0.6.0>
+
 v0.5.0 (2024-03-23)
 -------------------
 
