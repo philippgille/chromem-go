@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 vNext
 -----
 
+v0.6.0 (2024-04-25)
+-------------------
+
 Highlights in this release are an extended interface, experimental WebAssembly bindings, and the option to use a custom Ollama URL. But also the fact that three people contributed to this release! Thank you so much! 🙇‍♂️
 
 ### Added
