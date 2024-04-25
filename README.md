@@ -137,6 +137,7 @@ For the full interface see the Godoc: <https://pkg.go.dev/github.com/philippgill
 - [X] Zero dependencies on third party libraries
 - [X] Embeddable (like SQLite, i.e. no client-server model, no separate DB to maintain)
 - [X] Multi-threaded processing (when adding and querying documents), making use of Go's native concurrency features
+- [X] Experimental WebAssembly binding
 - Embedding creators:
   - Hosted:
     - [X] [OpenAI](https://platform.openai.com/docs/guides/embeddings/embedding-models) (default)
