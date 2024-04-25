@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <script src="wasm_exec.js"></script>
+    <script>
+        const go = new Go();
+
+        console.log("Initializing WASM...");
+        WebAssembly.instantiateStreaming(fetch("chromem-go.wasm"), go.importObject).then((result) => {
+            console.log("WASM initialized.");
+
+            go.run(result.instance);
+        });
+
+        function initDBWithKey() {
+            console.log("Initializing DB...")
+            const openaiApiKey = document.getElementById("openai-api-key").value;
+
+            const err = initDB(openaiApiKey)
+            if (err) {
+                console.error('Returned error:', err)
+            } else {
+                console.log("DB initialized.")
+            }
+        }
+
+        async function addDocuments() {
+            console.log("Adding documents...")
+            try {
+                await addDocument("1", "The sky is blue because of Rayleigh scattering.");
+                console.log("Document 1 added.")
+                await addDocument("2", "Leaves are green because chlorophyll absorbs red and blue light.");
+                console.log("Document 2 added.")
+                console.log("Documents added.")
+            } catch (err) {
+                console.error('Caught exception', err)
+            }
+        }
+
+        async function queryAndPrint() {
+            console.log("Querying DB...")
+            try {
+                const res = await query("Why is the sky blue?");
+                console.log("DB queried.");
+
+                const outputElement = document.getElementById("output");
+                outputElement.textContent = `ID: ${res.ID}\nSimilarity: ${res.Similarity}\nContent: ${res.Content}\n`;
+            } catch (err) {
+                console.error('Caught exception', err)
+            }
+        }
+
+        async function runWorkflow() {
+            initDBWithKey();
+            await addDocuments();
+            await queryAndPrint();
+        }
+    </script>
+</head>
+
+<body>
+    <input type="text" id="openai-api-key" placeholder="Enter your OpenAI API key">
+    <button onclick="runWorkflow()">Run</button>
+    <p id="output"></p>
+</body>
+
+</html>

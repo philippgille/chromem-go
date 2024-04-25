@@ -11,3 +11,5 @@
    - This example shows a semantic search application, using `chromem-go` as vector database for finding semantically relevant search results.
    - Loads and searches across ~5,000 arXiv papers in the "Computer Science - Computation and Language" category, which is the relevant one for Natural Language Processing (NLP) related papers.
    - Uses OpenAI for creating the embeddings
+4. [WebAssembly](webassembly)
+   - This example shows how `chromem-go` can be compiled to WebAssembly and then used from JavaScript in a browser
