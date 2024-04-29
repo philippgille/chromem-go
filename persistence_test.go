@@ -28,7 +28,7 @@ func TestPersistenceWrite(t *testing.T) {
 
 	t.Run("gob", func(t *testing.T) {
 		tempFilePath := tempDir + ".gob"
-		persist(tempFilePath, obj, false, "")
+		persistToFile(tempFilePath, obj, false, "")
 
 		// Check if the file exists.
 		_, err = os.Stat(tempFilePath)
@@ -57,7 +57,7 @@ func TestPersistenceWrite(t *testing.T) {
 
 	t.Run("gob gzipped", func(t *testing.T) {
 		tempFilePath := tempDir + ".gob.gz"
-		persist(tempFilePath, obj, true, "")
+		persistToFile(tempFilePath, obj, true, "")
 
 		// Check if the file exists.
 		_, err = os.Stat(tempFilePath)
@@ -123,7 +123,7 @@ func TestPersistenceRead(t *testing.T) {
 
 		// Read the file.
 		var res s
-		err = read(tempFilePath, &res, "")
+		err = readFromFile(tempFilePath, &res, "")
 		if err != nil {
 			t.Fatal("expected nil, got", err)
 		}
@@ -157,7 +157,7 @@ func TestPersistenceRead(t *testing.T) {
 
 		// Read the file.
 		var res s
-		err = read(tempFilePath, &res, "")
+		err = readFromFile(tempFilePath, &res, "")
 		if err != nil {
 			t.Fatal("expected nil, got", err)
 		}
@@ -207,7 +207,7 @@ func TestPersistenceEncryption(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			err := persist(tc.filePath, obj, tc.compress, encryptionKey)
+			err := persistToFile(tc.filePath, obj, tc.compress, encryptionKey)
 			if err != nil {
 				t.Fatal("expected nil, got", err)
 			}
@@ -220,7 +220,7 @@ func TestPersistenceEncryption(t *testing.T) {
 
 			// Read the file.
 			var res s
-			err = read(tc.filePath, &res, encryptionKey)
+			err = readFromFile(tc.filePath, &res, encryptionKey)
 			if err != nil {
 				t.Fatal("expected nil, got", err)
 			}
