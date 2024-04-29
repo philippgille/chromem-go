@@ -142,7 +142,7 @@ func NewPersistentDB(path string, compress bool) (*DB, error) {
 					Name     string
 					Metadata map[string]string
 				}{}
-				err := read(fPath, &pc, "")
+				err := readFromFile(fPath, &pc, "")
 				if err != nil {
 					return nil, fmt.Errorf("couldn't read collection metadata: %w", err)
 				}
@@ -151,7 +151,7 @@ func NewPersistentDB(path string, compress bool) (*DB, error) {
 			} else if strings.HasSuffix(collectionDirEntry.Name(), ext) {
 				// Read document
 				d := &Document{}
-				err := read(fPath, d, "")
+				err := readFromFile(fPath, d, "")
 				if err != nil {
 					return nil, fmt.Errorf("couldn't read document: %w", err)
 				}
@@ -223,7 +223,7 @@ func (db *DB) Import(filePath string, encryptionKey string) error {
 	db.collectionsLock.Lock()
 	defer db.collectionsLock.Unlock()
 
-	err = read(filePath, &persistenceDB, encryptionKey)
+	err = readFromFile(filePath, &persistenceDB, encryptionKey)
 	if err != nil {
 		return fmt.Errorf("couldn't read file: %w", err)
 	}
@@ -295,7 +295,7 @@ func (db *DB) Export(filePath string, compress bool, encryptionKey string) error
 		}
 	}
 
-	err := persist(filePath, persistenceDB, compress, encryptionKey)
+	err := persistToFile(filePath, persistenceDB, compress, encryptionKey)
 	if err != nil {
 		return fmt.Errorf("couldn't export DB: %w", err)
 	}

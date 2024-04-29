@@ -27,11 +27,11 @@ func hash2hex(name string) string {
 	return hex.EncodeToString(hash[:4])
 }
 
-// persist persists an object to a file at the given path. The object is serialized
+// persistToFile persists an object to a file at the given path. The object is serialized
 // as gob, optionally compressed with flate (as gzip) and optionally encrypted with
 // AES-GCM. The encryption key must be 32 bytes long. If the file exists, it's
 // overwritten, otherwise created.
-func persist(filePath string, obj any, compress bool, encryptionKey string) error {
+func persistToFile(filePath string, obj any, compress bool, encryptionKey string) error {
 	if filePath == "" {
 		return fmt.Errorf("file path is empty")
 	}
@@ -66,25 +66,41 @@ func persist(filePath string, obj any, compress bool, encryptionKey string) erro
 	}
 	defer f.Close()
 
+	return persistToWriter(f, obj, compress, encryptionKey)
+}
+
+// persistToWriter persists an object to a writer. The object is serialized
+// as gob, optionally compressed with flate (as gzip) and optionally encrypted with
+// AES-GCM. The encryption key must be 32 bytes long.
+// If the writer has to be closed, it's the caller's responsibility.
+func persistToWriter(w io.Writer, obj any, compress bool, encryptionKey string) error {
+	// AES 256 requires a 32 byte key
+	if encryptionKey != "" {
+		if len(encryptionKey) != 32 {
+			return errors.New("encryption key must be 32 bytes long")
+		}
+	}
+
 	// We want to:
-	// Encode as gob -> compress with flate -> encrypt with AES-GCM -> write file.
+	// Encode as gob -> compress with flate -> encrypt with AES-GCM -> write to
+	// passed writer.
 	// To reduce memory usage we chain the writers instead of buffering, so we start
 	// from the end. For AES GCM sealing the stdlib doesn't provide a writer though.
 
-	var w io.Writer
+	var chainedWriter io.Writer
 	if encryptionKey == "" {
-		w = f
+		chainedWriter = w
 	} else {
-		w = &bytes.Buffer{}
+		chainedWriter = &bytes.Buffer{}
 	}
 
 	var gzw *gzip.Writer
 	var enc *gob.Encoder
 	if compress {
-		gzw = gzip.NewWriter(w)
+		gzw = gzip.NewWriter(chainedWriter)
 		enc = gob.NewEncoder(gzw)
 	} else {
-		enc = gob.NewEncoder(w)
+		enc = gob.NewEncoder(chainedWriter)
 	}
 
 	// Start encoding, it will write to the chain of writers.
@@ -93,22 +109,22 @@ func persist(filePath string, obj any, compress bool, encryptionKey string) erro
 	}
 
 	// If compressing, close the gzip writer. Otherwise the gzip footer won't be
-	// written yet. When using encryption (and w is a buffer) then we'll encrypt
-	// an incomplete file. Without encryption when we return here and having
+	// written yet. When using encryption (and chainedWriter is a buffer) then
+	// we'll encrypt an incomplete stream. Without encryption when we return here and having
 	// a deferred Close(), there might be a silenced error.
 	if compress {
-		err = gzw.Close()
+		err := gzw.Close()
 		if err != nil {
 			return fmt.Errorf("couldn't close gzip writer: %w", err)
 		}
 	}
 
-	// Without encyrption, the chain is done and the file is written.
+	// Without encyrption, the chain is done and the writing is finished.
 	if encryptionKey == "" {
 		return nil
 	}
 
-	// Otherwise, encrypt and then write to the file
+	// Otherwise, encrypt and then write to the unchained target writer.
 	block, err := aes.NewCipher([]byte(encryptionKey))
 	if err != nil {
 		return fmt.Errorf("couldn't create new AES cipher: %w", err)
@@ -121,10 +137,10 @@ func persist(filePath string, obj any, compress bool, encryptionKey string) erro
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return fmt.Errorf("couldn't read random bytes for nonce: %w", err)
 	}
-	// w is a *bytes.Buffer
-	buf := w.(*bytes.Buffer)
+	// chainedWriter is a *bytes.Buffer
+	buf := chainedWriter.(*bytes.Buffer)
 	encrypted := gcm.Seal(nonce, nonce, buf.Bytes(), nil)
-	_, err = f.Write(encrypted)
+	_, err = w.Write(encrypted)
 	if err != nil {
 		return fmt.Errorf("couldn't write encrypted data: %w", err)
 	}
@@ -132,11 +148,11 @@ func persist(filePath string, obj any, compress bool, encryptionKey string) erro
 	return nil
 }
 
-// read reads an object from a file at the given path. The object is deserialized
+// readFromFile reads an object from a file at the given path. The object is deserialized
 // from gob. `obj` must be a pointer to an instantiated object. The file may
 // optionally be compressed as gzip and/or encrypted with AES-GCM. The encryption
 // key must be 32 bytes long.
-func read(filePath string, obj any, encryptionKey string) error {
+func readFromFile(filePath string, obj any, encryptionKey string) error {
 	if filePath == "" {
 		return fmt.Errorf("file path is empty")
 	}
@@ -226,8 +242,8 @@ func read(filePath string, obj any, encryptionKey string) error {
 	return nil
 }
 
-// remove removes a file at the given path. If the file doesn't exist, it's a no-op.
-func remove(filePath string) error {
+// removeFile removes a file at the given path. If the file doesn't exist, it's a no-op.
+func removeFile(filePath string) error {
 	if filePath == "" {
 		return fmt.Errorf("file path is empty")
 	}
