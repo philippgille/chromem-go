@@ -2,6 +2,8 @@
 
 Go can compile to WebAssembly, which you can then use from JavaScript in a Browser or similar environments (Node, Deno, Bun etc.). You could also target WASI (WebAssembly System Interface) and run it in a standalone runtime (wazero, wasmtime, Wasmer), but in this example we focus on the Browser use case.
 
+## How to run
+
 1. Compile the `chromem-go` WASM binding to WebAssembly:
    1. `cd /path/to/chromem-go/wasm`
    2. `GOOS=js GOARCH=wasm go build -o ../examples/webassembly/chromem-go.wasm`
