@@ -60,3 +60,8 @@ jobs:
       run: |
         cd examples/semantic-search-arxiv-openai
         go build -v ./...
+
+    - name: S3 export/import
+      run: |
+        cd examples/s3-export-import
+        go build -v ./...
