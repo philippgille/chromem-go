@@ -139,7 +139,7 @@ func TestDB_ImportExport(t *testing.T) {
 			}
 
 			// Export
-			err = orig.Export(tc.filePath, tc.compress, tc.encryptionKey)
+			err = orig.ExportToFile(tc.filePath, tc.compress, tc.encryptionKey)
 			if err != nil {
 				t.Fatal("expected no error, got", err)
 			}
