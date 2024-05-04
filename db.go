@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -226,6 +227,61 @@ func (db *DB) Import(filePath string, encryptionKey string) error {
 	err = readFromFile(filePath, &persistenceDB, encryptionKey)
 	if err != nil {
 		return fmt.Errorf("couldn't read file: %w", err)
+	}
+
+	for _, pc := range persistenceDB.Collections {
+		c := &Collection{
+			Name: pc.Name,
+
+			metadata:  pc.Metadata,
+			documents: pc.Documents,
+		}
+		if db.persistDirectory != "" {
+			c.persistDirectory = filepath.Join(db.persistDirectory, hash2hex(pc.Name))
+			c.compress = db.compress
+		}
+		db.collections[c.Name] = c
+	}
+
+	return nil
+}
+
+// ImportFromReader imports the DB from a reader. The stream must be encoded as
+// gob and can optionally be compressed with flate (as gzip) and encrypted with
+// AES-GCM.
+// This works for both the in-memory and persistent DBs.
+// Existing collections are overwritten.
+// If the writer has to be closed, it's the caller's responsibility.
+//
+// - reader: An implementation of [io.ReadSeeker]
+// - encryptionKey: Optional, must be 32 bytes long if provided
+func (db *DB) ImportFromReader(reader io.ReadSeeker, encryptionKey string) error {
+	if encryptionKey != "" {
+		// AES 256 requires a 32 byte key
+		if len(encryptionKey) != 32 {
+			return errors.New("encryption key must be 32 bytes long")
+		}
+	}
+
+	// Create persistence structs with exported fields so that they can be decoded
+	// from gob.
+	type persistenceCollection struct {
+		Name      string
+		Metadata  map[string]string
+		Documents map[string]*Document
+	}
+	persistenceDB := struct {
+		Collections map[string]*persistenceCollection
+	}{
+		Collections: make(map[string]*persistenceCollection, len(db.collections)),
+	}
+
+	db.collectionsLock.Lock()
+	defer db.collectionsLock.Unlock()
+
+	err := readFromReader(reader, &persistenceDB, encryptionKey)
+	if err != nil {
+		return fmt.Errorf("couldn't read stream: %w", err)
 	}
 
 	for _, pc := range persistenceDB.Collections {
