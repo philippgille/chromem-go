@@ -186,7 +186,21 @@ func NewPersistentDB(path string, compress bool) (*DB, error) {
 //
 // - filePath: Mandatory, must not be empty
 // - encryptionKey: Optional, must be 32 bytes long if provided
+//
+// Deprecated: Use [DB.ImportFromFile] instead.
 func (db *DB) Import(filePath string, encryptionKey string) error {
+	return db.ImportFromFile(filePath, encryptionKey)
+}
+
+// ImportFromFile imports the DB from a file at the given path. The file must be
+// encoded as gob and can optionally be compressed with flate (as gzip) and encrypted
+// with AES-GCM.
+// This works for both the in-memory and persistent DBs.
+// Existing collections are overwritten.
+//
+// - filePath: Mandatory, must not be empty
+// - encryptionKey: Optional, must be 32 bytes long if provided
+func (db *DB) ImportFromFile(filePath string, encryptionKey string) error {
 	if filePath == "" {
 		return fmt.Errorf("file path is empty")
 	}
