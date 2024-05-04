@@ -132,11 +132,11 @@ func persist(filePath string, obj any, compress bool, encryptionKey string) erro
 	return nil
 }
 
-// read reads an object from a file at the given path. The object is deserialized
+// readFromFile reads an object from a file at the given path. The object is deserialized
 // from gob. `obj` must be a pointer to an instantiated object. The file may
 // optionally be compressed as gzip and/or encrypted with AES-GCM. The encryption
 // key must be 32 bytes long.
-func read(filePath string, obj any, encryptionKey string) error {
+func readFromFile(filePath string, obj any, encryptionKey string) error {
 	if filePath == "" {
 		return fmt.Errorf("file path is empty")
 	}
@@ -147,18 +147,43 @@ func read(filePath string, obj any, encryptionKey string) error {
 		}
 	}
 
+	r, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("couldn't open file: %w", err)
+	}
+	defer r.Close()
+
+	return readFromReader(r, obj, encryptionKey)
+}
+
+// readFromReader reads an object from a Reader. The object is deserialized from gob.
+// `obj` must be a pointer to an instantiated object. The stream may optionally
+// be compressed as gzip and/or encrypted with AES-GCM. The encryption key must
+// be 32 bytes long.
+// If the reader has to be closed, it's the caller's responsibility.
+func readFromReader(r io.ReadSeeker, obj any, encryptionKey string) error {
+	// AES 256 requires a 32 byte key
+	if encryptionKey != "" {
+		if len(encryptionKey) != 32 {
+			return errors.New("encryption key must be 32 bytes long")
+		}
+	}
+
 	// We want to:
-	// Read file -> decrypt with AES-GCM -> decompress with flate -> decode as gob
+	// Read from reader -> decrypt with AES-GCM -> decompress with flate -> decode
+	// as gob.
 	// To reduce memory usage we chain the readers instead of buffering, so we start
 	// from the end. For the decryption there's no reader though.
 
-	var r io.Reader
+	// For the chainedReader we don't declare it as ReadSeeker so we can reassign
+	// the gzip reader to it.
+	var chainedReader io.Reader
 
 	// Decrypt if an encryption key is provided
 	if encryptionKey != "" {
-		encrypted, err := os.ReadFile(filePath)
+		encrypted, err := io.ReadAll(r)
 		if err != nil {
-			return fmt.Errorf("couldn't read file: %w", err)
+			return fmt.Errorf("couldn't read from reader: %w", err)
 		}
 		block, err := aes.NewCipher([]byte(encryptionKey))
 		if err != nil {
@@ -178,28 +203,24 @@ func read(filePath string, obj any, encryptionKey string) error {
 			return fmt.Errorf("couldn't decrypt data: %w", err)
 		}
 
-		r = bytes.NewReader(data)
+		chainedReader = bytes.NewReader(data)
 	} else {
-		var err error
-		r, err = os.Open(filePath)
-		if err != nil {
-			return fmt.Errorf("couldn't open file: %w", err)
-		}
+		chainedReader = r
 	}
 
-	// Determine if the file is compressed
+	// Determine if the stream is compressed
 	magicNumber := make([]byte, 2)
-	_, err := r.Read(magicNumber)
+	_, err := chainedReader.Read(magicNumber)
 	if err != nil {
-		return fmt.Errorf("couldn't read magic number to determine whether the file is compressed: %w", err)
+		return fmt.Errorf("couldn't read magic number to determine whether the stream is compressed: %w", err)
 	}
 	var compressed bool
 	if magicNumber[0] == 0x1f && magicNumber[1] == 0x8b {
 		compressed = true
 	}
 
-	// Reset reader. Both file and bytes.Reader support seeking.
-	if s, ok := r.(io.Seeker); !ok {
+	// Reset reader. Both the reader from the param and bytes.Reader support seeking.
+	if s, ok := chainedReader.(io.Seeker); !ok {
 		return fmt.Errorf("reader doesn't support seeking")
 	} else {
 		_, err := s.Seek(0, 0)
@@ -209,15 +230,15 @@ func read(filePath string, obj any, encryptionKey string) error {
 	}
 
 	if compressed {
-		gzr, err := gzip.NewReader(r)
+		gzr, err := gzip.NewReader(chainedReader)
 		if err != nil {
 			return fmt.Errorf("couldn't create gzip reader: %w", err)
 		}
 		defer gzr.Close()
-		r = gzr
+		chainedReader = gzr
 	}
 
-	dec := gob.NewDecoder(r)
+	dec := gob.NewDecoder(chainedReader)
 	err = dec.Decode(obj)
 	if err != nil {
 		return fmt.Errorf("couldn't decode object: %w", err)

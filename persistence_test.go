@@ -123,7 +123,7 @@ func TestPersistenceRead(t *testing.T) {
 
 		// Read the file.
 		var res s
-		err = read(tempFilePath, &res, "")
+		err = readFromFile(tempFilePath, &res, "")
 		if err != nil {
 			t.Fatal("expected nil, got", err)
 		}
@@ -157,7 +157,7 @@ func TestPersistenceRead(t *testing.T) {
 
 		// Read the file.
 		var res s
-		err = read(tempFilePath, &res, "")
+		err = readFromFile(tempFilePath, &res, "")
 		if err != nil {
 			t.Fatal("expected nil, got", err)
 		}
@@ -220,7 +220,7 @@ func TestPersistenceEncryption(t *testing.T) {
 
 			// Read the file.
 			var res s
-			err = read(tc.filePath, &res, encryptionKey)
+			err = readFromFile(tc.filePath, &res, encryptionKey)
 			if err != nil {
 				t.Fatal("expected nil, got", err)
 			}
