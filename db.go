@@ -255,7 +255,22 @@ func (db *DB) Import(filePath string, encryptionKey string) error {
 //   - compress: Optional. Compresses as gzip if true.
 //   - encryptionKey: Optional. Encrypts with AES-GCM if provided. Must be 32 bytes
 //     long if provided.
+//
+// Deprecated: Use [DB.ExportToFile] instead.
 func (db *DB) Export(filePath string, compress bool, encryptionKey string) error {
+	return db.ExportToFile(filePath, compress, encryptionKey)
+}
+
+// ExportToFile exports the DB to a file at the given path. The file is encoded as gob,
+// optionally compressed with flate (as gzip) and optionally encrypted with AES-GCM.
+// This works for both the in-memory and persistent DBs.
+// If the file exists, it's overwritten, otherwise created.
+//
+//   - filePath: If empty, it defaults to "./chromem-go.gob" (+ ".gz" + ".enc")
+//   - compress: Optional. Compresses as gzip if true.
+//   - encryptionKey: Optional. Encrypts with AES-GCM if provided. Must be 32 bytes
+//     long if provided.
+func (db *DB) ExportToFile(filePath string, compress bool, encryptionKey string) error {
 	if filePath == "" {
 		filePath = "./chromem-go.gob"
 		if compress {
