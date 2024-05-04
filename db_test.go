@@ -147,7 +147,7 @@ func TestDB_ImportExport(t *testing.T) {
 			new := NewDB()
 
 			// Import
-			err = new.Import(tc.filePath, tc.encryptionKey)
+			err = new.ImportFromFile(tc.filePath, tc.encryptionKey)
 			if err != nil {
 				t.Fatal("expected no error, got", err)
 			}
