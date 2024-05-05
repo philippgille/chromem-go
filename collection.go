@@ -63,7 +63,7 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 			Name:     name,
 			Metadata: m,
 		}
-		err := persist(metadataPath, pc, compress, "")
+		err := persistToFile(metadataPath, pc, compress, "")
 		if err != nil {
 			return nil, fmt.Errorf("couldn't persist collection metadata: %w", err)
 		}
@@ -237,7 +237,7 @@ func (c *Collection) AddDocument(ctx context.Context, doc Document) error {
 	// Persist the document
 	if c.persistDirectory != "" {
 		docPath := c.getDocPath(doc.ID)
-		err := persist(docPath, doc, c.compress, "")
+		err := persistToFile(docPath, doc, c.compress, "")
 		if err != nil {
 			return fmt.Errorf("couldn't persist document to %q: %w", docPath, err)
 		}
@@ -252,7 +252,6 @@ func (c *Collection) AddDocument(ctx context.Context, doc Document) error {
 //   - whereDocument: Conditional filtering on documents. Optional.
 //   - ids: The ids of the documents to delete. If empty, all documents are deleted.
 func (c *Collection) Delete(_ context.Context, where, whereDocument map[string]string, ids ...string) error {
-
 	// must have at least one of where, whereDocument or ids
 	if len(where) == 0 && len(whereDocument) == 0 && len(ids) == 0 {
 		return fmt.Errorf("must have at least one of where, whereDocument or ids")
@@ -294,7 +293,7 @@ func (c *Collection) Delete(_ context.Context, where, whereDocument map[string]s
 		// Remove the document from disk
 		if c.persistDirectory != "" {
 			docPath := c.getDocPath(docID)
-			err := remove(docPath)
+			err := removeFile(docPath)
 			if err != nil {
 				return fmt.Errorf("couldn't remove document at %q: %w", docPath, err)
 			}
@@ -302,7 +301,6 @@ func (c *Collection) Delete(_ context.Context, where, whereDocument map[string]s
 	}
 
 	return nil
-
 }
 
 // Count returns the number of documents in the collection.
