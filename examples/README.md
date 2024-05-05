@@ -13,3 +13,5 @@
    - Uses OpenAI for creating the embeddings
 4. [WebAssembly](webassembly)
    - This example shows how `chromem-go` can be compiled to WebAssembly and then used from JavaScript in a browser
+5. [S3 Export/Import](s3-export-import)
+   - This example shows how to export the DB to and import it from any S3-compatible blob storage service
