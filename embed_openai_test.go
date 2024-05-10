@@ -75,7 +75,7 @@ func TestNewEmbeddingFuncOpenAICompat(t *testing.T) {
 	defer ts.Close()
 	baseURL := ts.URL + baseURLSuffix
 
-	f := chromem.NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model, nil)
+	f := chromem.NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model, nil, nil, nil)
 	res, err := f(context.Background(), input)
 	if err != nil {
 		t.Fatal("expected nil, got", err)
