@@ -15,7 +15,7 @@ func NewEmbeddingFuncMistral(apiKey string) EmbeddingFunc {
 
 	// The Mistral API docs don't mention the `encoding_format` as optional,
 	// but it seems to be, just like OpenAI. So we reuse the OpenAI function.
-	return NewEmbeddingFuncOpenAICompat(baseURLMistral, apiKey, embeddingModelMistral, &normalized)
+	return NewEmbeddingFuncOpenAICompat(baseURLMistral, apiKey, embeddingModelMistral, &normalized, nil, nil)
 }
 
 const baseURLJina = "https://api.jina.ai/v1"
@@ -32,7 +32,7 @@ const (
 // NewEmbeddingFuncJina returns a function that creates embeddings for a text
 // using the Jina API.
 func NewEmbeddingFuncJina(apiKey string, model EmbeddingModelJina) EmbeddingFunc {
-	return NewEmbeddingFuncOpenAICompat(baseURLJina, apiKey, string(model), nil)
+	return NewEmbeddingFuncOpenAICompat(baseURLJina, apiKey, string(model), nil, nil, nil)
 }
 
 const baseURLMixedbread = "https://api.mixedbread.ai"
@@ -53,7 +53,7 @@ const (
 // NewEmbeddingFuncMixedbread returns a function that creates embeddings for a text
 // using the mixedbread.ai API.
 func NewEmbeddingFuncMixedbread(apiKey string, model EmbeddingModelMixedbread) EmbeddingFunc {
-	return NewEmbeddingFuncOpenAICompat(baseURLMixedbread, apiKey, string(model), nil)
+	return NewEmbeddingFuncOpenAICompat(baseURLMixedbread, apiKey, string(model), nil, nil, nil)
 }
 
 const baseURLLocalAI = "http://localhost:8080/v1"
@@ -68,5 +68,20 @@ const baseURLLocalAI = "http://localhost:8080/v1"
 // But other embedding models are supported as well. See the LocalAI documentation
 // for details.
 func NewEmbeddingFuncLocalAI(model string) EmbeddingFunc {
-	return NewEmbeddingFuncOpenAICompat(baseURLLocalAI, "", model, nil)
+	return NewEmbeddingFuncOpenAICompat(baseURLLocalAI, "", model, nil, nil, nil)
+}
+
+const (
+	azureDefaultAPIVersion = "2024-02-01"
+)
+
+// NewEmbeddingFuncAzureOpenAI returns a function that creates embeddings for a text
+// using the Azure OpenAI API.
+// The `deploymentURL` is the URL of the deployed model, e.g. "https://YOUR_RESOURCE_NAME.openai.azure.com/openai/deployments/YOUR_DEPLOYMENT_NAME"
+// See https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/embeddings?tabs=console#how-to-get-embeddings
+func NewEmbeddingFuncAzureOpenAI(apiKey string, deploymentURL string, apiVersion string, model string) EmbeddingFunc {
+	if apiVersion == "" {
+		apiVersion = azureDefaultAPIVersion
+	}
+	return NewEmbeddingFuncOpenAICompat(deploymentURL, apiKey, model, nil, map[string]string{"api-key": apiKey}, map[string]string{"api-version": apiVersion})
 }
