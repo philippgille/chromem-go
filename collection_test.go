@@ -461,7 +461,6 @@ func TestCollection_Delete(t *testing.T) {
 
 	// Check number of files in the persist directory
 	d, err := os.ReadDir(c.persistDirectory)
-
 	if err != nil {
 		t.Fatal("expected nil, got", err)
 	}
@@ -507,7 +506,6 @@ func TestCollection_Delete(t *testing.T) {
 	}
 
 	checkCount(0)
-
 }
 
 // Global var for assignment in the benchmark to avoid compiler optimizations.
@@ -566,7 +564,7 @@ func benchmarkCollection_Query(b *testing.B, n int, withContent bool) {
 	for j := 0; j < d; j++ {
 		qv[j] = r.Float32()
 	}
-	// Most embeddings are normalized, so we normalize this one too
+	// The document embeddings are normalized, so the query must be normalized too.
 	qv = normalizeVector(qv)
 
 	// Create collection
