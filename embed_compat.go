@@ -70,3 +70,18 @@ const baseURLLocalAI = "http://localhost:8080/v1"
 func NewEmbeddingFuncLocalAI(model string) EmbeddingFunc {
 	return NewEmbeddingFuncOpenAICompat(baseURLLocalAI, "", model, nil)
 }
+
+const (
+	azureDefaultAPIVersion = "2024-02-01"
+)
+
+// NewEmbeddingFuncAzureOpenAI returns a function that creates embeddings for a text
+// using the Azure OpenAI API.
+// The `deploymentURL` is the URL of the deployed model, e.g. "https://YOUR_RESOURCE_NAME.openai.azure.com/openai/deployments/YOUR_DEPLOYMENT_NAME"
+// See https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/embeddings?tabs=console#how-to-get-embeddings
+func NewEmbeddingFuncAzureOpenAI(apiKey string, deploymentURL string, apiVersion string, model string) EmbeddingFunc {
+	if apiVersion == "" {
+		apiVersion = azureDefaultAPIVersion
+	}
+	return newEmbeddingFuncOpenAICompat(deploymentURL, apiKey, model, nil, map[string]string{"api-key": apiKey}, map[string]string{"api-version": apiVersion})
+}
