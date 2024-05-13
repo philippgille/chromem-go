@@ -42,7 +42,7 @@ func NewEmbeddingFuncDefault() EmbeddingFunc {
 func NewEmbeddingFuncOpenAI(apiKey string, model EmbeddingModelOpenAI) EmbeddingFunc {
 	// OpenAI embeddings are normalized
 	normalized := true
-	return NewEmbeddingFuncOpenAICompat(BaseURLOpenAI, apiKey, string(model), &normalized, nil, nil)
+	return NewEmbeddingFuncOpenAICompat(BaseURLOpenAI, apiKey, string(model), &normalized)
 }
 
 // NewEmbeddingFuncOpenAICompat returns a function that creates embeddings for a text
@@ -56,7 +56,20 @@ func NewEmbeddingFuncOpenAI(apiKey string, model EmbeddingModelOpenAI) Embedding
 // model are already normalized, as is the case for OpenAI's and Mistral's models.
 // The flag is optional. If it's nil, it will be autodetected on the first request
 // (which bears a small risk that the vector just happens to have a length of 1).
-func NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model string, normalized *bool, headers map[string]string, queryParams map[string]string) EmbeddingFunc {
+func NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model string, normalized *bool) EmbeddingFunc {
+	return newEmbeddingFuncOpenAICompat(baseURL, apiKey, model, normalized, nil, nil)
+}
+
+// newEmbeddingFuncOpenAICompat returns a function that creates embeddings for a text
+// using an OpenAI compatible API.
+// It offers options to set request headers and query parameters
+// e.g. to pass the `api-key` header and the `api-version` query parameter for Azure OpenAI.
+//
+// The `normalized` parameter indicates whether the vectors returned by the embedding
+// model are already normalized, as is the case for OpenAI's and Mistral's models.
+// The flag is optional. If it's nil, it will be autodetected on the first request
+// (which bears a small risk that the vector just happens to have a length of 1).
+func newEmbeddingFuncOpenAICompat(baseURL, apiKey, model string, normalized *bool, headers map[string]string, queryParams map[string]string) EmbeddingFunc {
 	// We don't set a default timeout here, although it's usually a good idea.
 	// In our case though, the library user can set the timeout on the context,
 	// and it might have to be a long timeout, depending on the text length.
