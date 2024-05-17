@@ -15,6 +15,11 @@ vNext
 - Added example code for S3 export/import with the ⬆️ new methods (PR [#73](https://github.com/philippgille/chromem-go/pull/73))
 - Added Azure OpenAI compatibility (PR [#74](https://github.com/philippgille/chromem-go/pull/74) by [@iwilltry42](https://github.com/iwilltry42))
 
+### Fixed
+
+- The `Collection.QueryEmbedding()` call assumed/expected the query embedding from the parameter to be normalized already, but it wasn't documented and it's also inconvenient for users who use an embedding model/API that doesn't return normalized embeddings. Now we check whether the embedding is normalized and if it's not then we normalize it. (PR [#77](https://github.com/philippgille/chromem-go/pull/77))
+  - (Currently `chromem-go` only does cosine similarity, and document embeddings are already being normalized, so the query embedding has to be normalized as well. In the future we might offer other distance functions or allow to inject your own and make the normalization optional)
+
 v0.6.0 (2024-04-25)
 -------------------
 
