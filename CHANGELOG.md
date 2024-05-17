@@ -13,6 +13,7 @@ vNext
 - Added `DB.ExportToWriter()` to allow users to pass any `io.Writer` implementation for the DB export, not just a file. This allows for example to export the DB to AWS S3 or compatible services (like Ceph, MinIO etc.). (PR [#71](https://github.com/philippgille/chromem-go/pull/71))
 - Added `DB.ImportFromReader()` to allow users to pass any `io.ReadSeeker` implementation for the DB import, not just a file. This allows for example to import the DB from AWS S3 or compatible services (like Ceph, MinIO etc.). (PR [#72](https://github.com/philippgille/chromem-go/pull/72))
 - Added example code for S3 export/import with the ⬆️ new methods (PR [#73](https://github.com/philippgille/chromem-go/pull/73))
+- Added Azure OpenAI compatibility (PR [#74](https://github.com/philippgille/chromem-go/pull/74) by [@iwilltry42](https://github.com/iwilltry42))
 
 v0.6.0 (2024-04-25)
 -------------------
