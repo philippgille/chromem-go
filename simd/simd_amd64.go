@@ -29,8 +29,6 @@ package simd
 
 import (
 	"runtime"
-
-	"golang.org/x/sys/cpu" // TODO: Can we get rid of this dependency?
 )
 
-var UseAVX2 bool = cpu.X86.HasAVX2 && cpu.X86.HasFMA && runtime.GOOS != "darwin"
+var UseAVX2 bool = useSIMD() && runtime.GOOS != "darwin"

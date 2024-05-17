@@ -177,7 +177,7 @@ For the full interface see the Godoc: <https://pkg.go.dev/github.com/philippgill
   - Operators (`$and`, `$or` etc.)
 - Storage:
   - JSON as second encoding format
-  - Write-ahead log (WAL) as second file format)
+  - Write-ahead log (WAL) as second file format
   - Optional remote storage (S3, PostgreSQL, ...)
 - Data types:
   - Images
