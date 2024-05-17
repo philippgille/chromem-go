@@ -347,6 +347,7 @@ func (c *Collection) Query(ctx context.Context, queryText string, nResults int, 
 //
 //   - queryEmbedding: The embedding of the query to search for. It must be created
 //     with the same embedding model as the document embeddings in the collection.
+//     The embedding will be normalized if it's not the case yet.
 //   - nResults: The number of results to return. Must be > 0.
 //   - where: Conditional filtering on metadata. Optional.
 //   - whereDocument: Conditional filtering on documents. Optional.
@@ -380,6 +381,12 @@ func (c *Collection) QueryEmbedding(ctx context.Context, queryEmbedding []float3
 	// No need to continue if the filters got rid of all documents
 	if len(filteredDocs) == 0 {
 		return nil, nil
+	}
+
+	// Normalize embedding if not the case yet. We only support cosine similarity
+	// for now and all documents were already normalized when added to the collection.
+	if !isNormalized(queryEmbedding) {
+		queryEmbedding = normalizeVector(queryEmbedding)
 	}
 
 	// For the remaining documents, get the most similar docs.
