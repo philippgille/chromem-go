@@ -382,7 +382,9 @@ func TestCollection_QueryError(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			err := tc.query()
-			if err.Error() != tc.expErr {
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			} else if err.Error() != tc.expErr {
 				t.Fatal("expected", tc.expErr, "got", err)
 			}
 		})
