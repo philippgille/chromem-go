@@ -40,6 +40,15 @@ func normalizeVector(v []float32) []float32 {
 	return res
 }
 
+// subtractVector subtracts vector b from vector a in place.
+func subtractVector(a, b []float32) []float32 {
+	for i := range a {
+		a[i] -= b[i]
+	}
+
+	return a
+}
+
 // isNormalized checks if the vector is normalized.
 func isNormalized(v []float32) bool {
 	var sqSum float64
