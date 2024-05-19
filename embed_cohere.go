@@ -159,7 +159,7 @@ func NewEmbeddingFuncCohere(apiKey string, model EmbeddingModelCohere) Embedding
 			}
 		})
 		if !checkedNormalized {
-			v = normalizeVector(v)
+			normalizeVector(v)
 		}
 
 		return v, nil

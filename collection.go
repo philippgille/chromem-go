@@ -225,7 +225,7 @@ func (c *Collection) AddDocument(ctx context.Context, doc Document) error {
 		doc.Embedding = embedding
 	} else {
 		if !isNormalized(doc.Embedding) {
-			doc.Embedding = normalizeVector(doc.Embedding)
+			normalizeVector(doc.Embedding)
 		}
 	}
 
@@ -388,7 +388,7 @@ func (c *Collection) QueryEmbedding(ctx context.Context, queryEmbedding []float3
 	// Normalize embedding if not the case yet. We only support cosine similarity
 	// for now and all documents were already normalized when added to the collection.
 	if !isNormalized(queryEmbedding) {
-		queryEmbedding = normalizeVector(queryEmbedding)
+		normalizeVector(queryEmbedding)
 	}
 
 	// If the filtering already reduced the number of documents to fewer than nResults,

@@ -142,7 +142,8 @@ func newEmbeddingFuncOpenAICompat(baseURL, apiKey, model string, normalized *boo
 			if *normalized {
 				return v, nil
 			}
-			return normalizeVector(v), nil
+			normalizeVector(v)
+			return v, nil
 		}
 		checkNormalized.Do(func() {
 			if isNormalized(v) {
@@ -152,7 +153,7 @@ func newEmbeddingFuncOpenAICompat(baseURL, apiKey, model string, normalized *boo
 			}
 		})
 		if !checkedNormalized {
-			v = normalizeVector(v)
+			normalizeVector(v)
 		}
 
 		return v, nil

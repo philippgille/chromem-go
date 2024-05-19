@@ -91,7 +91,7 @@ func NewEmbeddingFuncOllama(model string, baseURLOllama string) EmbeddingFunc {
 			}
 		})
 		if !checkedNormalized {
-			v = normalizeVector(v)
+			normalizeVector(v)
 		}
 
 		return v, nil
