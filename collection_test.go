@@ -604,7 +604,10 @@ func benchmarkCollection_Query(b *testing.B, n int, withContent bool) {
 			// Let's say we embed 500 tokens, that's ~375 words, ~1875 characters
 			doc.Content = randomString(r, 1875)
 		}
-		c.AddDocument(ctx, doc)
+
+		if err := c.AddDocument(ctx, doc); err != nil {
+			b.Fatal(err)
+		}
 	}
 
 	b.ResetTimer()

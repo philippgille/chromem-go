@@ -394,7 +394,7 @@ func TestDB_DeleteCollection(t *testing.T) {
 	}
 
 	// Delete collection
-	db.DeleteCollection(name)
+	db.DeleteCollection(name) // nolint: errcheck
 
 	// Check expectations
 	// We don't have access to the documents field, but we can rely on DB.ListCollections()
@@ -426,7 +426,7 @@ func TestDB_Reset(t *testing.T) {
 	}
 
 	// Reset DB
-	db.Reset()
+	db.Reset() // nolint: errcheck
 
 	// Check expectations
 	// We don't have access to the documents field, but we can rely on DB.ListCollections()
