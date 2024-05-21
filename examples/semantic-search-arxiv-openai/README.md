@@ -2,7 +2,7 @@
 
 This example shows a semantic search application, using `chromem-go` as vector database for finding semantically relevant search results. We load and search across ~5,000 arXiv papers in the "Computer Science - Computation and Language" category, which is the relevant one for Natural Language Processing (NLP) related papers.
 
-This is not a retrieval augmented generation (RAG) app, because after *retrieving* the semantically relevant results, we don't *augment* any prompt to an LLM. No LLM is generates the final output.
+This is not a retrieval augmented generation (RAG) app, because after *retrieving* the semantically relevant results, we don't *augment* any prompt to an LLM. No LLM generates the final output.
 
 ## How to run
 

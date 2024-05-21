@@ -43,7 +43,7 @@ func persistToFile(filePath string, obj any, compress bool, encryptionKey string
 	}
 
 	// If path doesn't exist, create the parent path.
-	// If path exists and it's a directory, return an error.
+	// If path exists, and it's a directory, return an error.
 	fi, err := os.Stat(filePath)
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
@@ -108,7 +108,7 @@ func persistToWriter(w io.Writer, obj any, compress bool, encryptionKey string) 
 		return fmt.Errorf("couldn't encode or write object: %w", err)
 	}
 
-	// If compressing, close the gzip writer. Otherwise the gzip footer won't be
+	// If compressing, close the gzip writer. Otherwise, the gzip footer won't be
 	// written yet. When using encryption (and chainedWriter is a buffer) then
 	// we'll encrypt an incomplete stream. Without encryption when we return here and having
 	// a deferred Close(), there might be a silenced error.
@@ -191,7 +191,7 @@ func readFromReader(r io.ReadSeeker, obj any, encryptionKey string) error {
 	// To reduce memory usage we chain the readers instead of buffering, so we start
 	// from the end. For the decryption there's no reader though.
 
-	// For the chainedReader we don't declare it as ReadSeeker so we can reassign
+	// For the chainedReader we don't declare it as ReadSeeker, so we can reassign
 	// the gzip reader to it.
 	var chainedReader io.Reader
 

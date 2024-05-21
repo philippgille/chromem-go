@@ -56,7 +56,7 @@ func main() {
 	}
 	// Add docs to the collection, if the collection was just created (and not
 	// loaded from persistent storage).
-	docs := []chromem.Document{}
+	var docs []chromem.Document
 	if collection.Count() == 0 {
 		// Here we use a DBpedia sample, where each line contains the lead section/introduction
 		// to some Wikipedia article and its category.

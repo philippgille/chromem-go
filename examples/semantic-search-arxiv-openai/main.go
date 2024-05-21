@@ -36,7 +36,7 @@ func main() {
 	}
 	// Add docs to the collection, if the collection was just created (and not
 	// loaded from persistent storage).
-	docs := []chromem.Document{}
+	var docs []chromem.Document
 	if collection.Count() == 0 {
 		// Here we use an arXiv metadata sample, where each line contains the metadata
 		// of a paper, including its submitter, title and abstract.

@@ -63,7 +63,7 @@ type cohereResponse struct {
 //
 // When you set up a chromem-go collection with this embedding function, you might
 // want to create the document separately with [NewDocument] and then cut off the
-// prefix before adding the document to the collection. Otherwise when you query
+// prefix before adding the document to the collection. Otherwise, when you query
 // the collection, the returned documents will still have the prefix in their content.
 //
 //	cohereFunc := chromem.NewEmbeddingFuncCohere(cohereApiKey, chromem.EmbeddingModelCohereEnglishV3)

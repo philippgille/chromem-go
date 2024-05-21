@@ -38,7 +38,7 @@ type DB struct {
 
 // NewDB creates a new in-memory chromem-go DB.
 // While it doesn't write files when you add collections and documents, you can
-// still use [DB.Export] and [DB.Import] to export and import the the entire DB
+// still use [DB.Export] and [DB.Import] to export and import the entire DB
 // from a file.
 func NewDB() *DB {
 	return &DB{
@@ -51,12 +51,12 @@ func NewDB() *DB {
 // If compress is true, the files are compressed with gzip.
 //
 // The persistence covers the collections (including their documents) and the metadata.
-// However it doesn't cover the EmbeddingFunc, as functions can't be serialized.
-// When some data is persisted and you create a new persistent DB with the same
+// However, it doesn't cover the EmbeddingFunc, as functions can't be serialized.
+// When some data is persisted, and you create a new persistent DB with the same
 // path, you'll have to provide the same EmbeddingFunc as before when getting an
 // existing collection and adding more documents to it.
 //
-// Currently the persistence is done synchronously on each write operation, and
+// Currently, the persistence is done synchronously on each write operation, and
 // each document addition leads to a new file, encoded as gob. In the future we
 // will make this configurable (encoding, async writes, WAL-based writes, etc.).
 //
