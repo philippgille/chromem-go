@@ -320,7 +320,7 @@ func TestDB_GetOrCreateCollection(t *testing.T) {
 		}
 
 		// Call GetOrCreateCollection() with the same name to only get it. We pass
-		// nil for the metadata and embeddingFunc so we can check that the returned
+		// nil for the metadata and embeddingFunc, so we can check that the returned
 		// collection is the original one, and not a new one.
 		c, err := db.GetOrCreateCollection(name, nil, nil)
 		if err != nil {

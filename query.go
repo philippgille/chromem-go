@@ -58,15 +58,15 @@ func newMaxDocSims(size int) *maxDocSims {
 }
 
 // add inserts a new docSim into the heap, keeping only the top n similarities.
-func (mds *maxDocSims) add(doc docSim) {
-	mds.lock.Lock()
-	defer mds.lock.Unlock()
-	if mds.h.Len() < mds.size {
-		heap.Push(&mds.h, doc)
-	} else if mds.h.Len() > 0 && mds.h[0].similarity < doc.similarity {
+func (d *maxDocSims) add(doc docSim) {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	if d.h.Len() < d.size {
+		heap.Push(&d.h, doc)
+	} else if d.h.Len() > 0 && d.h[0].similarity < doc.similarity {
 		// Replace the smallest similarity if the new doc's similarity is higher
-		heap.Pop(&mds.h)
-		heap.Push(&mds.h, doc)
+		heap.Pop(&d.h)
+		heap.Push(&d.h, doc)
 	}
 }
 
