@@ -20,7 +20,7 @@ The focus is not scale (millions of documents) or number of features, but simpli
 1. [Use cases](#use-cases)
 2. [Interface](#interface)
 3. [Features + Roadmap](#features)
-4. [Intallation](#installation)
+4. [Installation](#installation)
 5. [Usage](#usage)
 6. [Benchmarks](#benchmarks)
 7. [Development](#development)
