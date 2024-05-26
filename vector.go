@@ -42,11 +42,13 @@ func normalizeVector(v []float32) []float32 {
 
 // subtractVector subtracts vector b from vector a in place.
 func subtractVector(a, b []float32) []float32 {
+	res := make([]float32, len(a))
+
 	for i := range a {
-		a[i] -= b[i]
+		res[i] = a[i] - b[i]
 	}
 
-	return a
+	return res
 }
 
 // isNormalized checks if the vector is normalized.
