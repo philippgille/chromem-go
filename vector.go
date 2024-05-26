@@ -19,8 +19,8 @@ func cosineSimilarity(a, b []float32) (float32, error) {
 	}
 
 	if !isNormalized(a) || !isNormalized(b) {
-		normalizeVector(a)
-		normalizeVector(b)
+		a = normalizeVector(a)
+		b = normalizeVector(b)
 	}
 	dotProduct, err := dotProduct(a, b)
 	if err != nil {
@@ -50,7 +50,7 @@ func dotProduct(a, b []float32) (float32, error) {
 	return dotProduct, nil
 }
 
-func normalizeVector(v []float32) {
+func normalizeVectorInPlace(v []float32) {
 	var norm float32
 	for _, val := range v {
 		norm += val * val
@@ -60,6 +60,13 @@ func normalizeVector(v []float32) {
 	for i, val := range v {
 		v[i] = val / norm
 	}
+}
+
+func normalizeVector(v []float32) []float32 {
+	r := make([]float32, len(v))
+	copy(r, v)
+	normalizeVectorInPlace(r)
+	return r
 }
 
 // isNormalized checks if the vector is normalized.
