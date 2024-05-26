@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"slices"
+	"sort"
 	"sync"
 )
 
@@ -25,6 +26,73 @@ type Collection struct {
 
 	// ⚠️ When adding fields here, consider adding them to the persistence struct
 	// versions in [DB.Export] and [DB.Import] as well!
+}
+
+// NegativeMode represents the mode to use for the negative text.
+// See QueryOptions for more information.
+type NegativeMode string
+
+const (
+	// NEGATIVE_MODE_SUBTRACT subtracts the negative embedding from the query embedding.
+	// This is the default behavior.
+	NEGATIVE_MODE_SUBTRACT NegativeMode = "subtract"
+
+	// NEGATIVE_MODE_REORDER reorders the results based on the similarity between the
+	// negative embedding and the document embeddings.
+	// NegativeReorderStrength controls the strength of the reordering. Lower values
+	// will reorder the results less aggressively.
+	NEGATIVE_MODE_REORDER NegativeMode = "reorder"
+
+	// NEGATIVE_MODE_FILTER filters out results based on the similarity between the
+	// negative embedding and the document embeddings.
+	// NegativeFilterThreshold controls the threshold for filtering. Documents with
+	// similarity above the threshold will be removed from the results.
+	NEGATIVE_MODE_FILTER NegativeMode = "filter"
+
+	// Default values for negative reordering and filtering.
+	DEFAULT_NEGATIVE_REORDER_STRENGTH = 1
+
+	// The default threshold for the negative filter.
+	DEFAULT_NEGATIVE_FILTER_THRESHOLD = 0.5
+)
+
+// QueryOptions represents the options for a query.
+type QueryOptions struct {
+	// The text to search for.
+	QueryText string
+
+	// The embedding of the query to search for. It must be created
+	// with the same embedding model as the document embeddings in the collection.
+	// The embedding will be normalized if it's not the case yet.
+	// If both QueryText and QueryEmbedding are set, QueryEmbedding will be used.
+	QueryEmbedding []float32
+
+	// The text to exclude from the results.
+	NegativeText string
+
+	// The embedding of the negative text. It must be created
+	// with the same embedding model as the document embeddings in the collection.
+	// The embedding will be normalized if it's not the case yet.
+	// If both NegativeText and NegativeEmbedding are set, NegativeEmbedding will be used.
+	NegativeEmbedding []float32
+
+	// The mode to use for the negative text.
+	NegativeMode NegativeMode
+
+	// The strength of the negative reordering. Used when NegativeMode is NEGATIVE_MODE_REORDER.
+	NegativeReorderStrength float32
+
+	// The threshold for the negative filter. Used when NegativeMode is NEGATIVE_MODE_FILTER.
+	NegativeFilterThreshold float32
+
+	// The number of results to return.
+	NResults int
+
+	// Conditional filtering on metadata.
+	Where map[string]string
+
+	// Conditional filtering on documents.
+	WhereDocument map[string]string
 }
 
 // We don't export this yet to keep the API surface to the bare minimum.
@@ -336,44 +404,85 @@ func (c *Collection) Query(ctx context.Context, queryText string, nResults int, 
 		return nil, errors.New("queryText is empty")
 	}
 
-	queryVectors, err := c.embed(ctx, queryText)
+	queryVector, err := c.embed(ctx, queryText)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create embedding of query: %w", err)
 	}
 
-	return c.QueryEmbedding(ctx, queryVectors, nResults, where, whereDocument)
+	return c.QueryEmbedding(ctx, queryVector, nResults, where, whereDocument)
 }
 
 // QueryEmbedding performs an exhaustive nearest neighbor search on the collection.
 //
-//   - queryText: The text to search for. Its embedding will be created using the
-//     collection's embedding function.
-//   - negativeText: The text to subtract from the query embedding. Its embedding
-//     will be created using the collection's embedding function.
-//   - nResults: The number of results to return. Must be > 0.
-//   - where: Conditional filtering on metadata. Optional.
-//   - whereDocument: Conditional filtering on documents. Optional.
-func (c *Collection) QueryWithNegative(ctx context.Context, queryText string, negativeText string, nResults int, where, whereDocument map[string]string) ([]Result, error) {
-	if queryText == "" {
-		return nil, errors.New("queryText is empty")
+//   - options: The options for the query. See QueryOptions for more information.
+func (c *Collection) QueryWithOptions(ctx context.Context, options QueryOptions) ([]Result, error) {
+	if options.QueryText == "" && len(options.QueryEmbedding) == 0 {
+		return nil, errors.New("QueryText and QueryEmbedding options are empty")
 	}
 
-	queryVectors, err := c.embed(ctx, queryText)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't create embedding of query: %w", err)
+	var err error
+	queryVector := options.QueryEmbedding
+	if len(queryVector) == 0 {
+		queryVector, err = c.embed(ctx, options.QueryText)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't create embedding of query: %w", err)
+		}
 	}
 
-	if negativeText != "" {
-		negativeVectors, err := c.embed(ctx, negativeText)
+	negativeMode := options.NegativeMode
+	if negativeMode == "" {
+		negativeMode = NEGATIVE_MODE_SUBTRACT
+	}
+
+	negativeVector := options.NegativeEmbedding
+	if len(negativeVector) == 0 && options.NegativeText != "" {
+		negativeVector, err = c.embed(ctx, options.NegativeText)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't create embedding of negative: %w", err)
 		}
-
-		queryVectors = subtractVector(queryVectors, negativeVectors)
-		queryVectors = normalizeVector(queryVectors)
 	}
 
-	return c.QueryEmbedding(ctx, queryVectors, nResults, where, whereDocument)
+	if len(negativeVector) != 0 {
+		if !isNormalized(negativeVector) {
+			negativeVector = normalizeVector(negativeVector)
+		}
+
+		if negativeMode == NEGATIVE_MODE_SUBTRACT {
+			queryVector = subtractVector(queryVector, negativeVector)
+			queryVector = normalizeVector(queryVector)
+		}
+	}
+
+	result, err := c.QueryEmbedding(ctx, queryVector, options.NResults, options.Where, options.WhereDocument)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(negativeVector) != 0 {
+		if negativeMode == NEGATIVE_MODE_REORDER {
+			negativeReorderStrength := options.NegativeReorderStrength
+			if negativeReorderStrength == 0 {
+				negativeReorderStrength = DEFAULT_NEGATIVE_REORDER_STRENGTH
+			}
+
+			result, err = reorderResults(result, negativeVector, negativeReorderStrength)
+			if err != nil {
+				return nil, fmt.Errorf("couldn't reorder results: %w", err)
+			}
+		} else if negativeMode == NEGATIVE_MODE_FILTER {
+			negativeFilterThreshold := options.NegativeFilterThreshold
+			if negativeFilterThreshold == 0 {
+				negativeFilterThreshold = DEFAULT_NEGATIVE_FILTER_THRESHOLD
+			}
+
+			result, err = filterResults(result, negativeVector, negativeFilterThreshold)
+			if err != nil {
+				return nil, fmt.Errorf("couldn't filter results: %w", err)
+			}
+		}
+	}
+
+	return result, nil
 }
 
 // Performs an exhaustive nearest neighbor search on the collection.
@@ -464,4 +573,46 @@ func (c *Collection) getDocPath(docID string) string {
 		docPath += ".gz"
 	}
 	return docPath
+}
+
+func reorderResults(results []Result, negativeVector []float32, negativeReorderStrength float32) ([]Result, error) {
+	if len(results) == 0 {
+		return results, nil
+	}
+
+	// Calculate cosine similarity between negative vector and each result
+	for i := range results {
+		sim, err := dotProduct(negativeVector, results[i].Embedding)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't calculate dot product: %w", err)
+		}
+		results[i].Similarity -= sim * negativeReorderStrength
+	}
+
+	// Sort results by similarity
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Similarity > results[j].Similarity
+	})
+
+	return results, nil
+}
+
+func filterResults(results []Result, negativeVector []float32, negativeFilterThreshold float32) ([]Result, error) {
+	if len(results) == 0 {
+		return results, nil
+	}
+
+	// Filter out results with similarity above the threshold
+	filteredResults := make([]Result, 0, len(results))
+	for _, res := range results {
+		sim, err := dotProduct(negativeVector, res.Embedding)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't calculate dot product: %w", err)
+		}
+		if sim < negativeFilterThreshold {
+			filteredResults = append(filteredResults, res)
+		}
+	}
+
+	return filteredResults, nil
 }

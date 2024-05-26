@@ -1,6 +1,7 @@
 package chromem
 
 import (
+	"context"
 	"reflect"
 	"slices"
 	"testing"
@@ -105,4 +106,122 @@ func TestFilterDocs(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNegative(t *testing.T) {
+	ctx := context.Background()
+	db := NewDB()
+
+	c, err := db.CreateCollection("knowledge-base", nil, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	if err := c.AddDocuments(ctx, []Document{
+		{
+			ID:        "1",
+			Embedding: testEmbeddings["search_document: Village Builder Game"],
+		},
+		{
+			ID:        "2",
+			Embedding: testEmbeddings["search_document: Town Craft Idle Game"],
+		},
+		{
+			ID:        "3",
+			Embedding: testEmbeddings["search_document: Some Idle Game"],
+		},
+	}, 1); err != nil {
+		t.Fatalf("failed to add documents: %v", err)
+	}
+
+	t.Run("NEGATIVE_MODE_SUBTRACT", func(t *testing.T) {
+		res, err := c.QueryWithOptions(ctx, QueryOptions{
+			QueryEmbedding:    testEmbeddings["search_query: town"],
+			NegativeEmbedding: testEmbeddings["search_query: idle"],
+			NegativeMode:      NEGATIVE_MODE_SUBTRACT,
+			NResults:          c.Count(),
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		for _, r := range res {
+			t.Logf("%s: %v", r.ID, r.Similarity)
+		}
+
+		if len(res) != 3 {
+			t.Fatalf("expected 3 results, got %d", len(res))
+		}
+
+		// Village Builder Game
+		if res[0].ID != "1" {
+			t.Fatalf("expected document with ID 1, got %s", res[0].ID)
+		}
+		// Town Craft Idle Game
+		if res[1].ID != "2" {
+			t.Fatalf("expected document with ID 2, got %s", res[1].ID)
+		}
+		// Some Idle Game
+		if res[2].ID != "3" {
+			t.Fatalf("expected document with ID 3, got %s", res[2].ID)
+		}
+	})
+
+	t.Run("NEGATIVE_MODE_REORDER", func(t *testing.T) {
+		res, err := c.QueryWithOptions(ctx, QueryOptions{
+			QueryEmbedding:    testEmbeddings["search_query: town"],
+			NegativeEmbedding: testEmbeddings["search_query: idle"],
+			NegativeMode:      NEGATIVE_MODE_REORDER,
+			NResults:          c.Count(),
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		for _, r := range res {
+			t.Logf("%s: %v", r.ID, r.Similarity)
+		}
+
+		if len(res) != 3 {
+			t.Fatalf("expected 3 results, got %d", len(res))
+		}
+
+		// Village Builder Game
+		if res[0].ID != "1" {
+			t.Fatalf("expected document with ID 1, got %s", res[0].ID)
+		}
+		// Town Craft Idle Game
+		if res[1].ID != "2" {
+			t.Fatalf("expected document with ID 2, got %s", res[1].ID)
+		}
+		// Some Idle Game
+		if res[2].ID != "3" {
+			t.Fatalf("expected document with ID 3, got %s", res[2].ID)
+		}
+	})
+
+	t.Run("NEGATIVE_MODE_FILTER", func(t *testing.T) {
+		res, err := c.QueryWithOptions(ctx, QueryOptions{
+			QueryEmbedding:    testEmbeddings["search_query: town"],
+			NegativeEmbedding: testEmbeddings["search_query: idle"],
+			NegativeMode:      NEGATIVE_MODE_FILTER,
+			NResults:          c.Count(),
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		for _, r := range res {
+			t.Logf("%s: %v", r.ID, r.Similarity)
+		}
+
+		if len(res) != 1 {
+			t.Fatalf("expected 1 result, got %d", len(res))
+		}
+
+		// Village Builder Game
+		if res[0].ID != "1" {
+			t.Fatalf("expected document with ID 1, got %s", res[0].ID)
+		}
+	})
 }
