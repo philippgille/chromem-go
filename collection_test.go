@@ -606,7 +606,7 @@ func benchmarkCollection_Query(b *testing.B, n int, withContent bool) {
 		}
 
 		if err := c.AddDocument(ctx, doc); err != nil {
-			b.Fatal(err)
+			b.Fatal("expected nil, got", err)
 		}
 	}
 
