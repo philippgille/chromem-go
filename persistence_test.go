@@ -28,7 +28,9 @@ func TestPersistenceWrite(t *testing.T) {
 
 	t.Run("gob", func(t *testing.T) {
 		tempFilePath := tempDir + ".gob"
-		persistToFile(tempFilePath, obj, false, "")
+		if err := persistToFile(tempFilePath, obj, false, ""); err != nil {
+			t.Fatal("expected nil, got", err)
+		}
 
 		// Check if the file exists.
 		_, err = os.Stat(tempFilePath)
@@ -57,7 +59,9 @@ func TestPersistenceWrite(t *testing.T) {
 
 	t.Run("gob gzipped", func(t *testing.T) {
 		tempFilePath := tempDir + ".gob.gz"
-		persistToFile(tempFilePath, obj, true, "")
+		if err := persistToFile(tempFilePath, obj, true, ""); err != nil {
+			t.Fatal("expected nil, got", err)
+		}
 
 		// Check if the file exists.
 		_, err = os.Stat(tempFilePath)

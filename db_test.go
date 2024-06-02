@@ -394,7 +394,9 @@ func TestDB_DeleteCollection(t *testing.T) {
 	}
 
 	// Delete collection
-	db.DeleteCollection(name)
+	if err := db.DeleteCollection(name); err != nil {
+		t.Fatal("expected no error, got", err)
+	}
 
 	// Check expectations
 	// We don't have access to the documents field, but we can rely on DB.ListCollections()
@@ -426,7 +428,9 @@ func TestDB_Reset(t *testing.T) {
 	}
 
 	// Reset DB
-	db.Reset()
+	if err := db.Reset(); err != nil {
+		t.Fatal("expected no error, got", err)
+	}
 
 	// Check expectations
 	// We don't have access to the documents field, but we can rely on DB.ListCollections()
