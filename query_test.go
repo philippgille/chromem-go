@@ -136,10 +136,12 @@ func TestNegative(t *testing.T) {
 
 	t.Run("NEGATIVE_MODE_SUBTRACT", func(t *testing.T) {
 		res, err := c.QueryWithOptions(ctx, QueryOptions{
-			QueryEmbedding:    testEmbeddings["search_query: town"],
-			NegativeEmbedding: testEmbeddings["search_query: idle"],
-			NegativeMode:      NEGATIVE_MODE_SUBTRACT,
-			NResults:          c.Count(),
+			QueryEmbedding: testEmbeddings["search_query: town"],
+			NResults:       c.Count(),
+			Negative: NegativeQueryOptions{
+				Embedding: testEmbeddings["search_query: idle"],
+				Mode:      NEGATIVE_MODE_SUBTRACT,
+			},
 		})
 		if err != nil {
 			panic(err)
@@ -169,10 +171,12 @@ func TestNegative(t *testing.T) {
 
 	t.Run("NEGATIVE_MODE_REORDER", func(t *testing.T) {
 		res, err := c.QueryWithOptions(ctx, QueryOptions{
-			QueryEmbedding:    testEmbeddings["search_query: town"],
-			NegativeEmbedding: testEmbeddings["search_query: idle"],
-			NegativeMode:      NEGATIVE_MODE_REORDER,
-			NResults:          c.Count(),
+			QueryEmbedding: testEmbeddings["search_query: town"],
+			NResults:       c.Count(),
+			Negative: NegativeQueryOptions{
+				Embedding: testEmbeddings["search_query: idle"],
+				Mode:      NEGATIVE_MODE_REORDER,
+			},
 		})
 		if err != nil {
 			panic(err)
@@ -202,10 +206,12 @@ func TestNegative(t *testing.T) {
 
 	t.Run("NEGATIVE_MODE_FILTER", func(t *testing.T) {
 		res, err := c.QueryWithOptions(ctx, QueryOptions{
-			QueryEmbedding:    testEmbeddings["search_query: town"],
-			NegativeEmbedding: testEmbeddings["search_query: idle"],
-			NegativeMode:      NEGATIVE_MODE_FILTER,
-			NResults:          c.Count(),
+			QueryEmbedding: testEmbeddings["search_query: town"],
+			NResults:       c.Count(),
+			Negative: NegativeQueryOptions{
+				Embedding: testEmbeddings["search_query: idle"],
+				Mode:      NEGATIVE_MODE_FILTER,
+			},
 		})
 		if err != nil {
 			panic(err)

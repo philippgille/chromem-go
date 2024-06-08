@@ -67,24 +67,6 @@ type QueryOptions struct {
 	// If both QueryText and QueryEmbedding are set, QueryEmbedding will be used.
 	QueryEmbedding []float32
 
-	// The text to exclude from the results.
-	NegativeText string
-
-	// The embedding of the negative text. It must be created
-	// with the same embedding model as the document embeddings in the collection.
-	// The embedding will be normalized if it's not the case yet.
-	// If both NegativeText and NegativeEmbedding are set, NegativeEmbedding will be used.
-	NegativeEmbedding []float32
-
-	// The mode to use for the negative text.
-	NegativeMode NegativeMode
-
-	// The strength of the negative reordering. Used when NegativeMode is NEGATIVE_MODE_REORDER.
-	NegativeReorderStrength float32
-
-	// The threshold for the negative filter. Used when NegativeMode is NEGATIVE_MODE_FILTER.
-	NegativeFilterThreshold float32
-
 	// The number of results to return.
 	NResults int
 
@@ -93,6 +75,30 @@ type QueryOptions struct {
 
 	// Conditional filtering on documents.
 	WhereDocument map[string]string
+
+	// Negative is the negative query options.
+	// They can be used to exclude certain results from the query.
+	Negative NegativeQueryOptions
+}
+
+type NegativeQueryOptions struct {
+	// Text is the text to exclude from the results.
+	Text string
+
+	// Embedding is the embedding of the negative text. It must be created
+	// with the same embedding model as the document embeddings in the collection.
+	// The embedding will be normalized if it's not the case yet.
+	// If both Text and Embedding are set, Embedding will be used.
+	Embedding []float32
+
+	// Mode is the mode to use for the negative text.
+	Mode NegativeMode
+
+	// ReorderStrength is the strength of the negative reordering. Used when Mode is NEGATIVE_MODE_REORDER.
+	ReorderStrength float32
+
+	// FilterThreshold is the threshold for the negative filter. Used when Mode is NEGATIVE_MODE_FILTER.
+	FilterThreshold float32
 }
 
 // We don't export this yet to keep the API surface to the bare minimum.
@@ -429,14 +435,14 @@ func (c *Collection) QueryWithOptions(ctx context.Context, options QueryOptions)
 		}
 	}
 
-	negativeMode := options.NegativeMode
+	negativeMode := options.Negative.Mode
 	if negativeMode == "" {
 		negativeMode = NEGATIVE_MODE_SUBTRACT
 	}
 
-	negativeVector := options.NegativeEmbedding
-	if len(negativeVector) == 0 && options.NegativeText != "" {
-		negativeVector, err = c.embed(ctx, options.NegativeText)
+	negativeVector := options.Negative.Embedding
+	if len(negativeVector) == 0 && options.Negative.Text != "" {
+		negativeVector, err = c.embed(ctx, options.Negative.Text)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't create embedding of negative: %w", err)
 		}
@@ -460,7 +466,7 @@ func (c *Collection) QueryWithOptions(ctx context.Context, options QueryOptions)
 
 	if len(negativeVector) != 0 {
 		if negativeMode == NEGATIVE_MODE_REORDER {
-			negativeReorderStrength := options.NegativeReorderStrength
+			negativeReorderStrength := options.Negative.ReorderStrength
 			if negativeReorderStrength == 0 {
 				negativeReorderStrength = DEFAULT_NEGATIVE_REORDER_STRENGTH
 			}
@@ -470,7 +476,7 @@ func (c *Collection) QueryWithOptions(ctx context.Context, options QueryOptions)
 				return nil, fmt.Errorf("couldn't reorder results: %w", err)
 			}
 		} else if negativeMode == NEGATIVE_MODE_FILTER {
-			negativeFilterThreshold := options.NegativeFilterThreshold
+			negativeFilterThreshold := options.Negative.FilterThreshold
 			if negativeFilterThreshold == 0 {
 				negativeFilterThreshold = DEFAULT_NEGATIVE_FILTER_THRESHOLD
 			}
