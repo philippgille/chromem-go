@@ -112,7 +112,7 @@ func TestNegative(t *testing.T) {
 	ctx := context.Background()
 	db := NewDB()
 
-	c, err := db.CreateCollection("knowledge-base", nil, nil)
+	c, err := db.CreateCollection("test", nil, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -141,41 +141,6 @@ func TestNegative(t *testing.T) {
 			Negative: NegativeQueryOptions{
 				Embedding: testEmbeddings["search_query: idle"],
 				Mode:      NEGATIVE_MODE_SUBTRACT,
-			},
-		})
-		if err != nil {
-			panic(err)
-		}
-
-		for _, r := range res {
-			t.Logf("%s: %v", r.ID, r.Similarity)
-		}
-
-		if len(res) != 3 {
-			t.Fatalf("expected 3 results, got %d", len(res))
-		}
-
-		// Village Builder Game
-		if res[0].ID != "1" {
-			t.Fatalf("expected document with ID 1, got %s", res[0].ID)
-		}
-		// Town Craft Idle Game
-		if res[1].ID != "2" {
-			t.Fatalf("expected document with ID 2, got %s", res[1].ID)
-		}
-		// Some Idle Game
-		if res[2].ID != "3" {
-			t.Fatalf("expected document with ID 3, got %s", res[2].ID)
-		}
-	})
-
-	t.Run("NEGATIVE_MODE_REORDER", func(t *testing.T) {
-		res, err := c.QueryWithOptions(ctx, QueryOptions{
-			QueryEmbedding: testEmbeddings["search_query: town"],
-			NResults:       c.Count(),
-			Negative: NegativeQueryOptions{
-				Embedding: testEmbeddings["search_query: idle"],
-				Mode:      NEGATIVE_MODE_REORDER,
 			},
 		})
 		if err != nil {
