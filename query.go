@@ -162,7 +162,7 @@ func documentMatchesFilters(document *Document, where, whereDocument map[string]
 	return true
 }
 
-func getMostSimilarDocs(ctx context.Context, queryVectors []float32, docs []*Document, n int) ([]docSim, error) {
+func getMostSimilarDocs(ctx context.Context, queryVectors, negativeVector []float32, negativeFilterThreshold float32, docs []*Document, n int) ([]docSim, error) {
 	nMaxDocs := newMaxDocSims(n)
 
 	// Determine concurrency. Use number of docs or CPUs, whichever is smaller.
@@ -216,6 +216,18 @@ func getMostSimilarDocs(ctx context.Context, queryVectors []float32, docs []*Doc
 				if err != nil {
 					setSharedErr(fmt.Errorf("couldn't calculate similarity for document '%s': %w", doc.ID, err))
 					return
+				}
+
+				if negativeFilterThreshold > 0 {
+					nsim, err := dotProduct(negativeVector, doc.Embedding)
+					if err != nil {
+						setSharedErr(fmt.Errorf("couldn't calculate negative similarity for document '%s': %w", doc.ID, err))
+						return
+					}
+
+					if nsim > negativeFilterThreshold {
+						continue
+					}
 				}
 
 				nMaxDocs.add(docSim{docID: doc.ID, similarity: sim})
