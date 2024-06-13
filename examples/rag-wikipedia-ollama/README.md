@@ -4,7 +4,7 @@ This example shows a retrieval augmented generation (RAG) application, using `ch
 
 We run the embeddings model and LLM in [Ollama](https://github.com/ollama/ollama), to showcase how a RAG application can run entirely offline, without relying on OpenAI or other third party APIs. It doesn't require a GPU, and a CPU like an 11th Gen Intel i5-1135G7 (like in the first generation Framework Laptop 13) is fast enough.
 
-As LLM we use Google's [Gemma (2B)](https://huggingface.co/google/gemma-2b), a very small model that doesn't need much resources and is fast, but doesn't have much knowledge, so it's a prime example for the combination of LLMs and vector databases. We found Gemma 2B to be superior to [TinyLlama (1.1B)](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0), [Stable LM 2 (1.6B)](https://huggingface.co/stabilityai/stablelm-2-zephyr-1_6b) and [Phi-2 (2.7B)](https://huggingface.co/microsoft/phi-2) for the RAG use case.
+As LLM we use Google's [Gemma (2B)](https://huggingface.co/google/gemma-2b), a very small model that doesn't need many resources and is fast, but doesn't have much knowledge, so it's a prime example for the combination of LLMs and vector databases. We found Gemma 2B to be superior to [TinyLlama (1.1B)](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0), [Stable LM 2 (1.6B)](https://huggingface.co/stabilityai/stablelm-2-zephyr-1_6b) and [Phi-2 (2.7B)](https://huggingface.co/microsoft/phi-2) for the RAG use case.
 
 As embeddings model we use Nomic's [nomic-embed-text v1.5](https://huggingface.co/nomic-ai/nomic-embed-text-v1.5).
 

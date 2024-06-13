@@ -41,11 +41,11 @@ Let's look at the RAG use case in more detail:
 
 ### RAG
 
-The knowledge of large language models (LLMs) - even the ones with with 30 billion, 70 billion parameters and more - is limited. They don't know anything about what happened after their training ended, they don't know anything about data they were not trained with (like your company's intranet, Jira / bug tracker, wiki or other kinds of knowledge bases), and even the data they *do* know they often can't reproduce it *exactly*, but start to *hallucinate* instead.
+The knowledge of large language models (LLMs) - even the ones with 30 billion, 70 billion parameters and more - is limited. They don't know anything about what happened after their training ended, they don't know anything about data they were not trained with (like your company's intranet, Jira / bug tracker, wiki or other kinds of knowledge bases), and even the data they *do* know they often can't reproduce it *exactly*, but start to *hallucinate* instead.
 
 Fine-tuning an LLM can help a bit, but it's more meant to improve the LLMs reasoning about specific topics, or reproduce the style of written text or code. Fine-tuning does *not* add knowledge *1:1* into the model. Details are lost or mixed up. And knowledge cutoff (about anything that happened after the fine-tuning) isn't solved either.
 
-=> A vector database can act as the the up-to-date, precise knowledge for LLMs:
+=> A vector database can act as the up-to-date, precise knowledge for LLMs:
 
 1. You store relevant documents that you want the LLM to know in the database.
 2. The database stores the *embeddings* alongside the documents, which you can either provide or can be created by specific "embedding models" like OpenAI's `text-embedding-3-small`.
@@ -136,7 +136,7 @@ For the full interface see the Godoc: <https://pkg.go.dev/github.com/philippgill
 
 - [X] Zero dependencies on third party libraries
 - [X] Embeddable (like SQLite, i.e. no client-server model, no separate DB to maintain)
-- [X] Multi-threaded processing (when adding and querying documents), making use of Go's native concurrency features
+- [X] Multithreaded processing (when adding and querying documents), making use of Go's native concurrency features
 - [X] Experimental WebAssembly binding
 - Embedding creators:
   - Hosted:
@@ -178,7 +178,7 @@ For the full interface see the Godoc: <https://pkg.go.dev/github.com/philippgill
   - Operators (`$and`, `$or` etc.)
 - Storage:
   - JSON as second encoding format
-  - Write-ahead log (WAL) as second file format)
+  - Write-ahead log (WAL) as second file format
   - Optional remote storage (S3, PostgreSQL, ...)
 - Data types:
   - Images

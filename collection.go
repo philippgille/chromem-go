@@ -87,7 +87,7 @@ func (c *Collection) Add(ctx context.Context, ids []string, embeddings [][]float
 }
 
 // AddConcurrently is like Add, but adds embeddings concurrently.
-// This is mostly useful when you don't pass any embeddings so they have to be created.
+// This is mostly useful when you don't pass any embeddings, so they have to be created.
 // Upon error, concurrently running operations are canceled and the error is returned.
 //
 // This is a Chroma-like method. For a more Go-idiomatic one, see [AddDocuments].
@@ -103,7 +103,7 @@ func (c *Collection) AddConcurrently(ctx context.Context, ids []string, embeddin
 			return errors.New("ids and embeddings must have the same length")
 		}
 	} else {
-		// Assign empty slice so we can simply access via index later
+		// Assign empty slice, so we can simply access via index later
 		embeddings = make([][]float32, len(ids))
 	}
 	if len(metadatas) != 0 {
@@ -111,7 +111,7 @@ func (c *Collection) AddConcurrently(ctx context.Context, ids []string, embeddin
 			return errors.New("when metadatas is not empty it must have the same length as ids")
 		}
 	} else {
-		// Assign empty slice so we can simply access via index later
+		// Assign empty slice, so we can simply access via index later
 		metadatas = make([]map[string]string, len(ids))
 	}
 	if len(contents) != 0 {
@@ -119,7 +119,7 @@ func (c *Collection) AddConcurrently(ctx context.Context, ids []string, embeddin
 			return errors.New("ids and contents must have the same length")
 		}
 	} else {
-		// Assign empty slice so we can simply access via index later
+		// Assign empty slice, so we can simply access via index later
 		contents = make([]string, len(ids))
 	}
 	if concurrency < 1 {
@@ -323,7 +323,7 @@ type Result struct {
 	Similarity float32
 }
 
-// Performs an exhaustive nearest neighbor search on the collection.
+// Query performs an exhaustive nearest neighbor search on the collection.
 //
 //   - queryText: The text to search for. Its embedding will be created using the
 //     collection's embedding function.
@@ -344,7 +344,7 @@ func (c *Collection) Query(ctx context.Context, queryText string, nResults int, 
 	return c.QueryEmbedding(ctx, queryVectors, nResults, where, whereDocument)
 }
 
-// Performs an exhaustive nearest neighbor search on the collection.
+// QueryEmbedding performs an exhaustive nearest neighbor search on the collection.
 //
 //   - queryEmbedding: The embedding of the query to search for. It must be created
 //     with the same embedding model as the document embeddings in the collection.
