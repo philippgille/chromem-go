@@ -405,7 +405,7 @@ func (c *Collection) Query(ctx context.Context, queryText string, nResults int, 
 	return c.QueryEmbedding(ctx, queryVector, nResults, where, whereDocument)
 }
 
-// QueryEmbedding performs an exhaustive nearest neighbor search on the collection.
+// QueryWithOptions performs an exhaustive nearest neighbor search on the collection.
 //
 //   - options: The options for the query. See QueryOptions for more information.
 func (c *Collection) QueryWithOptions(ctx context.Context, options QueryOptions) ([]Result, error) {
@@ -456,7 +456,7 @@ func (c *Collection) QueryWithOptions(ctx context.Context, options QueryOptions)
 	return result, nil
 }
 
-// Performs an exhaustive nearest neighbor search on the collection.
+// QueryEmbedding performs an exhaustive nearest neighbor search on the collection.
 //
 //   - queryEmbedding: The embedding of the query to search for. It must be created
 //     with the same embedding model as the document embeddings in the collection.
