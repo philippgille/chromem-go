@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -198,9 +199,11 @@ func (db *DB) Import(filePath string, encryptionKey string) error {
 // This works for both the in-memory and persistent DBs.
 // Existing collections are overwritten.
 //
-// - filePath: Mandatory, must not be empty
-// - encryptionKey: Optional, must be 32 bytes long if provided
-func (db *DB) ImportFromFile(filePath string, encryptionKey string) error {
+//   - filePath: Mandatory, must not be empty
+//   - encryptionKey: Optional, must be 32 bytes long if provided
+//   - collections: Optional. If provided, only the collections with the given names
+//     are imported. If not provided, all collections are imported.
+func (db *DB) ImportFromFile(filePath string, encryptionKey string, collections ...string) error {
 	if filePath == "" {
 		return fmt.Errorf("file path is empty")
 	}
@@ -244,6 +247,9 @@ func (db *DB) ImportFromFile(filePath string, encryptionKey string) error {
 	}
 
 	for _, pc := range persistenceDB.Collections {
+		if len(collections) > 0 && !slices.Contains(collections, pc.Name) {
+			continue
+		}
 		c := &Collection{
 			Name: pc.Name,
 
@@ -267,9 +273,11 @@ func (db *DB) ImportFromFile(filePath string, encryptionKey string) error {
 // Existing collections are overwritten.
 // If the writer has to be closed, it's the caller's responsibility.
 //
-// - reader: An implementation of [io.ReadSeeker]
-// - encryptionKey: Optional, must be 32 bytes long if provided
-func (db *DB) ImportFromReader(reader io.ReadSeeker, encryptionKey string) error {
+//   - reader: An implementation of [io.ReadSeeker]
+//   - encryptionKey: Optional, must be 32 bytes long if provided
+//   - collections: Optional. If provided, only the collections with the given names
+//     are imported. If not provided, all collections are imported.
+func (db *DB) ImportFromReader(reader io.ReadSeeker, encryptionKey string, collections ...string) error {
 	if encryptionKey != "" {
 		// AES 256 requires a 32 byte key
 		if len(encryptionKey) != 32 {
@@ -299,6 +307,9 @@ func (db *DB) ImportFromReader(reader io.ReadSeeker, encryptionKey string) error
 	}
 
 	for _, pc := range persistenceDB.Collections {
+		if len(collections) > 0 && !slices.Contains(collections, pc.Name) {
+			continue
+		}
 		c := &Collection{
 			Name: pc.Name,
 
@@ -339,7 +350,9 @@ func (db *DB) Export(filePath string, compress bool, encryptionKey string) error
 //   - compress: Optional. Compresses as gzip if true.
 //   - encryptionKey: Optional. Encrypts with AES-GCM if provided. Must be 32 bytes
 //     long if provided.
-func (db *DB) ExportToFile(filePath string, compress bool, encryptionKey string) error {
+//   - collections: Optional. If provided, only the collections with the given names
+//     are exported. If not provided, all collections are exported.
+func (db *DB) ExportToFile(filePath string, compress bool, encryptionKey string, collections ...string) error {
 	if filePath == "" {
 		filePath = "./chromem-go.gob"
 		if compress {
@@ -373,10 +386,12 @@ func (db *DB) ExportToFile(filePath string, compress bool, encryptionKey string)
 	defer db.collectionsLock.RUnlock()
 
 	for k, v := range db.collections {
-		persistenceDB.Collections[k] = &persistenceCollection{
-			Name:      v.Name,
-			Metadata:  v.metadata,
-			Documents: v.documents,
+		if len(collections) == 0 || slices.Contains(collections, k) {
+			persistenceDB.Collections[k] = &persistenceCollection{
+				Name:      v.Name,
+				Metadata:  v.metadata,
+				Documents: v.documents,
+			}
 		}
 	}
 
@@ -397,7 +412,9 @@ func (db *DB) ExportToFile(filePath string, compress bool, encryptionKey string)
 //   - compress: Optional. Compresses as gzip if true.
 //   - encryptionKey: Optional. Encrypts with AES-GCM if provided. Must be 32 bytes
 //     long if provided.
-func (db *DB) ExportToWriter(writer io.Writer, compress bool, encryptionKey string) error {
+//   - collections: Optional. If provided, only the collections with the given names
+//     are exported. If not provided, all collections are exported.
+func (db *DB) ExportToWriter(writer io.Writer, compress bool, encryptionKey string, collections ...string) error {
 	if encryptionKey != "" {
 		// AES 256 requires a 32 byte key
 		if len(encryptionKey) != 32 {
@@ -422,10 +439,12 @@ func (db *DB) ExportToWriter(writer io.Writer, compress bool, encryptionKey stri
 	defer db.collectionsLock.RUnlock()
 
 	for k, v := range db.collections {
-		persistenceDB.Collections[k] = &persistenceCollection{
-			Name:      v.Name,
-			Metadata:  v.metadata,
-			Documents: v.documents,
+		if len(collections) == 0 || slices.Contains(collections, k) {
+			persistenceDB.Collections[k] = &persistenceCollection{
+				Name:      v.Name,
+				Metadata:  v.metadata,
+				Documents: v.documents,
+			}
 		}
 	}
 
