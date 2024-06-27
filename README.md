@@ -166,7 +166,6 @@ For the full interface see the Godoc: <https://pkg.go.dev/github.com/philippgill
 ### Roadmap
 
 - Performance:
-  - Use SIMD for dot product calculation on supported CPUs (draft PR: [#48](https://github.com/philippgille/chromem-go/pull/48))
   - Add [roaring bitmaps](https://github.com/RoaringBitmap/roaring) to speed up full text filtering
 - Embedding creators:
   - Add an `EmbeddingFunc` that downloads and shells out to [llamafile](https://github.com/Mozilla-Ocho/llamafile)
