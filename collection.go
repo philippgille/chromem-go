@@ -111,23 +111,7 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 		safeName := hash2hex(name)
 		c.persistDirectory = filepath.Join(dbDir, safeName)
 		c.compress = compress
-		// Persist name and metadata
-		metadataPath := filepath.Join(c.persistDirectory, metadataFileName)
-		metadataPath += ".gob"
-		if c.compress {
-			metadataPath += ".gz"
-		}
-		pc := struct {
-			Name     string
-			Metadata map[string]string
-		}{
-			Name:     name,
-			Metadata: m,
-		}
-		err := persistToFile(metadataPath, pc, compress, "")
-		if err != nil {
-			return nil, fmt.Errorf("couldn't persist collection metadata: %w", err)
-		}
+		return c, c.persistMetadata()
 	}
 
 	return c, nil
@@ -544,4 +528,27 @@ func (c *Collection) getDocPath(docID string) string {
 		docPath += ".gz"
 	}
 	return docPath
+}
+
+// persistMetadata persists the collection metadata to disk
+func (c *Collection) persistMetadata() error {
+	// Persist name and metadata
+	metadataPath := filepath.Join(c.persistDirectory, metadataFileName)
+	metadataPath += ".gob"
+	if c.compress {
+		metadataPath += ".gz"
+	}
+	pc := struct {
+		Name     string
+		Metadata map[string]string
+	}{
+		Name:     c.Name,
+		Metadata: c.metadata,
+	}
+	err := persistToFile(metadataPath, pc, c.compress, "")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
