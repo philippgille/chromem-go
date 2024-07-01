@@ -259,9 +259,13 @@ func (db *DB) ImportFromFile(filePath string, encryptionKey string, collections 
 		if db.persistDirectory != "" {
 			c.persistDirectory = filepath.Join(db.persistDirectory, hash2hex(pc.Name))
 			c.compress = db.compress
+			err = c.persistMetadata()
+			if err != nil {
+				return fmt.Errorf("couldn't persist collection metadata: %w", err)
+			}
 			for _, doc := range c.documents {
 				docPath := c.getDocPath(doc.ID)
-				err := persistToFile(docPath, doc, c.compress, "")
+				err = persistToFile(docPath, doc, c.compress, "")
 				if err != nil {
 					return fmt.Errorf("couldn't persist document to %q: %w", docPath, err)
 				}
@@ -326,6 +330,10 @@ func (db *DB) ImportFromReader(reader io.ReadSeeker, encryptionKey string, colle
 		if db.persistDirectory != "" {
 			c.persistDirectory = filepath.Join(db.persistDirectory, hash2hex(pc.Name))
 			c.compress = db.compress
+			err = c.persistMetadata()
+			if err != nil {
+				return fmt.Errorf("couldn't persist collection metadata: %w", err)
+			}
 			for _, doc := range c.documents {
 				docPath := c.getDocPath(doc.ID)
 				err := persistToFile(docPath, doc, c.compress, "")
