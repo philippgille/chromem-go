@@ -116,10 +116,10 @@ func TestDB_ImportExport(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create DB, can just be in-memory
-			orig := NewDB()
+			origDB := NewDB()
 
 			// Create collection
-			c, err := orig.CreateCollection(name, metadata, embeddingFunc)
+			c, err := origDB.CreateCollection(name, metadata, embeddingFunc)
 			if err != nil {
 				t.Fatal("expected no error, got", err)
 			}
@@ -139,15 +139,15 @@ func TestDB_ImportExport(t *testing.T) {
 			}
 
 			// Export
-			err = orig.ExportToFile(tc.filePath, tc.compress, tc.encryptionKey)
+			err = origDB.ExportToFile(tc.filePath, tc.compress, tc.encryptionKey)
 			if err != nil {
 				t.Fatal("expected no error, got", err)
 			}
 
-			new := NewDB()
+			newDB := NewDB()
 
 			// Import
-			err = new.ImportFromFile(tc.filePath, tc.encryptionKey)
+			err = newDB.ImportFromFile(tc.filePath, tc.encryptionKey)
 			if err != nil {
 				t.Fatal("expected no error, got", err)
 			}
@@ -156,10 +156,126 @@ func TestDB_ImportExport(t *testing.T) {
 			// We have to reset the embed function, but otherwise the DB objects
 			// should be deep equal.
 			c.embed = nil
-			if !reflect.DeepEqual(orig, new) {
-				t.Fatalf("expected DB %+v, got %+v", orig, new)
+			if !reflect.DeepEqual(origDB, newDB) {
+				t.Fatalf("expected DB %+v, got %+v", origDB, newDB)
 			}
 		})
+	}
+}
+
+func TestDB_ImportExportSpecificCollections(t *testing.T) {
+	r := rand.New(rand.NewSource(rand.Int63()))
+	randString := randomString(r, 10)
+	path := filepath.Join(os.TempDir(), randString)
+	filePath := path + ".gob"
+	defer os.RemoveAll(path)
+
+	// Values in the collection
+	name := "test"
+	name2 := "test2"
+	metadata := map[string]string{"foo": "bar"}
+	vectors := []float32{-0.40824828, 0.40824828, 0.81649655} // normalized version of `{-0.1, 0.1, 0.2}`
+	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
+		return vectors, nil
+	}
+
+	// Create DB, can just be in-memory
+	origDB := NewDB()
+
+	// Create collections
+	c, err := origDB.CreateCollection(name, metadata, embeddingFunc)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	c2, err := origDB.CreateCollection(name2, metadata, embeddingFunc)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	// Add documents
+	doc := Document{
+		ID:        name,
+		Metadata:  metadata,
+		Embedding: vectors,
+		Content:   "test",
+	}
+
+	doc2 := Document{
+		ID:        name2,
+		Metadata:  metadata,
+		Embedding: vectors,
+		Content:   "test2",
+	}
+
+	err = c.AddDocument(context.Background(), doc)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	err = c2.AddDocument(context.Background(), doc2)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	// Export only one of the two collections
+	err = origDB.ExportToFile(filePath, false, "", name2)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	dir := filepath.Join(path, randomString(r, 10))
+	defer os.RemoveAll(dir)
+
+	// Instead of importing to an in-memory DB we use a persistent one to cover the behavior of immediate persistent files being created for the imported data
+	newPDB, err := NewPersistentDB(dir, false)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	err = newPDB.ImportFromFile(filePath, "")
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	if len(newPDB.collections) != 1 {
+		t.Fatalf("expected 1 collection, got %d", len(newPDB.collections))
+	}
+
+	// Make sure that the imported documents are actually persisted on disk
+	for _, col := range newPDB.collections {
+		for _, d := range col.documents {
+			_, err = os.Stat(col.getDocPath(d.ID))
+			if err != nil {
+				t.Fatalf("expected no error when looking up persistent file for doc %q, got %v", d.ID, err)
+			}
+		}
+	}
+
+	// Now export both collections and import them into the same persistent DB (overwriting the one we just imported)
+	filePath2 := filepath.Join(path, "2.gob")
+	err = origDB.ExportToFile(filePath2, false, "")
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	err = newPDB.ImportFromFile(filePath2, "")
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	if len(newPDB.collections) != 2 {
+		t.Fatalf("expected 2 collections, got %d", len(newPDB.collections))
+	}
+
+	// Make sure that the imported documents are actually persisted on disk
+	for _, col := range newPDB.collections {
+		for _, d := range col.documents {
+			_, err = os.Stat(col.getDocPath(d.ID))
+			if err != nil {
+				t.Fatalf("expected no error when looking up persistent file for doc %q, got %v", d.ID, err)
+			}
+		}
 	}
 }
 
