@@ -202,7 +202,8 @@ func (db *DB) Import(filePath string, encryptionKey string) error {
 //   - filePath: Mandatory, must not be empty
 //   - encryptionKey: Optional, must be 32 bytes long if provided
 //   - collections: Optional. If provided, only the collections with the given names
-//     are imported. If not provided, all collections are imported.
+//     are imported. Non-existing collections are ignored.
+//     If not provided, all collections are imported.
 func (db *DB) ImportFromFile(filePath string, encryptionKey string, collections ...string) error {
 	if filePath == "" {
 		return fmt.Errorf("file path is empty")
@@ -287,7 +288,8 @@ func (db *DB) ImportFromFile(filePath string, encryptionKey string, collections 
 //   - reader: An implementation of [io.ReadSeeker]
 //   - encryptionKey: Optional, must be 32 bytes long if provided
 //   - collections: Optional. If provided, only the collections with the given names
-//     are imported. If not provided, all collections are imported.
+//     are imported. Non-existing collections are ignored.
+//     If not provided, all collections are imported.
 func (db *DB) ImportFromReader(reader io.ReadSeeker, encryptionKey string, collections ...string) error {
 	if encryptionKey != "" {
 		// AES 256 requires a 32 byte key
@@ -373,7 +375,8 @@ func (db *DB) Export(filePath string, compress bool, encryptionKey string) error
 //   - encryptionKey: Optional. Encrypts with AES-GCM if provided. Must be 32 bytes
 //     long if provided.
 //   - collections: Optional. If provided, only the collections with the given names
-//     are exported. If not provided, all collections are exported.
+//     are exported. Non-existing collections are ignored.
+//     If not provided, all collections are exported.
 func (db *DB) ExportToFile(filePath string, compress bool, encryptionKey string, collections ...string) error {
 	if filePath == "" {
 		filePath = "./chromem-go.gob"
@@ -435,7 +438,8 @@ func (db *DB) ExportToFile(filePath string, compress bool, encryptionKey string,
 //   - encryptionKey: Optional. Encrypts with AES-GCM if provided. Must be 32 bytes
 //     long if provided.
 //   - collections: Optional. If provided, only the collections with the given names
-//     are exported. If not provided, all collections are exported.
+//     are exported. Non-existing collections are ignored.
+//     If not provided, all collections are exported.
 func (db *DB) ExportToWriter(writer io.Writer, compress bool, encryptionKey string, collections ...string) error {
 	if encryptionKey != "" {
 		// AES 256 requires a 32 byte key

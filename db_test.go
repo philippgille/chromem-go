@@ -116,10 +116,10 @@ func TestDB_ImportExport(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create DB, can just be in-memory
-			orig := NewDB()
+			origDB := NewDB()
 
 			// Create collection
-			c, err := orig.CreateCollection(name, metadata, embeddingFunc)
+			c, err := origDB.CreateCollection(name, metadata, embeddingFunc)
 			if err != nil {
 				t.Fatal("expected no error, got", err)
 			}
@@ -139,7 +139,7 @@ func TestDB_ImportExport(t *testing.T) {
 			}
 
 			// Export
-			err = orig.ExportToFile(tc.filePath, tc.compress, tc.encryptionKey)
+			err = origDB.ExportToFile(tc.filePath, tc.compress, tc.encryptionKey)
 			if err != nil {
 				t.Fatal("expected no error, got", err)
 			}
@@ -156,8 +156,8 @@ func TestDB_ImportExport(t *testing.T) {
 			// We have to reset the embed function, but otherwise the DB objects
 			// should be deep equal.
 			c.embed = nil
-			if !reflect.DeepEqual(orig, newDB) {
-				t.Fatalf("expected DB %+v, got %+v", orig, newDB)
+			if !reflect.DeepEqual(origDB, newDB) {
+				t.Fatalf("expected DB %+v, got %+v", origDB, newDB)
 			}
 		})
 	}
@@ -180,15 +180,15 @@ func TestDB_ImportExportSpecificCollections(t *testing.T) {
 	}
 
 	// Create DB, can just be in-memory
-	orig := NewDB()
+	origDB := NewDB()
 
 	// Create collections
-	c, err := orig.CreateCollection(name, metadata, embeddingFunc)
+	c, err := origDB.CreateCollection(name, metadata, embeddingFunc)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
 
-	c2, err := orig.CreateCollection(name2, metadata, embeddingFunc)
+	c2, err := origDB.CreateCollection(name2, metadata, embeddingFunc)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
@@ -218,8 +218,8 @@ func TestDB_ImportExportSpecificCollections(t *testing.T) {
 		t.Fatal("expected no error, got", err)
 	}
 
-	// Export
-	err = orig.ExportToFile(filePath, false, "", name2)
+	// Export only one of the two collections
+	err = origDB.ExportToFile(filePath, false, "", name2)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
@@ -227,6 +227,7 @@ func TestDB_ImportExportSpecificCollections(t *testing.T) {
 	dir := filepath.Join(path, randomString(r, 10))
 	defer os.RemoveAll(dir)
 
+	// Instead of importing to an in-memory DB we use a persistent one to cover the behavior of immediate persistent files being created for the imported data
 	newPDB, err := NewPersistentDB(dir, false)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
@@ -252,8 +253,8 @@ func TestDB_ImportExportSpecificCollections(t *testing.T) {
 	}
 
 	// Now export both collections and import them into the same persistent DB (overwriting the one we just imported)
-	filePath2 := path + "2.gob"
-	err = orig.ExportToFile(filePath2, false, "")
+	filePath2 := filepath.Join(path, "2.gob")
+	err = origDB.ExportToFile(filePath2, false, "")
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
