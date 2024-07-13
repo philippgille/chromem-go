@@ -126,7 +126,7 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 //     you can filter on this metadata. Optional.
 //   - contents: The contents to associate with the embeddings.
 //
-// This is a Chroma-like method. For a more Go-idiomatic one, see [AddDocuments].
+// This is a Chroma-like method. For a more Go-idiomatic one, see [Collection.AddDocuments].
 func (c *Collection) Add(ctx context.Context, ids []string, embeddings [][]float32, metadatas []map[string]string, contents []string) error {
 	return c.AddConcurrently(ctx, ids, embeddings, metadatas, contents, 1)
 }
@@ -135,7 +135,7 @@ func (c *Collection) Add(ctx context.Context, ids []string, embeddings [][]float
 // This is mostly useful when you don't pass any embeddings, so they have to be created.
 // Upon error, concurrently running operations are canceled and the error is returned.
 //
-// This is a Chroma-like method. For a more Go-idiomatic one, see [AddDocuments].
+// This is a Chroma-like method. For a more Go-idiomatic one, see [Collection.AddDocuments].
 func (c *Collection) AddConcurrently(ctx context.Context, ids []string, embeddings [][]float32, metadatas []map[string]string, contents []string, concurrency int) error {
 	if len(ids) == 0 {
 		return errors.New("ids are empty")
