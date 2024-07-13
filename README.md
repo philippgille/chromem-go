@@ -141,6 +141,7 @@ For the full interface see the Godoc: <https://pkg.go.dev/github.com/philippgill
 - Embedding creators:
   - Hosted:
     - [X] [OpenAI](https://platform.openai.com/docs/guides/embeddings/embedding-models) (default)
+    - [X] [Azure OpenAI](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/embeddings)
     - [X] [Cohere](https://cohere.com/models/embed)
     - [X] [Mistral](https://docs.mistral.ai/platform/endpoints/#embedding-models)
     - [X] [Jina](https://jina.ai/embeddings)
