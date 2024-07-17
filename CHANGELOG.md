@@ -14,11 +14,24 @@ vNext
 - Added `DB.ImportFromReader()` to allow users to pass any `io.ReadSeeker` implementation for the DB import, not just a file. This allows for example to import the DB from AWS S3 or compatible services (like Ceph, MinIO etc.). (PR [#72](https://github.com/philippgille/chromem-go/pull/72))
 - Added example code for S3 export/import with the ⬆️ new methods (PR [#73](https://github.com/philippgille/chromem-go/pull/73))
 - Added Azure OpenAI compatibility (PR [#74](https://github.com/philippgille/chromem-go/pull/74) by [@iwilltry42](https://github.com/iwilltry42))
+- Added lint job in GitHub Action (PR [#82](https://github.com/philippgille/chromem-go/pull/82) by [@erikdubbelboer](https://github.com/@erikdubbelboer))
+- Added the feature to run a *negative* query and either filter or subtract them from the regular query results (PR [#80](https://github.com/philippgille/chromem-go/pull/80) by [@erikdubbelboer](https://github.com/@erikdubbelboer))
+  - This PR also added the new `DB.QueryWithOptions` method and related options structs and constants for future extensibility without breaking the parameter list of the query method!
+- Added option to only import/export selected collections to/from a DB (PR [#88](https://github.com/philippgille/chromem-go/pull/88) by [@iwilltry42](https://github.com/iwilltry42))
+
+### Improved
+
+- Changed license from AGPL to MPL (PR [#87](https://github.com/philippgille/chromem-go/pull/87))
 
 ### Fixed
 
 - The `Collection.QueryEmbedding()` call assumed/expected the query embedding from the parameter to be normalized already, but it wasn't documented and it's also inconvenient for users who use an embedding model/API that doesn't return normalized embeddings. Now we check whether the embedding is normalized and if it's not then we normalize it. (PR [#77](https://github.com/philippgille/chromem-go/pull/77))
   - (Currently `chromem-go` only does cosine similarity, and document embeddings are already being normalized, so the query embedding has to be normalized as well. In the future we might offer other distance functions or allow to inject your own and make the normalization optional)
+- Fixed test panic on unexpected pass (PR [#78](https://github.com/philippgille/chromem-go/pull/78))
+- Fixed out of range panic on query (PR [#79](https://github.com/philippgille/chromem-go/pull/79))
+- Fixed all `golangci-lint` warnings (PR [#82](https://github.com/philippgille/chromem-go/pull/82) by [@erikdubbelboer](https://github.com/@erikdubbelboer))
+- Fixed grammar and inconsistent receiver names (PR [#85](https://github.com/philippgille/chromem-go/pull/85) by [@codefromthecrypt](https://github.com/codefromthecrypt))
+- Fixed link in Godoc (PR [#89](https://github.com/philippgille/chromem-go/pull/89))
 
 v0.6.0 (2024-04-25)
 -------------------
