@@ -99,5 +99,5 @@ func NewEmbeddingFuncAzureOpenAI(apiKey string, deploymentURL string, apiVersion
 	if apiVersion == "" {
 		apiVersion = azureDefaultAPIVersion
 	}
-	return newEmbeddingFuncOpenAICompat(deploymentURL, apiKey, model, nil, map[string]string{"api-key": apiKey}, map[string]string{"api-version": apiVersion})
+	return NewEmbeddingFuncOpenAICompat(deploymentURL, apiKey, model, nil, WithOpenAICompatHeaders(map[string]string{"api-key": apiKey}), WithOpenAICompatQueryParams(map[string]string{"api-version": apiVersion}))
 }
