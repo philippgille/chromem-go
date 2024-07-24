@@ -43,8 +43,7 @@ func NewEmbeddingFuncDefault() EmbeddingFunc {
 // using the OpenAI API.
 func NewEmbeddingFuncOpenAI(apiKey string, model EmbeddingModelOpenAI) EmbeddingFunc {
 	// OpenAI embeddings are normalized
-	normalized := true
-	return NewEmbeddingFuncOpenAICompat(BaseURLOpenAI, apiKey, string(model), &normalized)
+	return NewEmbeddingFuncOpenAICompat(NewOpenAICompatConfig(BaseURLOpenAI, apiKey, string(model)).WithNormalized(true))
 }
 
 // NewEmbeddingFuncOpenAICompat returns a function that creates embeddings for a text
@@ -61,16 +60,15 @@ func NewEmbeddingFuncOpenAI(apiKey string, model EmbeddingModelOpenAI) Embedding
 // model are already normalized, as is the case for OpenAI's and Mistral's models.
 // The flag is optional. If it's nil, it will be autodetected on the first request
 // (which bears a small risk that the vector just happens to have a length of 1).
-func NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model string, normalized *bool, opts ...OpenAICompatOption) EmbeddingFunc {
+func NewEmbeddingFuncOpenAICompat(config *openAICompatConfig) EmbeddingFunc {
+	if config == nil {
+		panic("config must not be nil")
+	}
+
 	// We don't set a default timeout here, although it's usually a good idea.
 	// In our case though, the library user can set the timeout on the context,
 	// and it might have to be a long timeout, depending on the text length.
 	client := &http.Client{}
-
-	cfg := DefaultOpenAICompatOptions()
-	for _, opt := range opts {
-		opt(cfg)
-	}
 
 	var checkedNormalized bool
 	checkNormalized := sync.Once{}
@@ -79,13 +77,13 @@ func NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model string, normalized *boo
 		// Prepare the request body.
 		reqBody, err := json.Marshal(map[string]string{
 			"input": text,
-			"model": model,
+			"model": config.model,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("couldn't marshal request body: %w", err)
 		}
 
-		fullURL, err := url.JoinPath(baseURL, cfg.EmbeddingsEndpoint)
+		fullURL, err := url.JoinPath(config.baseURL, config.embeddingsEndpoint)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't join base URL and endpoint: %w", err)
 		}
@@ -97,16 +95,16 @@ func NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model string, normalized *boo
 			return nil, fmt.Errorf("couldn't create request: %w", err)
 		}
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+apiKey)
+		req.Header.Set("Authorization", "Bearer "+config.apiKey)
 
 		// Add headers
-		for k, v := range cfg.Headers {
+		for k, v := range config.headers {
 			req.Header.Add(k, v)
 		}
 
 		// Add query parameters
 		q := req.URL.Query()
-		for k, v := range cfg.QueryParams {
+		for k, v := range config.queryParams {
 			q.Add(k, v)
 		}
 		req.URL.RawQuery = q.Encode()
@@ -140,8 +138,8 @@ func NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model string, normalized *boo
 		}
 
 		v := embeddingResponse.Data[0].Embedding
-		if normalized != nil {
-			if *normalized {
+		if config.normalized != nil {
+			if *config.normalized {
 				return v, nil
 			}
 			return normalizeVector(v), nil
@@ -161,34 +159,44 @@ func NewEmbeddingFuncOpenAICompat(baseURL, apiKey, model string, normalized *boo
 	}
 }
 
-type OpenAICompatOptions struct {
-	EmbeddingsEndpoint string
-	Headers            map[string]string
-	QueryParams        map[string]string
+type openAICompatConfig struct {
+	baseURL string
+	apiKey  string
+	model   string
+
+	// Optional
+	normalized         *bool
+	embeddingsEndpoint string
+	headers            map[string]string
+	queryParams        map[string]string
 }
 
-type OpenAICompatOption func(*OpenAICompatOptions)
+func NewOpenAICompatConfig(baseURL, apiKey, model string) *openAICompatConfig {
+	return &openAICompatConfig{
+		baseURL: baseURL,
+		apiKey:  apiKey,
+		model:   model,
 
-func WithOpenAICompatEmbeddingsEndpointOverride(endpoint string) OpenAICompatOption {
-	return func(o *OpenAICompatOptions) {
-		o.EmbeddingsEndpoint = endpoint
+		embeddingsEndpoint: "/embeddings",
 	}
 }
 
-func WithOpenAICompatHeaders(headers map[string]string) OpenAICompatOption {
-	return func(o *OpenAICompatOptions) {
-		o.Headers = headers
-	}
+func (c *openAICompatConfig) WithEmbeddingsEndpoint(endpoint string) *openAICompatConfig {
+	c.embeddingsEndpoint = endpoint
+	return c
 }
 
-func WithOpenAICompatQueryParams(queryParams map[string]string) OpenAICompatOption {
-	return func(o *OpenAICompatOptions) {
-		o.QueryParams = queryParams
-	}
+func (c *openAICompatConfig) WithHeaders(headers map[string]string) *openAICompatConfig {
+	c.headers = headers
+	return c
 }
 
-func DefaultOpenAICompatOptions() *OpenAICompatOptions {
-	return &OpenAICompatOptions{
-		EmbeddingsEndpoint: "/embeddings",
-	}
+func (c *openAICompatConfig) WithQueryParams(queryParams map[string]string) *openAICompatConfig {
+	c.queryParams = queryParams
+	return c
+}
+
+func (c *openAICompatConfig) WithNormalized(normalized bool) *openAICompatConfig {
+	c.normalized = &normalized
+	return c
 }
