@@ -11,68 +11,68 @@ import (
 	"sync"
 )
 
-type EmbeddingModelGoogle string
+type EmbeddingModelVertex string
 
 const (
-	EmbeddingModelGoogleEnglishV1 EmbeddingModelGoogle = "textembedding-gecko@001"
-	EmbeddingModelGoogleEnglishV2 EmbeddingModelGoogle = "textembedding-gecko@002"
-	EmbeddingModelGoogleEnglishV3 EmbeddingModelGoogle = "textembedding-gecko@003"
-	EmbeddingModelGoogleEnglishV4 EmbeddingModelGoogle = "text-embedding-004"
+	EmbeddingModelVertexEnglishV1 EmbeddingModelVertex = "textembedding-gecko@001"
+	EmbeddingModelVertexEnglishV2 EmbeddingModelVertex = "textembedding-gecko@002"
+	EmbeddingModelVertexEnglishV3 EmbeddingModelVertex = "textembedding-gecko@003"
+	EmbeddingModelVertexEnglishV4 EmbeddingModelVertex = "text-embedding-004"
 
-	EmbeddingModelGoogleMultilingualV1 EmbeddingModelGoogle = "textembedding-gecko-multilingual@001"
-	EmbeddingModelGoogleMultilingualV2 EmbeddingModelGoogle = "text-multilingual-embedding-002"
+	EmbeddingModelVertexMultilingualV1 EmbeddingModelVertex = "textembedding-gecko-multilingual@001"
+	EmbeddingModelVertexMultilingualV2 EmbeddingModelVertex = "text-multilingual-embedding-002"
 )
 
-const baseURLGoogle = "https://us-central1-aiplatform.googleapis.com/v1"
+const baseURLVertex = "https://us-central1-aiplatform.googleapis.com/v1"
 
-type GoogleOptions struct {
+type VertexOptions struct {
 	APIEndpoint  string
 	AutoTruncate bool
 }
 
-func DefaultGoogleOptions() *GoogleOptions {
-	return &GoogleOptions{
-		APIEndpoint:  baseURLGoogle,
+func DefaultVertexOptions() *VertexOptions {
+	return &VertexOptions{
+		APIEndpoint:  baseURLVertex,
 		AutoTruncate: false,
 	}
 }
 
-type GoogleOption func(*GoogleOptions)
+type VertexOption func(*VertexOptions)
 
-func WithGoogleAPIEndpoint(apiEndpoint string) GoogleOption {
-	return func(o *GoogleOptions) {
+func WithVertexAPIEndpoint(apiEndpoint string) VertexOption {
+	return func(o *VertexOptions) {
 		o.APIEndpoint = apiEndpoint
 	}
 }
 
-func WithGoogleAutoTruncate(autoTruncate bool) GoogleOption {
-	return func(o *GoogleOptions) {
+func WithVertexAutoTruncate(autoTruncate bool) VertexOption {
+	return func(o *VertexOptions) {
 		o.AutoTruncate = autoTruncate
 	}
 }
 
-type googleResponse struct {
-	Predictions []googlePrediction `json:"predictions"`
+type vertexResponse struct {
+	Predictions []vertexPrediction `json:"predictions"`
 }
 
-type googlePrediction struct {
-	Embeddings googleEmbeddings `json:"embeddings"`
+type vertexPrediction struct {
+	Embeddings vertexEmbeddings `json:"embeddings"`
 }
 
-type googleEmbeddings struct {
+type vertexEmbeddings struct {
 	Values []float32 `json:"values"`
 	// there's more here, but we only care about the embeddings
 }
 
-func NewEmbeddingFuncGoogle(apiKey, project string, model EmbeddingModelGoogle, opts ...GoogleOption) EmbeddingFunc {
+func NewEmbeddingFuncVertex(apiKey, project string, model EmbeddingModelVertex, opts ...VertexOption) EmbeddingFunc {
 
-	cfg := DefaultGoogleOptions()
+	cfg := DefaultVertexOptions()
 	for _, opt := range opts {
 		opt(cfg)
 	}
 
 	if cfg.APIEndpoint == "" {
-		cfg.APIEndpoint = baseURLGoogle
+		cfg.APIEndpoint = baseURLVertex
 	}
 
 	// We don't set a default timeout here, although it's usually a good idea.
@@ -131,7 +131,7 @@ func NewEmbeddingFuncGoogle(apiKey, project string, model EmbeddingModelGoogle, 
 		if err != nil {
 			return nil, fmt.Errorf("couldn't read response body: %w", err)
 		}
-		var embeddingResponse googleResponse
+		var embeddingResponse vertexResponse
 		err = json.Unmarshal(body, &embeddingResponse)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't unmarshal response body: %w", err)
