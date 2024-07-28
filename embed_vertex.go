@@ -30,9 +30,9 @@ type vertexOptions struct {
 	autoTruncate bool
 }
 
-// NewVertexOptions creates a new vertexOptions struct with default values.
+// DefaultVertexOptions creates a new vertexOptions struct with default values.
 // Use the `With...()` methods to change them.
-func NewVertexOptions() *vertexOptions {
+func DefaultVertexOptions() *vertexOptions {
 	return &vertexOptions{
 		apiEndpoint:  baseURLVertex,
 		autoTruncate: false,
@@ -66,7 +66,7 @@ type vertexEmbeddings struct {
 // For the opts you can pass nil to use the default options.
 func NewEmbeddingFuncVertex(apiKey, project string, model EmbeddingModelVertex, opts *vertexOptions) EmbeddingFunc {
 	if opts == nil {
-		opts = NewVertexOptions()
+		opts = DefaultVertexOptions()
 	}
 
 	// We don't set a default timeout here, although it's usually a good idea.
