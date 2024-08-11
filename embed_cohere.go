@@ -15,9 +15,10 @@ import (
 type EmbeddingModelCohere string
 
 const (
-	EmbeddingModelCohereMultilingualV2      EmbeddingModelCohere = "embed-multilingual-v2.0"
-	EmbeddingModelCohereEnglishLightV2      EmbeddingModelCohere = "embed-english-light-v2.0"
-	EmbeddingModelCohereEnglishV2           EmbeddingModelCohere = "embed-english-v2.0"
+	EmbeddingModelCohereMultilingualV2 EmbeddingModelCohere = "embed-multilingual-v2.0"
+	EmbeddingModelCohereEnglishLightV2 EmbeddingModelCohere = "embed-english-light-v2.0"
+	EmbeddingModelCohereEnglishV2      EmbeddingModelCohere = "embed-english-v2.0"
+
 	EmbeddingModelCohereMultilingualLightV3 EmbeddingModelCohere = "embed-multilingual-light-v3.0"
 	EmbeddingModelCohereEnglishLightV3      EmbeddingModelCohere = "embed-english-light-v3.0"
 	EmbeddingModelCohereMultilingualV3      EmbeddingModelCohere = "embed-multilingual-v3.0"
