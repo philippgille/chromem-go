@@ -44,14 +44,26 @@ const baseURLMixedbread = "https://api.mixedbread.ai"
 type EmbeddingModelMixedbread string
 
 const (
-	EmbeddingModelMixedbreadUAELargeV1          EmbeddingModelMixedbread = "UAE-Large-V1"
-	EmbeddingModelMixedbreadBGELargeENV15       EmbeddingModelMixedbread = "bge-large-en-v1.5"
-	EmbeddingModelMixedbreadGTELarge            EmbeddingModelMixedbread = "gte-large"
-	EmbeddingModelMixedbreadE5LargeV2           EmbeddingModelMixedbread = "e5-large-v2"
+	// Possibly outdated / not available anymore
+	EmbeddingModelMixedbreadUAELargeV1 EmbeddingModelMixedbread = "UAE-Large-V1"
+	// Possibly outdated / not available anymore
+	EmbeddingModelMixedbreadBGELargeENV15 EmbeddingModelMixedbread = "bge-large-en-v1.5"
+	// Possibly outdated / not available anymore
+	EmbeddingModelMixedbreadGTELarge EmbeddingModelMixedbread = "gte-large"
+	// Possibly outdated / not available anymore
+	EmbeddingModelMixedbreadE5LargeV2 EmbeddingModelMixedbread = "e5-large-v2"
+	// Possibly outdated / not available anymore
 	EmbeddingModelMixedbreadMultilingualE5Large EmbeddingModelMixedbread = "multilingual-e5-large"
-	EmbeddingModelMixedbreadMultilingualE5Base  EmbeddingModelMixedbread = "multilingual-e5-base"
-	EmbeddingModelMixedbreadAllMiniLML6V2       EmbeddingModelMixedbread = "all-MiniLM-L6-v2"
-	EmbeddingModelMixedbreadGTELargeZh          EmbeddingModelMixedbread = "gte-large-zh"
+	// Possibly outdated / not available anymore
+	EmbeddingModelMixedbreadMultilingualE5Base EmbeddingModelMixedbread = "multilingual-e5-base"
+	// Possibly outdated / not available anymore
+	EmbeddingModelMixedbreadAllMiniLML6V2 EmbeddingModelMixedbread = "all-MiniLM-L6-v2"
+	// Possibly outdated / not available anymore
+	EmbeddingModelMixedbreadGTELargeZh EmbeddingModelMixedbread = "gte-large-zh"
+
+	EmbeddingModelMixedbreadLargeV1          EmbeddingModelMixedbread = "mxbai-embed-large-v1"
+	EmbeddingModelMixedbreadDeepsetDELargeV1 EmbeddingModelMixedbread = "deepset-mxbai-embed-de-large-v1"
+	EmbeddingModelMixedbread2DLargeV1        EmbeddingModelMixedbread = "mxbai-embed-2d-large-v1"
 )
 
 // NewEmbeddingFuncMixedbread returns a function that creates embeddings for a text
