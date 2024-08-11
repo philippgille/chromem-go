@@ -23,10 +23,14 @@ const baseURLJina = "https://api.jina.ai/v1"
 type EmbeddingModelJina string
 
 const (
-	EmbeddingModelJina2BaseEN   EmbeddingModelJina = "jina-embeddings-v2-base-en"
-	EmbeddingModelJina2BaseDE   EmbeddingModelJina = "jina-embeddings-v2-base-de"
+	EmbeddingModelJina2BaseEN EmbeddingModelJina = "jina-embeddings-v2-base-en"
+	EmbeddingModelJina2BaseES EmbeddingModelJina = "jina-embeddings-v2-base-es"
+	EmbeddingModelJina2BaseDE EmbeddingModelJina = "jina-embeddings-v2-base-de"
+	EmbeddingModelJina2BaseZH EmbeddingModelJina = "jina-embeddings-v2-base-zh"
+
 	EmbeddingModelJina2BaseCode EmbeddingModelJina = "jina-embeddings-v2-base-code"
-	EmbeddingModelJina2BaseZH   EmbeddingModelJina = "jina-embeddings-v2-base-zh"
+
+	EmbeddingModelJinaClipV1 EmbeddingModelJina = "jina-clip-v1"
 )
 
 // NewEmbeddingFuncJina returns a function that creates embeddings for a text
