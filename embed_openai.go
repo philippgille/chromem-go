@@ -17,7 +17,8 @@ const BaseURLOpenAI = "https://api.openai.com/v1"
 type EmbeddingModelOpenAI string
 
 const (
-	EmbeddingModelOpenAI2Ada   EmbeddingModelOpenAI = "text-embedding-ada-002"
+	EmbeddingModelOpenAI2Ada EmbeddingModelOpenAI = "text-embedding-ada-002"
+
 	EmbeddingModelOpenAI3Small EmbeddingModelOpenAI = "text-embedding-3-small"
 	EmbeddingModelOpenAI3Large EmbeddingModelOpenAI = "text-embedding-3-large"
 )
