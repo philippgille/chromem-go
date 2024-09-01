@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 vNext
 -----
 
+v0.7.0 (2024-09-01)
+-------------------
+
+Highlights in this release are the possibility to export/import the DB to/from object storage like S3, a way to run a *negative* query and either filter or subtract the results from the regular query results, and the license change from AGPL to MPL. But many other additions, improvements and important fixes made it into this release as well, all without breaking changes:
+
 ### Added
 
 - Added `DB.ExportToWriter()` to allow users to pass any `io.Writer` implementation for the DB export, not just a file. This allows for example to export the DB to AWS S3 or compatible services (like Ceph, MinIO etc.). (PR [#71](https://github.com/philippgille/chromem-go/pull/71))
