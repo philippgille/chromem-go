@@ -62,8 +62,9 @@ func NewDB() *DB {
 // will make this configurable (encoding, async writes, WAL-based writes, etc.).
 //
 // In addition to persistence for each added collection and document you can use
-// [DB.Export] and [DB.Import] to export and import the entire DB to/from a file,
-// which also works for the pure in-memory DB.
+// [DB.ExportToFile] / [DB.ExportToWriter] and [DB.ImportFromFile] /
+// [DB.ImportFromReader] to export and import the entire DB to/from a file or
+// writer/reader, which also works for the pure in-memory DB.
 func NewPersistentDB(path string, compress bool) (*DB, error) {
 	if path == "" {
 		path = "./chromem-go"
@@ -509,7 +510,7 @@ func (db *DB) CreateCollection(name string, metadata map[string]string, embeddin
 // ListCollections returns all collections in the DB, mapping name->Collection.
 // The returned map is a copy of the internal map, so it's safe to directly modify
 // the map itself. Direct modifications of the map won't reflect on the DB's map.
-// To do that use the DB's methods like CreateCollection() and DeleteCollection().
+// To do that use the DB's methods like [DB.CreateCollection] and [DB.DeleteCollection].
 // The map is not an entirely deep clone, so the collections themselves are still
 // the original ones. Any methods on the collections like Add() for adding documents
 // will be reflected on the DB's collections and are concurrency-safe.
