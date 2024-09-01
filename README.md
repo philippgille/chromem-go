@@ -115,7 +115,7 @@ func main() {
         []string{"This is document1", "This is document2"},
     )
 
-    // Query/search 2 most similar results. Getting by ID will be added in the future.
+    // Query/search 2 most similar results. You can also get by ID.
     results, _ := collection.Query(ctx,
         "This is a query document",
         2,
@@ -142,6 +142,7 @@ For the full interface see the Godoc: <https://pkg.go.dev/github.com/philippgill
   - Hosted:
     - [X] [OpenAI](https://platform.openai.com/docs/guides/embeddings/embedding-models) (default)
     - [X] [Azure OpenAI](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/embeddings)
+    - [X] [GCP Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings)
     - [X] [Cohere](https://cohere.com/models/embed)
     - [X] [Mistral](https://docs.mistral.ai/platform/endpoints/#embedding-models)
     - [X] [Jina](https://jina.ai/embeddings)
