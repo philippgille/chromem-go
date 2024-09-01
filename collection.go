@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"slices"
 	"sync"
@@ -289,6 +290,31 @@ func (c *Collection) AddDocument(ctx context.Context, doc Document) error {
 	}
 
 	return nil
+}
+
+// GetByID returns a document by its ID.
+// The returned document is a copy of the original document, so it can be safely
+// modified without affecting the collection.
+func (c *Collection) GetByID(ctx context.Context, id string) (Document, error) {
+	if id == "" {
+		return Document{}, errors.New("document ID is empty")
+	}
+
+	c.documentsLock.RLock()
+	defer c.documentsLock.RUnlock()
+
+	doc, ok := c.documents[id]
+	if ok {
+		// Clone the document
+		res := *doc
+		// Above copies the simple fields, but we need to copy the slices and maps
+		res.Metadata = maps.Clone(doc.Metadata)
+		res.Embedding = slices.Clone(doc.Embedding)
+
+		return res, nil
+	}
+
+	return Document{}, fmt.Errorf("document with ID '%v' not found", id)
 }
 
 // Delete removes document(s) from the collection.
