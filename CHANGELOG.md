@@ -18,7 +18,7 @@ vNext
 - Added the feature to run a *negative* query and either filter or subtract them from the regular query results (PR [#80](https://github.com/philippgille/chromem-go/pull/80) by [@erikdubbelboer](https://github.com/@erikdubbelboer))
   - This PR also added the new `DB.QueryWithOptions` method and related options structs and constants for future extensibility without breaking the parameter list of the query method!
 - Added option to only import/export selected collections to/from a DB (PR [#88](https://github.com/philippgille/chromem-go/pull/88) by [@iwilltry42](https://github.com/iwilltry42))
-- Added Google / GCP Vertex AI embedding function (PR [#91](https://github.com/philippgille/chromem-go/pull/91) by [@iwilltry42](https://github.com/iwilltry42))
+- Added Google / GCP Vertex AI embedding function (PR [#91](https://github.com/philippgille/chromem-go/pull/91) by [@iwilltry42](https://github.com/iwilltry42) and [#93](https://github.com/philippgille/chromem-go/pull/93))
 - Added new embedding model constants for Jina and Mixedbread (PR [#94](https://github.com/philippgille/chromem-go/pull/94))
 - Added `Collection.GetByID()` to get a document for a known ID (PR [#97](https://github.com/philippgille/chromem-go/pull/97), for issue [#95](https://github.com/philippgille/chromem-go/issues/95))
 
@@ -27,6 +27,7 @@ vNext
 - Changed license from AGPL to MPL (PR [#87](https://github.com/philippgille/chromem-go/pull/87))
 - Updated `golangci-lint` in CI to its latest version (PR [#99](https://github.com/philippgille/chromem-go/pull/99))
 - Added Go 1.23 to the CI build matrix (PR [#98](https://github.com/philippgille/chromem-go/pull/98))
+- Improved Godoc (PR [#100](https://github.com/philippgille/chromem-go/pull/100))
 
 ### Fixed
 
