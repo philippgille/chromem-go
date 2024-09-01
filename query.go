@@ -11,8 +11,6 @@ import (
 	"sync"
 )
 
-var supportedFilters = []string{"$contains", "$not_contains"}
-
 type docSim struct {
 	docID      string
 	similarity float32
@@ -84,7 +82,7 @@ func (d *maxDocSims) values() []docSim {
 
 // filterDocs filters a map of documents by metadata and content.
 // It does this concurrently.
-func filterDocs(docs map[string]*Document, where, whereDocument map[string]string) []*Document {
+func filterDocs(docs map[string]*Document, where map[string]string, whereDocuments []WhereDocument) []*Document {
 	filteredDocs := make([]*Document, 0, len(docs))
 	filteredDocsLock := sync.Mutex{}
 
@@ -104,7 +102,7 @@ func filterDocs(docs map[string]*Document, where, whereDocument map[string]strin
 		go func() {
 			defer wg.Done()
 			for doc := range docChan {
-				if documentMatchesFilters(doc, where, whereDocument) {
+				if documentMatchesFilters(doc, where, whereDocuments) {
 					filteredDocsLock.Lock()
 					filteredDocs = append(filteredDocs, doc)
 					filteredDocsLock.Unlock()
@@ -128,9 +126,84 @@ func filterDocs(docs map[string]*Document, where, whereDocument map[string]strin
 	return filteredDocs
 }
 
+type WhereDocumentOperator string
+
+const (
+	WhereDocumentOperatorContains    WhereDocumentOperator = "$contains"
+	WhereDocumentOperatorNotContains WhereDocumentOperator = "$not_contains"
+	WhereDocumentOperatorOr          WhereDocumentOperator = "$or"
+	WhereDocumentOperatorAnd         WhereDocumentOperator = "$and"
+)
+
+type WhereDocument struct {
+	Operator       WhereDocumentOperator
+	Value          string
+	WhereDocuments []WhereDocument
+}
+
+func (wd *WhereDocument) Validate() error {
+
+	if !slices.Contains([]WhereDocumentOperator{WhereDocumentOperatorContains, WhereDocumentOperatorNotContains, WhereDocumentOperatorOr, WhereDocumentOperatorAnd}, wd.Operator) {
+		return fmt.Errorf("unsupported where document operator %s", wd.Operator)
+	}
+
+	if wd.Operator == "" {
+		return fmt.Errorf("where document operator is empty")
+	}
+
+	// $contains and $not_contains require a string value
+	if slices.Contains([]WhereDocumentOperator{WhereDocumentOperatorContains, WhereDocumentOperatorNotContains}, wd.Operator) {
+		if wd.Value == "" {
+			return fmt.Errorf("where document operator %s requires a value", wd.Operator)
+		}
+	}
+
+	// $or requires sub-filters
+	if slices.Contains([]WhereDocumentOperator{WhereDocumentOperatorOr, WhereDocumentOperatorAnd}, wd.Operator) {
+		if len(wd.WhereDocuments) == 0 {
+			return fmt.Errorf("where document operator %s must have at least one sub-filter", wd.Operator)
+		}
+	}
+
+	for _, wd := range wd.WhereDocuments {
+		if err := wd.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Matches checks if a document matches the WhereDocument filter(s)
+// There is no error checking on the WhereDocument struct, so it must be validated before calling this function.
+func (wd *WhereDocument) Matches(doc *Document) bool {
+	switch wd.Operator {
+	case WhereDocumentOperatorContains:
+		return strings.Contains(doc.Content, wd.Value)
+	case WhereDocumentOperatorNotContains:
+		return !strings.Contains(doc.Content, wd.Value)
+	case WhereDocumentOperatorOr:
+		for _, subFilter := range wd.WhereDocuments {
+			if subFilter.Matches(doc) {
+				return true
+			}
+		}
+		return false
+	case WhereDocumentOperatorAnd:
+		for _, subFilter := range wd.WhereDocuments {
+			if !subFilter.Matches(doc) {
+				return false
+			}
+		}
+		return true
+	default:
+		return false
+	}
+}
+
 // documentMatchesFilters checks if a document matches the given filters.
-// When calling this function, the whereDocument keys must already be validated!
-func documentMatchesFilters(document *Document, where, whereDocument map[string]string) bool {
+// When calling this function, the whereDocument structs must already be validated!
+func documentMatchesFilters(document *Document, where map[string]string, whereDocuments []WhereDocument) bool {
 	// A document's metadata must have *all* the fields in the where clause.
 	for k, v := range where {
 		// TODO: Do we want to check for existence of the key? I.e. should
@@ -141,21 +214,10 @@ func documentMatchesFilters(document *Document, where, whereDocument map[string]
 		}
 	}
 
-	// A document must satisfy *all* filters, until we support the `$or` operator.
-	for k, v := range whereDocument {
-		switch k {
-		case "$contains":
-			if !strings.Contains(document.Content, v) {
-				return false
-			}
-		case "$not_contains":
-			if strings.Contains(document.Content, v) {
-				return false
-			}
-		default:
-			// No handling (error) required because we already validated the
-			// operators. This simplifies the concurrency logic (no err var
-			// and lock, no context to cancel).
+	// A document must satisfy *all* WhereDocument filters (that's basically a top-level $and operator)
+	for _, whereDocument := range whereDocuments {
+		if !whereDocument.Matches(document) {
+			return false
 		}
 	}
 
