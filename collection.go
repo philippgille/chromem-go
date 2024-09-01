@@ -417,7 +417,7 @@ func (c *Collection) Query(ctx context.Context, queryText string, nResults int, 
 
 // QueryWithOptions performs an exhaustive nearest neighbor search on the collection.
 //
-//   - options: The options for the query. See QueryOptions for more information.
+//   - options: The options for the query. See [QueryOptions] for more information.
 func (c *Collection) QueryWithOptions(ctx context.Context, options QueryOptions) ([]Result, error) {
 	if options.QueryText == "" && len(options.QueryEmbedding) == 0 {
 		return nil, errors.New("QueryText and QueryEmbedding options are empty")
