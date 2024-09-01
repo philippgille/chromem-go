@@ -285,6 +285,9 @@ func (db *DB) ImportFromFile(filePath string, encryptionKey string, collections 
 // This works for both the in-memory and persistent DBs.
 // Existing collections are overwritten.
 // If the writer has to be closed, it's the caller's responsibility.
+// This can be used to import DBs from object storage like S3. See
+// https://github.com/philippgille/chromem-go/tree/main/examples/s3-export-import
+// for an example.
 //
 //   - reader: An implementation of [io.ReadSeeker]
 //   - encryptionKey: Optional, must be 32 bytes long if provided
@@ -433,6 +436,9 @@ func (db *DB) ExportToFile(filePath string, compress bool, encryptionKey string,
 // optionally compressed with flate (as gzip) and optionally encrypted with AES-GCM.
 // This works for both the in-memory and persistent DBs.
 // If the writer has to be closed, it's the caller's responsibility.
+// This can be used to export DBs to object storage like S3. See
+// https://github.com/philippgille/chromem-go/tree/main/examples/s3-export-import
+// for an example.
 //
 //   - writer: An implementation of [io.Writer]
 //   - compress: Optional. Compresses as gzip if true.
