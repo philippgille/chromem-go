@@ -5,8 +5,10 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/philippgille/chromem-go"
@@ -22,6 +24,8 @@ func main() {
 	ctx := context.Background()
 
 	confluenceFilename := regexp.MustCompile(`.*-([0-9]+).txt`)
+	sphinxFilename := regexp.MustCompile(`(.+).md`)
+	gitHubDocsFilename := regexp.MustCompile(`.*/docs/(.+\.md)`)
 
 	// Warm up Ollama, in case the model isn't loaded yet
 	log.Println("Warming up Ollama...")
@@ -59,14 +63,14 @@ func main() {
 	var docs []chromem.Document
 	if collection.Count() == 0 {
 		log.Println("Reading text files from Confluence...")
-		files, err := os.ReadDir("/Users/mroberts/code/Conf-Thief/txt")
+		confluenceFiles, err := os.ReadDir("/Users/mroberts/code/Conf-Thief/txt")
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		for _, file := range files {
+		for _, file := range confluenceFiles {
 			if !file.IsDir() {
-				//log.Println("Processing file: " + file.Name())
+				log.Println("Processing file: " + file.Name())
 				data, _ := ioutil.ReadFile("/Users/mroberts/code/Conf-Thief/txt/" + file.Name())
 				content := "search_document: " + string(data)
 				matches := confluenceFilename.FindStringSubmatch(file.Name())
@@ -76,6 +80,68 @@ func main() {
 					Content:  content,
 				})
 			}
+		}
+
+		log.Println("Reading text files from Sphinx...")
+		sphinxFiles, err := os.ReadDir("/Users/mroberts/code/ata-kt/sphinx/source/adr")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for _, file := range sphinxFiles {
+			if !file.IsDir() && strings.HasSuffix(file.Name(), ".md") {
+				log.Println("Processing file: " + file.Name())
+				data, _ := ioutil.ReadFile("/Users/mroberts/code/ata-kt/sphinx/source/adr/" + file.Name())
+				content := "search_document: " + string(data)
+				matches := sphinxFilename.FindStringSubmatch(file.Name())
+				docs = append(docs, chromem.Document{
+					ID:       "sphinx-" + matches[1],
+					Metadata: map[string]string{"category": "Sphinx", "url": "https://docs.ata.n-gurus.com/adr/" + matches[1] + ".html"},
+					Content:  content,
+				})
+			}
+		}
+
+		log.Println("Reading text files from GitHub root...")
+		gitHubFiles, err := os.ReadDir("/Users/mroberts/code/ata-kt")
+		if err != nil {
+			log.Fatal(err)
+		}
+		for _, file := range gitHubFiles {
+			if !file.IsDir() && strings.HasSuffix(file.Name(), ".md") {
+				log.Println("Processing file: " + file.Name())
+				data, _ := ioutil.ReadFile("/Users/mroberts/code/ata-kt/" + file.Name())
+				content := "search_document: " + string(data)
+				docs = append(docs, chromem.Document{
+					ID:       "github-" + file.Name(),
+					Metadata: map[string]string{"category": "Sphinx", "url": "https://code.cargurus.com/cargurus-sem/ata-kt/blob/main/" + file.Name()},
+					Content:  content,
+				})
+			}
+		}
+
+		log.Println("Reading text files from GitHub /docs...")
+		err = filepath.Walk("/Users/mroberts/code/ata-kt/docs", func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if !info.IsDir() && strings.HasSuffix(path, ".md") {
+				log.Println("Processing file: " + path)
+				data, _ := ioutil.ReadFile(path)
+				content := "search_document: " + string(data)
+				matches := gitHubDocsFilename.FindStringSubmatch(path)
+				docs = append(docs, chromem.Document{
+					ID:       "githubdocs-" + matches[1],
+					Metadata: map[string]string{"category": "Sphinx", "url": "https://code.cargurus.com/cargurus-sem/ata-kt/blob/main/docs/" + matches[1]},
+					Content:  content,
+				})
+			}
+
+			return nil
+		})
+		if err != nil {
+			log.Fatal(err)
 		}
 
 		/*		// Here we use a DBpedia sample, where each line contains the lead section/introduction
