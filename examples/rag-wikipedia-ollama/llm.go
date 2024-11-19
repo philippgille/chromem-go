@@ -25,27 +25,36 @@ const (
 // on how well the LLM handles the context, especially for LLMs with < 7B parameters.
 // The prompt engineering is up to you, it's out of scope for the vector database.
 var systemPromptTpl = template.Must(template.New("system_prompt").Parse(`
-You are a helpful assistant with access to a knowlege base, tasked with answering questions about the world and its history, people, places and other things.
+You are an assistant with access to a knowledge base, tasked with answering questions CarGurus' and ATA's norms and procedures.
+
+ATA is a division of CarGurus responsible for the development and maintenance of CarGurus' automated advertising platform. ATA stands for Automated Traffic Aquistion.
 
 Answer the question in a very concise manner. Use an unbiased and journalistic tone. Do not repeat text. Don't make anything up. If you are not sure about something, just say that you don't know.
 {{- /* Stop here if no context is provided. The rest below is for handling contexts. */ -}}
 {{- if . -}}
 Answer the question solely based on the provided search results from the knowledge base. If the search results from the knowledge base are not relevant to the question at hand, just say that you don't know. Don't make anything up.
 
-Anything between the following 'context' XML blocks is retrieved from the knowledge base, not part of the conversation with the user. The bullet points are ordered by relevance, so the first one is the most relevant.
+Anything between the following 'contexts' XML blocks is retrieved from the knowledge base, not part of the conversation with the user. The 'contexts' tag contains multiple 'context' ordered by relevance, so the first one is the most relevant.
 
-<context>
+Each 'context' tag has two children: 'content' and 'url'. The 'content' tag contains the text of the search result, and the 'url' tag contains the URL of the search result. The value of the 'content' should be used to answer questions.
+
+You must end your response with the URLs (from the 'context' tag) of the search results that you used to answer the question. If you used multiple search results, separate the URLs with new lines.
+
+<contexts>
     {{- if . -}}
-    {{- range $context := .}}
-    - {{.}}{{end}}
-    {{- end}}
-</context>
+		{{- range $context := .}}
+		<context>
+			<content>{{index $context "content"}}</content>
+			<url>{{index $context "url"}}</url>
+		</context>
+		{{end}}
+   {{- end}}
+</contexts>
 {{- end -}}
 
-Don't mention the knowledge base, context or search results in your answer.
 `))
 
-func askLLM(ctx context.Context, contexts []string, question string) string {
+func askLLM(ctx context.Context, contexts []map[string]string, question string) string {
 	// We can use the OpenAI client because Ollama is compatible with OpenAI's API.
 	openAIClient := openai.NewClientWithConfig(openai.ClientConfig{
 		BaseURL:    ollamaBaseURL,

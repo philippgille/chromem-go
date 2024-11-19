@@ -2,26 +2,26 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"io"
+	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 	"runtime"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/philippgille/chromem-go"
 )
 
 const (
-	question = "When did the Monarch Company exist?"
+	question = "How does ATA's system of record work?"
 	// We use a local LLM running in Ollama for the embedding: https://huggingface.co/nomic-ai/nomic-embed-text-v1.5
 	embeddingModel = "nomic-embed-text"
 )
 
 func main() {
 	ctx := context.Background()
+
+	confluenceFilename := regexp.MustCompile(`.*-([0-9]+).txt`)
 
 	// Warm up Ollama, in case the model isn't loaded yet
 	log.Println("Warming up Ollama...")
@@ -50,7 +50,7 @@ func main() {
 	// variable to be set.
 	// For this example we choose to use a locally running embedding model though.
 	// It requires Ollama to serve its API at "http://localhost:11434/api".
-	collection, err := db.GetOrCreateCollection("Wikipedia", nil, chromem.NewEmbeddingFuncOllama(embeddingModel, ""))
+	collection, err := db.GetOrCreateCollection("ATA", nil, chromem.NewEmbeddingFuncOllama(embeddingModel, ""))
 	if err != nil {
 		panic(err)
 	}
@@ -58,41 +58,61 @@ func main() {
 	// loaded from persistent storage).
 	var docs []chromem.Document
 	if collection.Count() == 0 {
-		// Here we use a DBpedia sample, where each line contains the lead section/introduction
-		// to some Wikipedia article and its category.
-		f, err := os.Open("dbpedia_sample.jsonl")
+		log.Println("Reading text files from Confluence...")
+		files, err := os.ReadDir("/Users/mroberts/code/Conf-Thief/txt")
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
-		defer f.Close()
-		d := json.NewDecoder(f)
-		log.Println("Reading JSON lines...")
-		for i := 1; ; i++ {
-			var article struct {
-				Text     string `json:"text"`
-				Category string `json:"category"`
-			}
-			err := d.Decode(&article)
-			if err == io.EOF {
-				break // reached end of file
-			} else if err != nil {
-				panic(err)
-			}
 
-			// The embeddings model we use in this example ("nomic-embed-text")
-			// fare better with a prefix to differentiate between document and query.
-			// We'll have to cut it off later when we retrieve the documents.
-			// An alternative is to create the embedding with `chromem.NewDocument()`,
-			// and then change back the content before adding it do the collection
-			// with `collection.AddDocument()`.
-			content := "search_document: " + article.Text
-
-			docs = append(docs, chromem.Document{
-				ID:       strconv.Itoa(i),
-				Metadata: map[string]string{"category": article.Category},
-				Content:  content,
-			})
+		for _, file := range files {
+			if !file.IsDir() {
+				//log.Println("Processing file: " + file.Name())
+				data, _ := ioutil.ReadFile("/Users/mroberts/code/Conf-Thief/txt/" + file.Name())
+				content := "search_document: " + string(data)
+				matches := confluenceFilename.FindStringSubmatch(file.Name())
+				docs = append(docs, chromem.Document{
+					ID:       "confluence-" + matches[1],
+					Metadata: map[string]string{"category": "Confluence", "url": "https://cargurus.atlassian.net/wiki/spaces/ATA/pages/" + matches[1]},
+					Content:  content,
+				})
+			}
 		}
+
+		/*		// Here we use a DBpedia sample, where each line contains the lead section/introduction
+				// to some Wikipedia article and its category.
+				f, err := os.Open("dbpedia_sample.jsonl")
+				if err != nil {
+					panic(err)
+				}
+				defer f.Close()
+				d := json.NewDecoder(f)
+				log.Println("Reading JSON lines...")
+				for i := 1; ; i++ {
+					var article struct {
+						Text     string `json:"text"`
+						Category string `json:"category"`
+					}
+					err := d.Decode(&article)
+					if err == io.EOF {
+						break // reached end of file
+					} else if err != nil {
+						panic(err)
+					}
+
+					// The embeddings model we use in this example ("nomic-embed-text")
+					// fare better with a prefix to differentiate between document and query.
+					// We'll have to cut it off later when we retrieve the documents.
+					// An alternative is to create the embedding with `chromem.NewDocument()`,
+					// and then change back the content before adding it do the collection
+					// with `collection.AddDocument()`.
+					content := "search_document: " + article.Text
+
+					docs = append(docs, chromem.Document{
+						ID:       strconv.Itoa(i),
+						Metadata: map[string]string{"category": article.Category},
+						Content:  content,
+					})
+				}*/
 		log.Println("Adding documents to chromem-go, including creating their embeddings via Ollama API...")
 		err = collection.AddDocuments(ctx, docs, runtime.NumCPU())
 		if err != nil {
@@ -111,7 +131,7 @@ func main() {
 	log.Println("Querying chromem-go...")
 	// "nomic-embed-text" specific prefix (not required with OpenAI's or other models)
 	query := "search_query: " + question
-	docRes, err := collection.Query(ctx, query, 2, nil, nil)
+	docRes, err := collection.Query(ctx, query, 10, nil, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -119,17 +139,25 @@ func main() {
 	// Here you could filter out any documents whose similarity is below a certain threshold.
 	// if docRes[...].Similarity < 0.5 { ...
 
-	// Print the retrieved documents and their similarity to the question.
-	for i, res := range docRes {
-		// Cut off the prefix we added before adding the document (see comment above).
-		// This is specific to the "nomic-embed-text" model.
-		content := strings.TrimPrefix(res.Content, "search_document: ")
-		log.Printf("Document %d (similarity: %f): \"%s\"\n", i+1, res.Similarity, content)
-	}
+	/*	// Print the retrieved documents and their similarity to the question.
+		for i, res := range docRes {
+			// Cut off the prefix we added before adding the document (see comment above).
+			// This is specific to the "nomic-embed-text" model.
+			content := strings.TrimPrefix(res.Content, "search_document: ")
+			log.Printf("Document %d (similarity: %f): \"%s\"\n", i+1, res.Similarity, content)
+		}*/
 
 	// Now we can ask the LLM again, augmenting the question with the knowledge we retrieved.
 	// In this example we just use both retrieved documents as context.
-	contexts := []string{docRes[0].Content, docRes[1].Content}
+	var contexts []map[string]string
+
+	for _, doc := range docRes {
+		contexts = append(contexts, map[string]string{
+			"content": doc.Content,
+			"url":     doc.Metadata["url"],
+		})
+	}
+
 	log.Println("Asking LLM with augmented question...")
 	reply = askLLM(ctx, contexts, question)
 	log.Printf("Reply after augmenting the question with knowledge: \"" + reply + "\"\n")
