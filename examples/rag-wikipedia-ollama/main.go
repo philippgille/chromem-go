@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,6 +27,7 @@ func main() {
 	confluenceFilename := regexp.MustCompile(`.*-([0-9]+).txt`)
 	sphinxFilename := regexp.MustCompile(`(.+).md`)
 	gitHubDocsFilename := regexp.MustCompile(`.*/docs/(.+\.md)`)
+	dokkaFilename := regexp.MustCompile(`.*/dokka/(.+).md`)
 
 	// Warm up Ollama, in case the model isn't loaded yet
 	log.Println("Warming up Ollama...")
@@ -61,6 +63,7 @@ func main() {
 	// Add docs to the collection, if the collection was just created (and not
 	// loaded from persistent storage).
 	var docs []chromem.Document
+	var docsCount int
 	if collection.Count() == 0 {
 		log.Println("Reading text files from Confluence...")
 		confluenceFiles, err := os.ReadDir("/Users/mroberts/code/Conf-Thief/txt")
@@ -79,6 +82,7 @@ func main() {
 					Metadata: map[string]string{"category": "Confluence", "url": "https://cargurus.atlassian.net/wiki/spaces/ATA/pages/" + matches[1]},
 					Content:  content,
 				})
+				docsCount++
 			}
 		}
 
@@ -99,6 +103,7 @@ func main() {
 					Metadata: map[string]string{"category": "Sphinx", "url": "https://docs.ata.n-gurus.com/adr/" + matches[1] + ".html"},
 					Content:  content,
 				})
+				docsCount++
 			}
 		}
 
@@ -117,6 +122,7 @@ func main() {
 					Metadata: map[string]string{"category": "Sphinx", "url": "https://code.cargurus.com/cargurus-sem/ata-kt/blob/main/" + file.Name()},
 					Content:  content,
 				})
+				docsCount++
 			}
 		}
 
@@ -136,6 +142,7 @@ func main() {
 					Metadata: map[string]string{"category": "Sphinx", "url": "https://code.cargurus.com/cargurus-sem/ata-kt/blob/main/docs/" + matches[1]},
 					Content:  content,
 				})
+				docsCount++
 			}
 
 			return nil
@@ -144,48 +151,38 @@ func main() {
 			log.Fatal(err)
 		}
 
-		/*		// Here we use a DBpedia sample, where each line contains the lead section/introduction
-				// to some Wikipedia article and its category.
-				f, err := os.Open("dbpedia_sample.jsonl")
-				if err != nil {
-					panic(err)
-				}
-				defer f.Close()
-				d := json.NewDecoder(f)
-				log.Println("Reading JSON lines...")
-				for i := 1; ; i++ {
-					var article struct {
-						Text     string `json:"text"`
-						Category string `json:"category"`
-					}
-					err := d.Decode(&article)
-					if err == io.EOF {
-						break // reached end of file
-					} else if err != nil {
-						panic(err)
-					}
+		log.Println("Reading text files from Dooka...")
+		err = filepath.Walk("/Users/mroberts/code/ata-kt/sphinx/source/dokka", func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
 
-					// The embeddings model we use in this example ("nomic-embed-text")
-					// fare better with a prefix to differentiate between document and query.
-					// We'll have to cut it off later when we retrieve the documents.
-					// An alternative is to create the embedding with `chromem.NewDocument()`,
-					// and then change back the content before adding it do the collection
-					// with `collection.AddDocument()`.
-					content := "search_document: " + article.Text
+			if !info.IsDir() && strings.HasSuffix(path, ".md") {
+				log.Println("Processing file: " + path)
+				data, _ := ioutil.ReadFile(path)
+				content := "search_document: " + string(data)
+				matches := dokkaFilename.FindStringSubmatch(path)
+				docs = append(docs, chromem.Document{
+					ID:       "dokka-" + matches[1],
+					Metadata: map[string]string{"category": "Dokka", "url": "https://docs.ata.n-gurus.com/dokka/" + matches[1] + ".html"},
+					Content:  content,
+				})
+				docsCount++
+			}
 
-					docs = append(docs, chromem.Document{
-						ID:       strconv.Itoa(i),
-						Metadata: map[string]string{"category": article.Category},
-						Content:  content,
-					})
-				}*/
-		log.Println("Adding documents to chromem-go, including creating their embeddings via Ollama API...")
+			return nil
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("Adding " + strconv.Itoa(docsCount) + " documents to chromem-go, including creating their embeddings via Ollama API...")
 		err = collection.AddDocuments(ctx, docs, runtime.NumCPU())
 		if err != nil {
 			panic(err)
 		}
 	} else {
-		log.Println("Not reading JSON lines because collection was loaded from persistent storage.")
+		log.Println("Not reading files because collection was loaded from persistent storage.")
 	}
 
 	// Search for documents that are semantically similar to the original question.
