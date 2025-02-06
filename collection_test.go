@@ -688,3 +688,38 @@ func randomString(r *rand.Rand, n int) string {
 	}
 	return string(b)
 }
+
+// TestCollection_IDs tests the IDs method.
+func TestCollection_IDs(t *testing.T) {
+	// Create collection
+	db := NewDB()
+	name := "test"
+	metadata := map[string]string{"foo": "bar"}
+	vectors := []float32{-0.40824828, 0.40824828, 0.81649655} // normalized version of `{-0.1, 0.1, 0.2}`
+	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
+		return vectors, nil
+	}
+	c, err := db.CreateCollection(name, metadata, embeddingFunc)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+	if c == nil {
+		t.Fatal("expected collection, got nil")
+	}
+
+	// Add documents
+	ids := []string{"1", "2"}
+	metadatas := []map[string]string{{"foo": "bar"}, {"a": "b"}}
+	contents := []string{"hello world", "hallo welt"}
+	err = c.Add(context.Background(), ids, nil, metadatas, contents)
+	if err != nil {
+		t.Fatal("expected nil, got", err)
+	}
+
+	// Get IDs
+	ids = c.IDs()
+	if len(ids) != 2 {
+		t.Fatal("expected 2, got", len(ids))
+	}
+	t.Log(ids)
+}

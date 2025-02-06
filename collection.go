@@ -118,6 +118,19 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 	return c, nil
 }
 
+// IDs returns the IDs of all documents in the collection.
+func (c *Collection) IDs() []string {
+	c.documentsLock.RLock()
+	defer c.documentsLock.RUnlock()
+
+	ids := make([]string, 0, len(c.documents))
+	// get map keys
+	for k := range c.documents {
+		ids = append(ids, k)
+	}
+	return ids
+}
+
 // Add embeddings to the datastore.
 //
 //   - ids: The ids of the embeddings you wish to add
