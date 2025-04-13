@@ -29,7 +29,7 @@ func main() {
 	// Create collection if it wasn't loaded from persistent storage yet.
 	// We pass nil as embedding function to use the default (OpenAI text-embedding-3-small),
 	// which is very good and cheap. It requires the OPENAI_API_KEY environment
-	// variable to be set.
+	// variable to be set. See the other examples for how to use Ollama.
 	collection, err := db.GetOrCreateCollection("arXiv cs.CL 2023", nil, nil)
 	if err != nil {
 		panic(err)
