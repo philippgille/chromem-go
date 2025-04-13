@@ -216,6 +216,9 @@ func main() {
 
   db := chromem.NewDB()
 
+  // Passing nil as embedding function leads to OpenAI being used and requires
+  // "OPENAI_API_KEY" env var to be set. Other providers are supported as well.
+  // For example pass `chromem.NewEmbeddingFuncOllama(...)` to use Ollama.
   c, err := db.CreateCollection("knowledge-base", nil, nil)
   if err != nil {
     panic(err)
