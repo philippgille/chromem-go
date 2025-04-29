@@ -317,6 +317,20 @@ func (c *Collection) GetByID(ctx context.Context, id string) (Document, error) {
 	return Document{}, fmt.Errorf("document with ID '%v' not found", id)
 }
 
+// ListDocuments returns all documents in the collection.
+// The returned documents are a copy of the original documents, so they can be safely
+// modified without affecting the collection.
+func (c *Collection) ListDocuments() ([]Document, error) {
+	c.documentsLock.RLock()
+	defer c.documentsLock.RUnlock()
+
+	docs := make([]Document, 0, len(c.documents))
+	for _, doc := range c.documents {
+		docs = append(docs, *doc)
+	}
+	return docs, nil
+}
+
 // Delete removes document(s) from the collection.
 //
 //   - where: Conditional filtering on metadata. Optional.
@@ -543,20 +557,6 @@ func (c *Collection) queryEmbedding(ctx context.Context, queryEmbedding, negativ
 	}
 
 	return res, nil
-}
-
-// GetAllDocuments returns all documents in the collection.
-// The returned documents are a copy of the original documents, so they can be safely
-// modified without affecting the collection.
-func (c *Collection) GetAllDocuments() ([]Document, error) {
-	c.documentsLock.RLock()
-	defer c.documentsLock.RUnlock()
-
-	docs := make([]Document, 0, len(c.documents))
-	for _, doc := range c.documents {
-		docs = append(docs, *doc)
-	}
-	return docs, nil
 }
 
 // getDocPath generates the path to the document file.
