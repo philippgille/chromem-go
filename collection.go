@@ -558,6 +558,30 @@ func (c *Collection) queryEmbedding(ctx context.Context, queryEmbedding, negativ
 	return res, nil
 }
 
+func (c *Collection) GetDocumentsByMetadata(ctx context.Context, where map[string]string) ([]Document, error) {
+	c.documentsLock.RLock()
+	defer c.documentsLock.RUnlock()
+
+	var results []Document
+	for _, doc := range c.documents {
+		match := true
+		for key, value := range where {
+			if docVal, ok := doc.Metadata[key]; !ok || docVal != value {
+				match = false
+				break
+			}
+		}
+		if match {
+			// Clone the document to avoid concurrent modification by reading goroutine
+			docCopy := *doc
+			docCopy.Metadata = maps.Clone(doc.Metadata)
+			docCopy.Embedding = slices.Clone(doc.Embedding)
+			results = append(results, docCopy)
+		}
+	}
+	return results, nil
+}
+
 // getDocPath generates the path to the document file.
 func (c *Collection) getDocPath(docID string) string {
 	safeID := hash2hex(docID)

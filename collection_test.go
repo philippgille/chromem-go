@@ -614,6 +614,49 @@ func TestCollection_Delete(t *testing.T) {
 	checkCount(0)
 }
 
+func TestCollection_GetDocumentsByMetadata(t *testing.T) {
+	ctx := context.Background()
+
+	// Create collection
+	db := NewDB()
+	name := "test"
+	metadata := map[string]string{"foo": "bar"}
+	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
+		return []float32{1.0, 2.0, 3.0}, nil
+	}
+	c, err := db.CreateCollection(name, metadata, embeddingFunc)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	// Add documents
+	docs := []Document{
+		{ID: "1", Metadata: map[string]string{"type": "article", "lang": "en"}, Content: "Hello World"},
+		{ID: "2", Metadata: map[string]string{"type": "article", "lang": "fr"}, Content: "Bonjour le monde"},
+		{ID: "3", Metadata: map[string]string{"type": "blog", "lang": "en"}, Content: "My blog post"},
+	}
+	for _, doc := range docs {
+		err := c.AddDocument(ctx, doc)
+		if err != nil {
+			t.Fatal("expected no error, got", err)
+		}
+	}
+
+	// Filter by metadata
+	where := map[string]string{"type": "article", "lang": "en"}
+	results, err := c.GetDocumentsByMetadata(ctx, where)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if results[0].ID != "1" {
+		t.Fatalf("expected document ID '1', got '%s'", results[0].ID)
+	}
+}
+
 // Global var for assignment in the benchmark to avoid compiler optimizations.
 var globalRes []Result
 
