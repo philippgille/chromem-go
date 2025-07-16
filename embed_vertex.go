@@ -22,7 +22,7 @@ const (
 	EmbeddingModelVertexMultilingualV1 EmbeddingModelVertex = "textembedding-gecko-multilingual@001"
 	EmbeddingModelVertexMultilingualV2 EmbeddingModelVertex = "text-multilingual-embedding-002"
 
-	EmbeddingModelVertexGeminiv1 EmbeddingModelVertex = "gemini-embedding-001"
+	EmbeddingModelVertexGeminiV1 EmbeddingModelVertex = "gemini-embedding-001"
 )
 
 const baseURLVertex = "https://us-central1-aiplatform.googleapis.com/v1"
