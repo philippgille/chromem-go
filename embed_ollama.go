@@ -73,7 +73,6 @@ func NewEmbeddingFuncOllama(model string, baseURLOllama string) EmbeddingFunc {
 			return nil, fmt.Errorf("couldn't read response body: %w", err)
 		}
 		var embeddingResponse ollamaResponse
-		fmt.Println(string(body))
 		err = json.Unmarshal(body, &embeddingResponse)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't unmarshal response body: %w", err)
