@@ -14,7 +14,7 @@ import (
 const defaultBaseURLOllama = "http://localhost:11434/api"
 
 type ollamaResponse struct {
-	Embeddings []float32 `json:"embeddings"`
+	Embeddings [][]float32 `json:"embeddings"`
 }
 
 // NewEmbeddingFuncOllama returns a function that creates embeddings for a text
@@ -39,7 +39,7 @@ func NewEmbeddingFuncOllama(model string, baseURLOllama string) EmbeddingFunc {
 	return func(ctx context.Context, text string) ([]float32, error) {
 		// Prepare the request body.
 		reqBody, err := json.Marshal(map[string]string{
-			"model":  model,
+			"model": model,
 			"input": text,
 		})
 
@@ -84,7 +84,7 @@ func NewEmbeddingFuncOllama(model string, baseURLOllama string) EmbeddingFunc {
 			return nil, errors.New("no embeddings found in the response")
 		}
 
-		v := embeddingResponse.Embeddings
+		v := embeddingResponse.Embeddings[0]
 		checkNormalized.Do(func() {
 			if isNormalized(v) {
 				checkedNormalized = true
