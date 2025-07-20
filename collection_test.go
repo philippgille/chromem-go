@@ -527,6 +527,40 @@ func TestCollection_Count(t *testing.T) {
 	}
 }
 
+func TestCollection_ListDocuments(t *testing.T) {
+	// Create collection
+	db := NewDB()
+	name := "test"
+	metadata := map[string]string{"foo": "bar"}
+	vectors := []float32{-0.40824828, 0.40824828, 0.81649655} // normalized version of `{-0.1, 0.1, 0.2}`
+	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
+		return vectors, nil
+	}
+	c, _ := db.CreateCollection(name, metadata, embeddingFunc)
+
+	// Add documents
+	ids := []string{"1", "2", "3", "4"}
+	metadatas := []map[string]string{{"foo": "bar"}, {"a": "b"}, {"foo": "bar"}, {"e": "f"}}
+	contents := []string{"hello world", "hallo welt", "bonjour le monde", "hola mundo"}
+	c.Add(context.Background(), ids, nil, metadatas, contents)
+
+	// Get all documents
+	docs, err := c.ListDocuments()
+	if err != nil {
+		t.Fatal("expected nil, got", err)
+	}
+	if len(docs) != 4 {
+		t.Fatal("expected 4 documents, got", len(docs))
+	}
+
+	// since the documents are returned in a random order, we just check if there is a document with the content "hello world"
+	for _, doc := range docs {
+		if doc.Content == "hello world" {
+			break
+		}
+	}
+}
+
 func TestCollection_Delete(t *testing.T) {
 	// Create persistent collection
 	tmpdir, err := os.MkdirTemp(os.TempDir(), "chromem-test-*")
