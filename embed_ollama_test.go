@@ -19,19 +19,19 @@ func TestNewEmbeddingFuncOllama(t *testing.T) {
 	prompt := "hello world"
 
 	wantBody, err := json.Marshal(map[string]string{
-		"model":  model,
-		"prompt": prompt,
+		"model": model,
+		"input": prompt,
 	})
 	if err != nil {
 		t.Fatal("unexpected error:", err)
 	}
-	wantRes := []float32{-0.40824828, 0.40824828, 0.81649655} // normalized version of `{-0.1, 0.1, 0.2}`
+	wantRes := [][]float32{{-0.40824828, 0.40824828, 0.81649655}} // normalized version of `{-0.1, 0.1, 0.2}`
 
 	// Mock server
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Check URL
-		if !strings.HasSuffix(r.URL.Path, baseURLSuffix+"/embeddings") {
-			t.Fatal("expected URL", baseURLSuffix+"/embeddings", "got", r.URL.Path)
+		if !strings.HasSuffix(r.URL.Path, baseURLSuffix+"/embed") {
+			t.Fatal("expected URL", baseURLSuffix+"/embed", "got", r.URL.Path)
 		}
 		// Check method
 		if r.Method != "POST" {
@@ -52,7 +52,7 @@ func TestNewEmbeddingFuncOllama(t *testing.T) {
 
 		// Write response
 		resp := ollamaResponse{
-			Embedding: wantRes,
+			Embeddings: wantRes,
 		}
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(resp)
@@ -70,7 +70,7 @@ func TestNewEmbeddingFuncOllama(t *testing.T) {
 	if err != nil {
 		t.Fatal("expected nil, got", err)
 	}
-	if slices.Compare(wantRes, res) != 0 {
+	if slices.Compare(wantRes[0], res) != 0 {
 		t.Fatal("expected res", wantRes, "got", res)
 	}
 }

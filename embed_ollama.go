@@ -14,7 +14,7 @@ import (
 const defaultBaseURLOllama = "http://localhost:11434/api"
 
 type ollamaResponse struct {
-	Embedding []float32 `json:"embedding"`
+	Embeddings [][]float32 `json:"embeddings"`
 }
 
 // NewEmbeddingFuncOllama returns a function that creates embeddings for a text
@@ -39,16 +39,17 @@ func NewEmbeddingFuncOllama(model string, baseURLOllama string) EmbeddingFunc {
 	return func(ctx context.Context, text string) ([]float32, error) {
 		// Prepare the request body.
 		reqBody, err := json.Marshal(map[string]string{
-			"model":  model,
-			"prompt": text,
+			"model": model,
+			"input": text,
 		})
+
 		if err != nil {
 			return nil, fmt.Errorf("couldn't marshal request body: %w", err)
 		}
 
 		// Create the request. Creating it with context is important for a timeout
 		// to be possible, because the client is configured without a timeout.
-		req, err := http.NewRequestWithContext(ctx, "POST", baseURLOllama+"/embeddings", bytes.NewBuffer(reqBody))
+		req, err := http.NewRequestWithContext(ctx, "POST", baseURLOllama+"/embed", bytes.NewBuffer(reqBody))
 		if err != nil {
 			return nil, fmt.Errorf("couldn't create request: %w", err)
 		}
@@ -78,11 +79,11 @@ func NewEmbeddingFuncOllama(model string, baseURLOllama string) EmbeddingFunc {
 		}
 
 		// Check if the response contains embeddings.
-		if len(embeddingResponse.Embedding) == 0 {
+		if len(embeddingResponse.Embeddings) == 0 {
 			return nil, errors.New("no embeddings found in the response")
 		}
 
-		v := embeddingResponse.Embedding
+		v := embeddingResponse.Embeddings[0]
 		checkNormalized.Do(func() {
 			if isNormalized(v) {
 				checkedNormalized = true
