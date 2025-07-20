@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 vNext
 -----
 
+### Added
+
+- Added `Collection.ListIDs()` to list the IDs of all documents in a collection (PR [#105](https://github.com/philippgille/chromem-go/pull/105) by [@clocklear](https://github.com/clocklear))
+  - Fixes issue [#103](https://github.com/philippgille/chromem-go/issues/103)
+- Added constant for `gemini-embedding-001` model (PR [#113](https://github.com/philippgille/chromem-go/pull/113) by [@scotteveritt](https://github.com/scotteveritt))
+
+### Improved
+
+- Added code comments to clarify OpenAI default embedding func (PR [#109](https://github.com/philippgille/chromem-go/pull/109))
+
 v0.7.0 (2024-09-01)
 -------------------
 
