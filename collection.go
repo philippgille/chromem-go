@@ -292,6 +292,19 @@ func (c *Collection) AddDocument(ctx context.Context, doc Document) error {
 	return nil
 }
 
+// ListIDs returns the IDs of all documents in the collection.
+func (c *Collection) ListIDs(_ context.Context) []string {
+	c.documentsLock.RLock()
+	defer c.documentsLock.RUnlock()
+
+	ids := make([]string, 0, len(c.documents))
+	for id := range c.documents {
+		ids = append(ids, id)
+	}
+
+	return ids
+}
+
 // GetByID returns a document by its ID.
 // The returned document is a copy of the original document, so it can be safely
 // modified without affecting the collection.
