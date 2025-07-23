@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"maps"
 	"path/filepath"
-	"slices"
 	"sync"
 )
 
@@ -65,7 +64,7 @@ type QueryOptions struct {
 	Where map[string]string
 
 	// Conditional filtering on documents.
-	WhereDocument map[string]string
+	WhereDocuments []WhereDocument
 
 	// Negative is the negative query options.
 	// They can be used to exclude certain results from the query.
@@ -335,9 +334,9 @@ func (c *Collection) GetByID(ctx context.Context, id string) (Document, error) {
 //   - where: Conditional filtering on metadata. Optional.
 //   - whereDocument: Conditional filtering on documents. Optional.
 //   - ids: The ids of the documents to delete. If empty, all documents are deleted.
-func (c *Collection) Delete(_ context.Context, where, whereDocument map[string]string, ids ...string) error {
+func (c *Collection) Delete(_ context.Context, where map[string]string, whereDocuments []WhereDocument, ids ...string) error {
 	// must have at least one of where, whereDocument or ids
-	if len(where) == 0 && len(whereDocument) == 0 && len(ids) == 0 {
+	if len(where) == 0 && len(whereDocuments) == 0 && len(ids) == 0 {
 		return fmt.Errorf("must have at least one of where, whereDocument or ids")
 	}
 
@@ -345,9 +344,9 @@ func (c *Collection) Delete(_ context.Context, where, whereDocument map[string]s
 		return nil
 	}
 
-	for k := range whereDocument {
-		if !slices.Contains(supportedFilters, k) {
-			return errors.New("unsupported whereDocument operator")
+	for _, whereDocument := range whereDocuments {
+		if err := whereDocument.Validate(); err != nil {
+			return fmt.Errorf("invalid whereDocument %#v: %w", whereDocument, err)
 		}
 	}
 
@@ -356,9 +355,9 @@ func (c *Collection) Delete(_ context.Context, where, whereDocument map[string]s
 	c.documentsLock.Lock()
 	defer c.documentsLock.Unlock()
 
-	if where != nil || whereDocument != nil {
+	if where != nil || len(whereDocuments) > 0 {
 		// metadata + content filters
-		filteredDocs := filterDocs(c.documents, where, whereDocument)
+		filteredDocs := filterDocs(c.documents, where, whereDocuments)
 		for _, doc := range filteredDocs {
 			docIDs = append(docIDs, doc.ID)
 		}
@@ -415,7 +414,7 @@ type Result struct {
 //     There can be fewer results if a filter is applied.
 //   - where: Conditional filtering on metadata. Optional.
 //   - whereDocument: Conditional filtering on documents. Optional.
-func (c *Collection) Query(ctx context.Context, queryText string, nResults int, where, whereDocument map[string]string) ([]Result, error) {
+func (c *Collection) Query(ctx context.Context, queryText string, nResults int, where map[string]string, whereDocument []WhereDocument) ([]Result, error) {
 	if queryText == "" {
 		return nil, errors.New("queryText is empty")
 	}
@@ -471,7 +470,7 @@ func (c *Collection) QueryWithOptions(ctx context.Context, options QueryOptions)
 		}
 	}
 
-	result, err := c.queryEmbedding(ctx, queryVector, negativeVector, negativeFilterThreshold, options.NResults, options.Where, options.WhereDocument)
+	result, err := c.queryEmbedding(ctx, queryVector, negativeVector, negativeFilterThreshold, options.NResults, options.Where, options.WhereDocuments)
 	if err != nil {
 		return nil, err
 	}
@@ -488,12 +487,12 @@ func (c *Collection) QueryWithOptions(ctx context.Context, options QueryOptions)
 //     There can be fewer results if a filter is applied.
 //   - where: Conditional filtering on metadata. Optional.
 //   - whereDocument: Conditional filtering on documents. Optional.
-func (c *Collection) QueryEmbedding(ctx context.Context, queryEmbedding []float32, nResults int, where, whereDocument map[string]string) ([]Result, error) {
-	return c.queryEmbedding(ctx, queryEmbedding, nil, 0, nResults, where, whereDocument)
+func (c *Collection) QueryEmbedding(ctx context.Context, queryEmbedding []float32, nResults int, where map[string]string, whereDocuments []WhereDocument) ([]Result, error) {
+	return c.queryEmbedding(ctx, queryEmbedding, nil, 0, nResults, where, whereDocuments)
 }
 
 // queryEmbedding performs an exhaustive nearest neighbor search on the collection.
-func (c *Collection) queryEmbedding(ctx context.Context, queryEmbedding, negativeEmbeddings []float32, negativeFilterThreshold float32, nResults int, where, whereDocument map[string]string) ([]Result, error) {
+func (c *Collection) queryEmbedding(ctx context.Context, queryEmbedding, negativeEmbeddings []float32, negativeFilterThreshold float32, nResults int, where map[string]string, whereDocuments []WhereDocument) ([]Result, error) {
 	if len(queryEmbedding) == 0 {
 		return nil, errors.New("queryEmbedding is empty")
 	}
@@ -511,14 +510,14 @@ func (c *Collection) queryEmbedding(ctx context.Context, queryEmbedding, negativ
 	}
 
 	// Validate whereDocument operators
-	for k := range whereDocument {
-		if !slices.Contains(supportedFilters, k) {
-			return nil, errors.New("unsupported operator")
+	for _, whereDocument := range whereDocuments {
+		if err := whereDocument.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid whereDocument %#v: %w", whereDocument, err)
 		}
 	}
 
 	// Filter docs by metadata and content
-	filteredDocs := filterDocs(c.documents, where, whereDocument)
+	filteredDocs := filterDocs(c.documents, where, whereDocuments)
 
 	// No need to continue if the filters got rid of all documents
 	if len(filteredDocs) == 0 {

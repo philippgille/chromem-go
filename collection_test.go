@@ -7,6 +7,7 @@ import (
 	"os"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -372,10 +373,10 @@ func TestCollection_QueryError(t *testing.T) {
 		{
 			name: "Bad content filter",
 			query: func() error {
-				_, err := c.Query(context.Background(), "foo", 1, nil, map[string]string{"invalid": "foo"})
+				_, err := c.Query(context.Background(), "foo", 1, nil, []WhereDocument{{Operator: "invalid", Value: "foo"}})
 				return err
 			},
-			expErr: "unsupported operator",
+			expErr: "unsupported where document operator invalid",
 		},
 	}
 
@@ -384,7 +385,7 @@ func TestCollection_QueryError(t *testing.T) {
 			err := tc.query()
 			if err == nil {
 				t.Fatal("expected error, got nil")
-			} else if err.Error() != tc.expErr {
+			} else if !strings.Contains(err.Error(), tc.expErr) {
 				t.Fatal("expected", tc.expErr, "got", err)
 			}
 		})
@@ -606,7 +607,7 @@ func TestCollection_Delete(t *testing.T) {
 	checkCount(1)
 
 	// Test 3 - Remove document by content
-	err = c.Delete(context.Background(), nil, map[string]string{"$contains": "hallo welt"})
+	err = c.Delete(context.Background(), nil, []WhereDocument{WhereDocument{Operator: WhereDocumentOperatorContains, Value: "hallo welt"}})
 	if err != nil {
 		t.Fatal("expected nil, got", err)
 	}
