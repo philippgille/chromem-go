@@ -11,11 +11,9 @@ const (
 func NewEmbeddingFuncMistral(apiKey string) EmbeddingFunc {
 	// Mistral embeddings are normalized, see section "Distance Measures" on
 	// https://docs.mistral.ai/guides/embeddings/.
-	normalized := true
-
 	// The Mistral API docs don't mention the `encoding_format` as optional,
 	// but it seems to be, just like OpenAI. So we reuse the OpenAI function.
-	return NewEmbeddingFuncOpenAICompat(baseURLMistral, apiKey, embeddingModelMistral, &normalized)
+	return NewEmbeddingFuncOpenAICompat(NewOpenAICompatConfig(baseURLMistral, apiKey, embeddingModelMistral).WithNormalized(true))
 }
 
 const baseURLJina = "https://api.jina.ai/v1"
@@ -36,7 +34,7 @@ const (
 // NewEmbeddingFuncJina returns a function that creates embeddings for a text
 // using the Jina API.
 func NewEmbeddingFuncJina(apiKey string, model EmbeddingModelJina) EmbeddingFunc {
-	return NewEmbeddingFuncOpenAICompat(baseURLJina, apiKey, string(model), nil)
+	return NewEmbeddingFuncOpenAICompat(NewOpenAICompatConfig(baseURLJina, apiKey, string(model)))
 }
 
 const baseURLMixedbread = "https://api.mixedbread.ai"
@@ -69,7 +67,7 @@ const (
 // NewEmbeddingFuncMixedbread returns a function that creates embeddings for a text
 // using the mixedbread.ai API.
 func NewEmbeddingFuncMixedbread(apiKey string, model EmbeddingModelMixedbread) EmbeddingFunc {
-	return NewEmbeddingFuncOpenAICompat(baseURLMixedbread, apiKey, string(model), nil)
+	return NewEmbeddingFuncOpenAICompat(NewOpenAICompatConfig(baseURLMixedbread, apiKey, string(model)))
 }
 
 const baseURLLocalAI = "http://localhost:8080/v1"
@@ -84,7 +82,7 @@ const baseURLLocalAI = "http://localhost:8080/v1"
 // But other embedding models are supported as well. See the LocalAI documentation
 // for details.
 func NewEmbeddingFuncLocalAI(model string) EmbeddingFunc {
-	return NewEmbeddingFuncOpenAICompat(baseURLLocalAI, "", model, nil)
+	return NewEmbeddingFuncOpenAICompat(NewOpenAICompatConfig(baseURLLocalAI, "", model))
 }
 
 const (
@@ -99,5 +97,5 @@ func NewEmbeddingFuncAzureOpenAI(apiKey string, deploymentURL string, apiVersion
 	if apiVersion == "" {
 		apiVersion = azureDefaultAPIVersion
 	}
-	return newEmbeddingFuncOpenAICompat(deploymentURL, apiKey, model, nil, map[string]string{"api-key": apiKey}, map[string]string{"api-version": apiVersion})
+	return NewEmbeddingFuncOpenAICompat(NewOpenAICompatConfig(deploymentURL, apiKey, model).WithHeaders(map[string]string{"api-key": apiKey}).WithQueryParams(map[string]string{"api-version": apiVersion}))
 }
