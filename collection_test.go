@@ -614,6 +614,102 @@ func TestCollection_Delete(t *testing.T) {
 	checkCount(0)
 }
 
+// TestCollection_GetAllDocuments verifies that GetAllDocuments returns all documents
+// and that the returned documents are deep-copies (mutating them must not affect
+// the collection’s internal state).
+func TestCollection_GetAllDocuments(t *testing.T) {
+	ctx := context.Background()
+
+	// Fixed embedding so we can compare easily.
+	embedVec := []float32{0.0, 1.0, 0.0}
+	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
+		return embedVec, nil
+	}
+
+	// Create collection.
+	db := NewDB()
+	coll, err := db.CreateCollection("test", nil, embeddingFunc)
+	if err != nil {
+		t.Fatalf("unexpected error creating collection: %v", err)
+	}
+
+	// Add two documents (one with explicit embedding, one relying on embeddingFunc).
+	docs := []Document{
+		{ID: "1", Metadata: map[string]string{"foo": "bar"}, Embedding: embedVec, Content: "hello"},
+		{ID: "2", Metadata: map[string]string{"baz": "qux"}, Content: "world"},
+	}
+	for _, d := range docs {
+		if err := coll.AddDocument(ctx, d); err != nil {
+			t.Fatalf("unexpected error adding document %q: %v", d.ID, err)
+		}
+	}
+
+	// ------------------------------------------------------------------
+	// Deep fetch (fetchDeep = true)
+	// ------------------------------------------------------------------
+	gotDeep, err := coll.GetAllDocuments(ctx, true)
+	if err != nil {
+		t.Fatalf("unexpected error from GetAllDocuments (deep): %v", err)
+	}
+	if len(gotDeep) != len(docs) {
+		t.Fatalf("deep: expected %d docs, got %d", len(docs), len(gotDeep))
+	}
+
+	// Map for convenient lookup.
+	deepByID := make(map[string]Document, len(gotDeep))
+	for _, d := range gotDeep {
+		deepByID[d.ID] = d
+	}
+
+	for _, want := range docs {
+		got, ok := deepByID[want.ID]
+		if !ok {
+			t.Fatalf("deep: doc %q not found", want.ID)
+		}
+		if got.Content != want.Content {
+			t.Fatalf("deep: doc %q: expected content %q, got %q", want.ID, want.Content, got.Content)
+		}
+		if !slices.Equal(got.Embedding, embedVec) {
+			t.Fatalf("deep: doc %q: embeddings differ, expected %v got %v", want.ID, embedVec, got.Embedding)
+		}
+		for k, v := range want.Metadata {
+			if got.Metadata[k] != v {
+				t.Fatalf("deep: doc %q: expected metadata %q=%q, got %q", want.ID, k, v, got.Metadata[k])
+			}
+		}
+	}
+
+	// Mutate deep copy and ensure collection is untouched.
+	gotDeep[0].Metadata["foo"] = "mutated"
+	orig, _ := coll.GetByID(ctx, "1")
+	if orig.Metadata["foo"] != "bar" {
+		t.Fatalf("deep: mutation leaked into collection: expected \"bar\", got %q", orig.Metadata["foo"])
+	}
+
+	// ------------------------------------------------------------------
+	// Shallow fetch (fetchDeep = false)
+	// ------------------------------------------------------------------
+	gotShallow, err := coll.GetAllDocuments(ctx, false)
+	if err != nil {
+		t.Fatalf("unexpected error from GetAllDocuments (shallow): %v", err)
+	}
+	if len(gotShallow) != len(docs) {
+		t.Fatalf("shallow: expected %d docs, got %d", len(docs), len(gotShallow))
+	}
+	for _, d := range gotShallow {
+		if d.Metadata != nil {
+			t.Fatalf("shallow: expected Metadata to be nil, got %#v", d.Metadata)
+		}
+		if d.Embedding != nil {
+			t.Fatalf("shallow: expected Embedding to be nil, got %#v", d.Embedding)
+		}
+		// Content and ID must still be present.
+		if d.Content == "" || d.ID == "" {
+			t.Fatalf("shallow: expected ID and Content to be set, got %+v", d)
+		}
+	}
+}
+
 func TestCollection_GetDocumentsByMetadata(t *testing.T) {
 	ctx := context.Background()
 

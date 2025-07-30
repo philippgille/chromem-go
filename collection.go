@@ -558,7 +558,27 @@ func (c *Collection) queryEmbedding(ctx context.Context, queryEmbedding, negativ
 	return res, nil
 }
 
-func (c *Collection) GetDocumentsByMetadata(ctx context.Context, where map[string]string) ([]Document, error) {
+func (c *Collection) GetAllDocuments(_ context.Context, fetchDeep bool) ([]Document, error) {
+	c.documentsLock.RLock()
+	defer c.documentsLock.RUnlock()
+
+	results := make([]Document, 0, len(c.documents))
+	for _, doc := range c.documents {
+		// Clone the document to avoid concurrent modification by reading goroutine
+		docCopy := *doc
+		if fetchDeep {
+			docCopy.Metadata = maps.Clone(doc.Metadata)
+			docCopy.Embedding = slices.Clone(doc.Embedding)
+		} else {
+			docCopy.Metadata = nil
+			docCopy.Embedding = nil
+		}
+		results = append(results, docCopy)
+	}
+	return results, nil
+}
+
+func (c *Collection) GetDocumentsByMetadata(_ context.Context, where map[string]string) ([]Document, error) {
 	c.documentsLock.RLock()
 	defer c.documentsLock.RUnlock()
 
