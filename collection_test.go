@@ -614,6 +614,80 @@ func TestCollection_Delete(t *testing.T) {
 	checkCount(0)
 }
 
+// TestCollection_GetAllDocuments verifies that GetAllDocuments returns all documents
+// and that the returned documents are deep-copies (mutating them must not affect
+// the collection’s internal state).
+func TestCollection_GetAllDocuments(t *testing.T) {
+	ctx := context.Background()
+
+	// Fixed embedding so we can compare easily.
+	embedVec := []float32{0.0, 1.0, 0.0}
+	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
+		return embedVec, nil
+	}
+
+	// Create collection.
+	db := NewDB()
+	coll, err := db.CreateCollection("test", nil, embeddingFunc)
+	if err != nil {
+		t.Fatalf("unexpected error creating collection: %v", err)
+	}
+
+	// Add two documents (one with explicit embedding, one relying on embeddingFunc).
+	docs := []Document{
+		{ID: "1", Metadata: map[string]string{"foo": "bar"}, Embedding: embedVec, Content: "hello"},
+		{ID: "2", Metadata: map[string]string{"baz": "qux"}, Content: "world"}, // embedding generated
+	}
+	for _, d := range docs {
+		if err := coll.AddDocument(ctx, d); err != nil {
+			t.Fatalf("unexpected error adding document %q: %v", d.ID, err)
+		}
+	}
+
+	// Retrieve all documents.
+	gotDocs, err := coll.GetAllDocuments(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error from GetAllDocuments: %v", err)
+	}
+
+	// Ensure we received the expected count.
+	if len(gotDocs) != len(docs) {
+		t.Fatalf("expected %d docs, got %d", len(docs), len(gotDocs))
+	}
+
+	// Map for convenient lookup.
+	gotByID := make(map[string]Document, len(gotDocs))
+	for _, d := range gotDocs {
+		gotByID[d.ID] = d
+	}
+
+	// Verify fields match originals.
+	for _, want := range docs {
+		got, ok := gotByID[want.ID]
+		if !ok {
+			t.Fatalf("document with ID %q not found in GetAllDocuments result", want.ID)
+		}
+		if got.Content != want.Content {
+			t.Fatalf("doc %q: expected content %q, got %q", want.ID, want.Content, got.Content)
+		}
+		if !slices.Equal(got.Embedding, embedVec) {
+			t.Fatalf("doc %q: embeddings differ, expected %v got %v", want.ID, embedVec, got.Embedding)
+		}
+		for k, v := range want.Metadata {
+			if got.Metadata[k] != v {
+				t.Fatalf("doc %q: expected metadata %q=%q, got %q", want.ID, k, v, got.Metadata[k])
+			}
+		}
+	}
+
+	// Mutate the returned copy and ensure collection data is untouched.
+	gotDocs[0].Metadata["foo"] = "modified"
+	orig, _ := coll.GetByID(ctx, "1")
+	if orig.Metadata["foo"] != "bar" {
+		t.Fatalf("metadata mutation leaked into collection: expected \"bar\", got %q", orig.Metadata["foo"])
+	}
+}
+
 func TestCollection_GetDocumentsByMetadata(t *testing.T) {
 	ctx := context.Background()
 
