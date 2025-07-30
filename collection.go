@@ -558,7 +558,7 @@ func (c *Collection) queryEmbedding(ctx context.Context, queryEmbedding, negativ
 	return res, nil
 }
 
-func (c *Collection) GetAllDocuments(_ context.Context) ([]Document, error) {
+func (c *Collection) GetAllDocuments(_ context.Context, fetchDeep bool) ([]Document, error) {
 	c.documentsLock.RLock()
 	defer c.documentsLock.RUnlock()
 
@@ -566,8 +566,13 @@ func (c *Collection) GetAllDocuments(_ context.Context) ([]Document, error) {
 	for _, doc := range c.documents {
 		// Clone the document to avoid concurrent modification by reading goroutine
 		docCopy := *doc
-		docCopy.Metadata = maps.Clone(doc.Metadata)
-		docCopy.Embedding = slices.Clone(doc.Embedding)
+		if fetchDeep {
+			docCopy.Metadata = maps.Clone(doc.Metadata)
+			docCopy.Embedding = slices.Clone(doc.Embedding)
+		} else {
+			docCopy.Metadata = nil
+			docCopy.Embedding = nil
+		}
 		results = append(results, docCopy)
 	}
 	return results, nil
