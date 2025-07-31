@@ -558,6 +558,50 @@ func (c *Collection) queryEmbedding(ctx context.Context, queryEmbedding, negativ
 	return res, nil
 }
 
+func (c *Collection) GetAllDocuments(_ context.Context, fetchDeep bool) ([]Document, error) {
+	c.documentsLock.RLock()
+	defer c.documentsLock.RUnlock()
+
+	results := make([]Document, 0, len(c.documents))
+	for _, doc := range c.documents {
+		// Clone the document to avoid concurrent modification by reading goroutine
+		docCopy := *doc
+		if fetchDeep {
+			docCopy.Metadata = maps.Clone(doc.Metadata)
+			docCopy.Embedding = slices.Clone(doc.Embedding)
+		} else {
+			docCopy.Metadata = nil
+			docCopy.Embedding = nil
+		}
+		results = append(results, docCopy)
+	}
+	return results, nil
+}
+
+func (c *Collection) GetDocumentsByMetadata(_ context.Context, where map[string]string) ([]Document, error) {
+	c.documentsLock.RLock()
+	defer c.documentsLock.RUnlock()
+
+	var results []Document
+	for _, doc := range c.documents {
+		match := true
+		for key, value := range where {
+			if docVal, ok := doc.Metadata[key]; !ok || docVal != value {
+				match = false
+				break
+			}
+		}
+		if match {
+			// Clone the document to avoid concurrent modification by reading goroutine
+			docCopy := *doc
+			docCopy.Metadata = maps.Clone(doc.Metadata)
+			docCopy.Embedding = slices.Clone(doc.Embedding)
+			results = append(results, docCopy)
+		}
+	}
+	return results, nil
+}
+
 // getDocPath generates the path to the document file.
 func (c *Collection) getDocPath(docID string) string {
 	safeID := hash2hex(docID)
