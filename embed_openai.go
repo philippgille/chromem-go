@@ -115,7 +115,7 @@ func newEmbeddingFuncOpenAICompat(baseURL, apiKey, model string, normalized *boo
 		if err != nil {
 			return nil, fmt.Errorf("couldn't send request: %w", err)
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Check the response status.
 		if resp.StatusCode != http.StatusOK {

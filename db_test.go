@@ -15,7 +15,7 @@ func TestNewPersistentDB(t *testing.T) {
 		r := rand.New(rand.NewSource(rand.Int63()))
 		randString := randomString(r, 10)
 		path := filepath.Join(os.TempDir(), randString)
-		defer os.RemoveAll(path)
+		defer func() { _ = os.RemoveAll(path) }()
 
 		// Path shouldn't exist yet
 		if _, err := os.Stat(path); !os.IsNotExist(err) {
@@ -40,7 +40,7 @@ func TestNewPersistentDB(t *testing.T) {
 		if err != nil {
 			t.Fatal("couldn't create temp dir:", err)
 		}
-		defer os.RemoveAll(path)
+		defer func() { _ = os.RemoveAll(path) }()
 
 		db, err := NewPersistentDB(path, false)
 		if err != nil {
@@ -58,7 +58,7 @@ func TestNewPersistentDB_Errors(t *testing.T) {
 		if err != nil {
 			t.Fatal("couldn't create temp file:", err)
 		}
-		defer os.RemoveAll(f.Name())
+		defer func() { _ = os.RemoveAll(f.Name()) }()
 
 		_, err = NewPersistentDB(f.Name(), false)
 		if err == nil {
@@ -71,7 +71,7 @@ func TestDB_ImportExport(t *testing.T) {
 	r := rand.New(rand.NewSource(rand.Int63()))
 	randString := randomString(r, 10)
 	path := filepath.Join(os.TempDir(), randString)
-	defer os.RemoveAll(path)
+	defer func() { _ = os.RemoveAll(path) }()
 
 	// Values in the collection
 	name := "test"
@@ -168,7 +168,7 @@ func TestDB_ImportExportSpecificCollections(t *testing.T) {
 	randString := randomString(r, 10)
 	path := filepath.Join(os.TempDir(), randString)
 	filePath := path + ".gob"
-	defer os.RemoveAll(path)
+	defer func() { _ = os.RemoveAll(path) }()
 
 	// Values in the collection
 	name := "test"
@@ -225,7 +225,7 @@ func TestDB_ImportExportSpecificCollections(t *testing.T) {
 	}
 
 	dir := filepath.Join(path, randomString(r, 10))
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 
 	// Instead of importing to an in-memory DB we use a persistent one to cover the behavior of immediate persistent files being created for the imported data
 	newPDB, err := NewPersistentDB(dir, false)
