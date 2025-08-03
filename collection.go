@@ -312,10 +312,8 @@ func (c *Collection) ListDocuments(_ context.Context) ([]Document, error) {
 
 	results := make([]Document, 0, len(c.documents))
 	for _, doc := range c.documents {
-		// Clone the document and referenced data structures to avoid concurrent modification by reading goroutine
-		docCopy := *doc
-		docCopy.Metadata = maps.Clone(doc.Metadata)
-		docCopy.Embedding = slices.Clone(doc.Embedding)
+		// Clone the document to avoid concurrent modification by reading goroutine
+		docCopy := cloneDocument(doc)
 		results = append(results, docCopy)
 	}
 	return results, nil
@@ -330,10 +328,7 @@ func (c *Collection) ListDocumentsShort(_ context.Context) ([]Document, error) {
 	results := make([]Document, 0, len(c.documents))
 	for _, doc := range c.documents {
 		// Clone the document to avoid concurrent modification by reading goroutine
-		docCopy := *doc
-		// Drop referenced data structures
-		docCopy.Metadata = nil
-		docCopy.Embedding = nil
+		docCopy := cloneDocumentShort(doc)
 		results = append(results, docCopy)
 	}
 	return results, nil
@@ -352,12 +347,8 @@ func (c *Collection) GetByID(_ context.Context, id string) (Document, error) {
 
 	doc, ok := c.documents[id]
 	if ok {
-		// Clone the document
-		res := *doc
-		// Above copies the simple fields, but we need to copy the slices and maps
-		res.Metadata = maps.Clone(doc.Metadata)
-		res.Embedding = slices.Clone(doc.Embedding)
-
+		// Clone the document to avoid concurrent modification by reading goroutine
+		res := cloneDocument(doc)
 		return res, nil
 	}
 
@@ -383,9 +374,7 @@ func (c *Collection) GetByMetadata(_ context.Context, where map[string]string) (
 		}
 		if match {
 			// Clone the document to avoid concurrent modification by reading goroutine
-			docCopy := *doc
-			docCopy.Metadata = maps.Clone(doc.Metadata)
-			docCopy.Embedding = slices.Clone(doc.Embedding)
+			docCopy := cloneDocument(doc)
 			results = append(results, docCopy)
 		}
 	}
@@ -652,4 +641,20 @@ func (c *Collection) persistMetadata() error {
 	}
 
 	return nil
+}
+
+// cloneDocument creates a deep copy of the given Document, including its Metadata and Embedding slices.
+func cloneDocument(doc *Document) Document {
+	docCopy := *doc
+	docCopy.Metadata = maps.Clone(doc.Metadata)
+	docCopy.Embedding = slices.Clone(doc.Embedding)
+	return docCopy
+}
+
+// cloneDocumentShort creates a shallow copy of the given Document without its Metadata and Embedding slices.
+func cloneDocumentShort(doc *Document) Document {
+	docCopy := *doc
+	docCopy.Metadata = nil
+	docCopy.Embedding = nil
+	return docCopy
 }
