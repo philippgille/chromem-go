@@ -305,10 +305,44 @@ func (c *Collection) ListIDs(_ context.Context) []string {
 	return ids
 }
 
+// ListDocuments returns all documents in the collection.
+func (c *Collection) ListDocuments(_ context.Context) ([]Document, error) {
+	c.documentsLock.RLock()
+	defer c.documentsLock.RUnlock()
+
+	results := make([]Document, 0, len(c.documents))
+	for _, doc := range c.documents {
+		// Clone the document and referenced data structures to avoid concurrent modification by reading goroutine
+		docCopy := *doc
+		docCopy.Metadata = maps.Clone(doc.Metadata)
+		docCopy.Embedding = slices.Clone(doc.Embedding)
+		results = append(results, docCopy)
+	}
+	return results, nil
+}
+
+// ListDocumentsShort performs a shallow fetch on all documents in the collection,
+// returning only the document IDs and content, but not the embedding or metadata values.
+func (c *Collection) ListDocumentsShort(_ context.Context) ([]Document, error) {
+	c.documentsLock.RLock()
+	defer c.documentsLock.RUnlock()
+
+	results := make([]Document, 0, len(c.documents))
+	for _, doc := range c.documents {
+		// Clone the document to avoid concurrent modification by reading goroutine
+		docCopy := *doc
+		// Drop referenced data structures
+		docCopy.Metadata = nil
+		docCopy.Embedding = nil
+		results = append(results, docCopy)
+	}
+	return results, nil
+}
+
 // GetByID returns a document by its ID.
 // The returned document is a copy of the original document, so it can be safely
 // modified without affecting the collection.
-func (c *Collection) GetByID(ctx context.Context, id string) (Document, error) {
+func (c *Collection) GetByID(_ context.Context, id string) (Document, error) {
 	if id == "" {
 		return Document{}, errors.New("document ID is empty")
 	}
@@ -328,6 +362,34 @@ func (c *Collection) GetByID(ctx context.Context, id string) (Document, error) {
 	}
 
 	return Document{}, fmt.Errorf("document with ID '%v' not found", id)
+}
+
+// GetByMetadata returns a set of documents by their metadata.
+// The metadata tags must match the params specified in the where argument in both key and value
+// The returned documents are a copy of the original document, so they can be safely
+// modified without affecting the collection.
+func (c *Collection) GetByMetadata(_ context.Context, where map[string]string) ([]Document, error) {
+	c.documentsLock.RLock()
+	defer c.documentsLock.RUnlock()
+
+	var results []Document
+	for _, doc := range c.documents {
+		match := true
+		for key, value := range where {
+			if docVal, ok := doc.Metadata[key]; !ok || docVal != value {
+				match = false
+				break
+			}
+		}
+		if match {
+			// Clone the document to avoid concurrent modification by reading goroutine
+			docCopy := *doc
+			docCopy.Metadata = maps.Clone(doc.Metadata)
+			docCopy.Embedding = slices.Clone(doc.Embedding)
+			results = append(results, docCopy)
+		}
+	}
+	return results, nil
 }
 
 // Delete removes document(s) from the collection.
@@ -556,50 +618,6 @@ func (c *Collection) queryEmbedding(ctx context.Context, queryEmbedding, negativ
 	}
 
 	return res, nil
-}
-
-func (c *Collection) GetAllDocuments(_ context.Context, fetchDeep bool) ([]Document, error) {
-	c.documentsLock.RLock()
-	defer c.documentsLock.RUnlock()
-
-	results := make([]Document, 0, len(c.documents))
-	for _, doc := range c.documents {
-		// Clone the document to avoid concurrent modification by reading goroutine
-		docCopy := *doc
-		if fetchDeep {
-			docCopy.Metadata = maps.Clone(doc.Metadata)
-			docCopy.Embedding = slices.Clone(doc.Embedding)
-		} else {
-			docCopy.Metadata = nil
-			docCopy.Embedding = nil
-		}
-		results = append(results, docCopy)
-	}
-	return results, nil
-}
-
-func (c *Collection) GetDocumentsByMetadata(_ context.Context, where map[string]string) ([]Document, error) {
-	c.documentsLock.RLock()
-	defer c.documentsLock.RUnlock()
-
-	var results []Document
-	for _, doc := range c.documents {
-		match := true
-		for key, value := range where {
-			if docVal, ok := doc.Metadata[key]; !ok || docVal != value {
-				match = false
-				break
-			}
-		}
-		if match {
-			// Clone the document to avoid concurrent modification by reading goroutine
-			docCopy := *doc
-			docCopy.Metadata = maps.Clone(doc.Metadata)
-			docCopy.Embedding = slices.Clone(doc.Embedding)
-			results = append(results, docCopy)
-		}
-	}
-	return results, nil
 }
 
 // getDocPath generates the path to the document file.
