@@ -23,7 +23,7 @@ type EmbeddingFunc func(ctx context.Context, text string) ([]float32, error)
 
 // DB is the chromem-go database. It holds collections, which hold documents.
 //
-//	+----+    1-n    +------------+    n-n    +----------+
+//	+----+    1-n    +------------+    1-n    +----------+
 //	| DB |-----------| Collection |-----------| Document |
 //	+----+           +------------+           +----------+
 type DB struct {
