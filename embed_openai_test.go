@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/philippgille/chromem-go"
+	"github.com/nwindian/chromem-go"
 )
 
 type openAIResponse struct {

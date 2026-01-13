@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/philippgille/chromem-go"
+	"github.com/nwindian/chromem-go"
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/s3blob"
 )

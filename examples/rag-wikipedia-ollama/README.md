@@ -144,7 +144,7 @@ index 55b3076..044a246 100644
 --- a/examples/rag-wikipedia-ollama/main.go
 +++ b/examples/rag-wikipedia-ollama/main.go
 @@ -12,19 +12,11 @@ import (
-  "github.com/philippgille/chromem-go"
+  "github.com/nwindian/chromem-go"
  )
  
 -const (

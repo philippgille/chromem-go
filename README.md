@@ -1,9 +1,9 @@
 # chromem-go
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/philippgille/chromem-go.svg)](https://pkg.go.dev/github.com/philippgille/chromem-go)
-[![Build status](https://github.com/philippgille/chromem-go/actions/workflows/go.yml/badge.svg)](https://github.com/philippgille/chromem-go/actions/workflows/go.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/philippgille/chromem-go)](https://goreportcard.com/report/github.com/philippgille/chromem-go)
-[![GitHub Releases](https://img.shields.io/github/release/philippgille/chromem-go.svg)](https://github.com/philippgille/chromem-go/releases)
+[![Go Reference](https://pkg.go.dev/badge/github.com/nwindian/chromem-go.svg)](https://pkg.go.dev/github.com/nwindian/chromem-go)
+[![Build status](https://github.com/nwindian/chromem-go/actions/workflows/go.yml/badge.svg)](https://github.com/nwindian/chromem-go/actions/workflows/go.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/nwindian/chromem-go)](https://goreportcard.com/report/github.com/nwindian/chromem-go)
+[![GitHub Releases](https://img.shields.io/github/release/philippgille/chromem-go.svg)](https://github.com/nwindian/chromem-go/releases)
 
 Embeddable vector database for Go with Chroma-like interface and zero third-party dependencies. In-memory with optional persistence.
 
@@ -95,7 +95,7 @@ Our Go library exposes the same interface:
 ```go
 package main
 
-import "github.com/philippgille/chromem-go"
+import "github.com/nwindian/chromem-go"
 
 func main() {
     // Set up chromem-go in-memory, for easy prototyping. Can add persistence easily!
@@ -130,7 +130,7 @@ func main() {
 Initially `chromem-go` started with just the four core methods, but we added more over time. We intentionally don't want to cover 100% of Chroma's API surface though.  
 We're providing some alternative methods that are more Go-idiomatic instead.
 
-For the full interface see the Godoc: <https://pkg.go.dev/github.com/philippgille/chromem-go>
+For the full interface see the Godoc: <https://pkg.go.dev/github.com/nwindian/chromem-go>
 
 ## Features
 
@@ -150,7 +150,7 @@ For the full interface see the Godoc: <https://pkg.go.dev/github.com/philippgill
   - Local:
     - [X] [Ollama](https://github.com/ollama/ollama)
     - [X] [LocalAI](https://github.com/mudler/LocalAI)
-  - Bring your own (implement [`chromem.EmbeddingFunc`](https://pkg.go.dev/github.com/philippgille/chromem-go#EmbeddingFunc))
+  - Bring your own (implement [`chromem.EmbeddingFunc`](https://pkg.go.dev/github.com/nwindian/chromem-go#EmbeddingFunc))
   - You can also pass existing embeddings when adding documents to a collection, instead of letting `chromem-go` create them
 - Similarity search:
   - [X] Exhaustive nearest neighbor search using cosine similarity (sometimes also called exact search or brute-force search or FLAT index)
@@ -168,7 +168,7 @@ For the full interface see the Godoc: <https://pkg.go.dev/github.com/philippgill
 ### Roadmap
 
 - Performance:
-  - Use SIMD for dot product calculation on supported CPUs (draft PR: [#48](https://github.com/philippgille/chromem-go/pull/48))
+  - Use SIMD for dot product calculation on supported CPUs (draft PR: [#48](https://github.com/nwindian/chromem-go/pull/48))
   - Add [roaring bitmaps](https://github.com/RoaringBitmap/roaring) to speed up full text filtering
 - Embedding creators:
   - Add an `EmbeddingFunc` that downloads and shells out to [llamafile](https://github.com/Mozilla-Ocho/llamafile)
@@ -188,11 +188,11 @@ For the full interface see the Godoc: <https://pkg.go.dev/github.com/philippgill
 
 ## Installation
 
-`go get github.com/philippgille/chromem-go@latest`
+`go get github.com/nwindian/chromem-go@latest`
 
 ## Usage
 
-See the Godoc for a reference: <https://pkg.go.dev/github.com/philippgille/chromem-go>
+See the Godoc for a reference: <https://pkg.go.dev/github.com/nwindian/chromem-go>
 
 For full, working examples, using the vector database for retrieval augmented generation (RAG) and semantic search and using either OpenAI or locally running the embeddings model and LLM (in Ollama), see the [example code](examples).
 
@@ -208,7 +208,7 @@ import (
  "fmt"
  "runtime"
 
- "github.com/philippgille/chromem-go"
+ "github.com/nwindian/chromem-go"
 )
 
 func main() {
@@ -269,7 +269,7 @@ Benchmarked on 2024-03-17 with:
 $ go test -benchmem -run=^$ -bench .
 goos: linux
 goarch: amd64
-pkg: github.com/philippgille/chromem-go
+pkg: github.com/nwindian/chromem-go
 cpu: 11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz
 BenchmarkCollection_Query_NoContent_100-8          13164      90276 ns/op     5176 B/op       95 allocs/op
 BenchmarkCollection_Query_NoContent_1000-8          2142     520261 ns/op    13558 B/op      141 allocs/op
@@ -282,7 +282,7 @@ BenchmarkCollection_Query_5000-8                     550    2128121 ns/op    471
 BenchmarkCollection_Query_25000-8                    100   10063260 ns/op   211705 B/op      205 allocs/op
 BenchmarkCollection_Query_100000-8                    30   39404005 ns/op   810295 B/op      229 allocs/op
 PASS
-ok   github.com/philippgille/chromem-go 28.402s
+ok   github.com/nwindian/chromem-go 28.402s
 ```
 
 ## Development

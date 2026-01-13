@@ -1,7 +1,7 @@
-module github.com/philippgille/chromem-go/examples/semantic-search-arxiv-openai
+module github.com/nwindian/chromem-go/examples/semantic-search-arxiv-openai
 
 go 1.21
 
-require github.com/philippgille/chromem-go v0.0.0
+require github.com/nwindian/chromem-go v0.0.0
 
-replace github.com/philippgille/chromem-go => ./../..
+replace github.com/nwindian/chromem-go => ./../..

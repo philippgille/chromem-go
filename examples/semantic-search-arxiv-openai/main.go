@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/philippgille/chromem-go"
+	"github.com/nwindian/chromem-go"
 )
 
 const searchTerm = "semantic search with vector databases"
