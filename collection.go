@@ -67,6 +67,14 @@ type QueryOptions struct {
 	// Conditional filtering on documents.
 	WhereDocument map[string]string
 
+	// Threshold is the minimum similarity threshold for results.
+	// Only documents with a similarity score greater than or equal to this value
+	// will be included in the results. Valid range is [0, 1].
+	// A value of 0 (default) disables threshold filtering and returns all results
+	// up to nResults.
+	// Example: A threshold of 0.7 means only documents with >= 70% similarity will be returned.
+	Threshold float32
+
 	// Negative is the negative query options.
 	// They can be used to exclude certain results from the query.
 	Negative NegativeQueryOptions
@@ -536,7 +544,7 @@ func (c *Collection) QueryWithOptions(ctx context.Context, options QueryOptions)
 		}
 	}
 
-	result, err := c.queryEmbedding(ctx, queryVector, negativeVector, negativeFilterThreshold, options.NResults, options.Where, options.WhereDocument)
+	result, err := c.queryEmbedding(ctx, queryVector, negativeVector, negativeFilterThreshold, options.NResults, options.Where, options.WhereDocument, options.Threshold)
 	if err != nil {
 		return nil, err
 	}
@@ -554,16 +562,19 @@ func (c *Collection) QueryWithOptions(ctx context.Context, options QueryOptions)
 //   - where: Conditional filtering on metadata. Optional.
 //   - whereDocument: Conditional filtering on documents. Optional.
 func (c *Collection) QueryEmbedding(ctx context.Context, queryEmbedding []float32, nResults int, where, whereDocument map[string]string) ([]Result, error) {
-	return c.queryEmbedding(ctx, queryEmbedding, nil, 0, nResults, where, whereDocument)
+	return c.queryEmbedding(ctx, queryEmbedding, nil, 0, nResults, where, whereDocument, 0)
 }
 
 // queryEmbedding performs an exhaustive nearest neighbor search on the collection.
-func (c *Collection) queryEmbedding(ctx context.Context, queryEmbedding, negativeEmbeddings []float32, negativeFilterThreshold float32, nResults int, where, whereDocument map[string]string) ([]Result, error) {
+func (c *Collection) queryEmbedding(ctx context.Context, queryEmbedding, negativeEmbeddings []float32, negativeFilterThreshold float32, nResults int, where, whereDocument map[string]string, threshold float32) ([]Result, error) {
 	if len(queryEmbedding) == 0 {
 		return nil, errors.New("queryEmbedding is empty")
 	}
 	if nResults <= 0 {
 		return nil, errors.New("nResults must be > 0")
+	}
+	if threshold < 0 || threshold > 1 {
+		return nil, errors.New("threshold must be between 0 and 1")
 	}
 	c.documentsLock.RLock()
 	defer c.documentsLock.RUnlock()
@@ -604,7 +615,7 @@ func (c *Collection) queryEmbedding(ctx context.Context, queryEmbedding, negativ
 	}
 
 	// For the remaining documents, get the most similar docs.
-	nMaxDocs, err := getMostSimilarDocs(ctx, queryEmbedding, negativeEmbeddings, negativeFilterThreshold, filteredDocs, resLen)
+	nMaxDocs, err := getMostSimilarDocs(ctx, queryEmbedding, negativeEmbeddings, negativeFilterThreshold, filteredDocs, resLen, threshold)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get most similar docs: %w", err)
 	}
