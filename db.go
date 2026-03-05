@@ -33,8 +33,15 @@ type DB struct {
 	persistDirectory string
 	compress         bool
 
+	wal bool
+
 	// ⚠️ When adding fields here, consider adding them to the persistence struct
 	// versions in [DB.Export] and [DB.Import] as well!
+}
+
+type DBConfig struct {
+	Compress bool
+	Wal      bool
 }
 
 // NewDB creates a new in-memory chromem-go DB.
@@ -66,6 +73,20 @@ func NewDB() *DB {
 // [DB.ImportFromReader] to export and import the entire DB to/from a file or
 // writer/reader, which also works for the pure in-memory DB.
 func NewPersistentDB(path string, compress bool) (*DB, error) {
+	return newPersistentDB(path,
+		DBConfig{
+			Compress: compress,
+			Wal:      false,
+		},
+	)
+}
+
+func NewPersistentDBWithOptions(path string, cfg DBConfig) (*DB, error) {
+	return newPersistentDB(path, cfg)
+}
+
+func newPersistentDB(path string, cfg DBConfig) (*DB, error) {
+
 	if path == "" {
 		path = "./chromem-go"
 	} else {
@@ -75,14 +96,15 @@ func NewPersistentDB(path string, compress bool) (*DB, error) {
 
 	// We check for this file extension and skip others
 	ext := ".gob"
-	if compress {
+	if cfg.Compress {
 		ext += ".gz"
 	}
 
 	db := &DB{
 		collections:      make(map[string]*Collection),
 		persistDirectory: path,
-		compress:         compress,
+		compress:         cfg.Compress,
+		wal:              cfg.Wal,
 	}
 
 	// If the directory doesn't exist, create it and return an empty DB.
@@ -121,10 +143,15 @@ func NewPersistentDB(path string, compress bool) (*DB, error) {
 		if err != nil {
 			return nil, fmt.Errorf("couldn't read collection directory: %w", err)
 		}
+		wal, err := NewWAL(collectionPath, cfg.Wal)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't create WAL: %w", err)
+		}
 		c := &Collection{
 			documents:        make(map[string]*Document),
 			persistDirectory: collectionPath,
-			compress:         compress,
+			compress:         cfg.Compress,
+			wal:              wal,
 			// We can fill Name and metadata only after reading
 			// the metadata.
 			// We can fill embed only when the user calls DB.GetCollection() or
@@ -152,13 +179,11 @@ func NewPersistentDB(path string, compress bool) (*DB, error) {
 				c.Name = pc.Name
 				c.metadata = pc.Metadata
 			} else if strings.HasSuffix(collectionDirEntry.Name(), ext) {
-				// Read document
-				d := &Document{}
-				err := readFromFile(fPath, d, "")
-				if err != nil {
-					return nil, fmt.Errorf("couldn't read document: %w", err)
-				}
-				c.documents[d.ID] = d
+				// TODO:Read document or replay if wal enabled
+				// if wal {
+
+				// }
+				loadDocument(fPath, c)
 			} else {
 				// Might be a file that the user has placed
 				continue
@@ -178,6 +203,22 @@ func NewPersistentDB(path string, compress bool) (*DB, error) {
 	}
 
 	return db, nil
+}
+
+func replayWAL(fPath string, c *Collection) error {
+	return nil
+}
+
+func loadDocument(fPath string, c *Collection) error {
+	// Read document
+	d := &Document{}
+	err := readFromFile(fPath, d, "")
+	if err != nil {
+		return fmt.Errorf("couldn't read document: %w", err)
+	}
+	c.documents[d.ID] = d
+
+	return nil
 }
 
 // Import imports the DB from a file at the given path. The file must be encoded
@@ -481,7 +522,8 @@ func (db *DB) ExportToWriter(writer io.Writer, compress bool, encryptionKey stri
 		}
 	}
 
-	err := persistToWriter(writer, persistenceDB, compress, encryptionKey)
+	//TODO: Need to check both export and import DB carefully
+	err := persistToWriter(writer, persistenceDB, compress, nil, encryptionKey)
 	if err != nil {
 		return fmt.Errorf("couldn't export DB: %w", err)
 	}
@@ -502,7 +544,7 @@ func (db *DB) CreateCollection(name string, metadata map[string]string, embeddin
 	if embeddingFunc == nil {
 		embeddingFunc = NewEmbeddingFuncDefault()
 	}
-	collection, err := newCollection(name, metadata, embeddingFunc, db.persistDirectory, db.compress)
+	collection, err := newCollection(name, metadata, embeddingFunc, db.persistDirectory, db.compress, db.wal)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create collection: %w", err)
 	}

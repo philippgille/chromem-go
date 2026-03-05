@@ -7,6 +7,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/gob"
 	"encoding/hex"
 	"errors"
@@ -15,6 +16,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 const metadataFileName = "00000000"
@@ -66,14 +68,14 @@ func persistToFile(filePath string, obj any, compress bool, encryptionKey string
 	}
 	defer f.Close()
 
-	return persistToWriter(f, obj, compress, encryptionKey)
+	return persistToWriter(f, obj, compress, nil, encryptionKey)
 }
 
 // persistToWriter persists an object to a writer. The object is serialized
 // as gob, optionally compressed with flate (as gzip) and optionally encrypted with
 // AES-GCM. The encryption key must be 32 bytes long.
 // If the writer has to be closed, it's the caller's responsibility.
-func persistToWriter(w io.Writer, obj any, compress bool, encryptionKey string) error {
+func persistToWriter(w io.Writer, obj any, compress bool, wal *WAL, encryptionKey string) error {
 	// AES 256 requires a 32 byte key
 	if encryptionKey != "" {
 		if len(encryptionKey) != 32 {
@@ -86,9 +88,10 @@ func persistToWriter(w io.Writer, obj any, compress bool, encryptionKey string) 
 	// passed writer.
 	// To reduce memory usage we chain the writers instead of buffering, so we start
 	// from the end. For AES GCM sealing the stdlib doesn't provide a writer though.
+	// for wal we need buffered io
 
 	var chainedWriter io.Writer
-	if encryptionKey == "" {
+	if encryptionKey == "" && wal == nil {
 		chainedWriter = w
 	} else {
 		chainedWriter = &bytes.Buffer{}
@@ -121,6 +124,13 @@ func persistToWriter(w io.Writer, obj any, compress bool, encryptionKey string) 
 
 	// Without encyrption, the chain is done and the writing is finished.
 	if encryptionKey == "" {
+		if wal != nil {
+			buf := chainedWriter.(*bytes.Buffer).Bytes()
+			err := WriteBinary(&wal.mu, w, buf)
+			if err != nil {
+				return fmt.Errorf("couldn't write data in WAL: %w", err)
+			}
+		}
 		return nil
 	}
 
@@ -140,11 +150,18 @@ func persistToWriter(w io.Writer, obj any, compress bool, encryptionKey string) 
 	// chainedWriter is a *bytes.Buffer
 	buf := chainedWriter.(*bytes.Buffer)
 	encrypted := gcm.Seal(nonce, nonce, buf.Bytes(), nil)
-	_, err = w.Write(encrypted)
-	if err != nil {
-		return fmt.Errorf("couldn't write encrypted data: %w", err)
-	}
 
+	if wal != nil {
+		err := WriteBinary(&wal.mu, w, encrypted)
+		if err != nil {
+			return fmt.Errorf("couldn't write data in WAL: %w", err)
+		}
+	} else {
+		_, err = w.Write(encrypted)
+		if err != nil {
+			return fmt.Errorf("couldn't write encrypted data: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -277,4 +294,37 @@ func removeFile(filePath string) error {
 	}
 
 	return nil
+}
+
+func WriteBinary(mu *sync.RWMutex, w io.Writer, bytes []byte) error {
+
+	mu.Lock()
+
+	defer mu.Unlock()
+
+	if err := binary.Write(w, binary.LittleEndian, uint32(len(bytes))); err != nil {
+		return err
+	}
+
+	if _, err := w.Write(bytes); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ReadBinary(r io.Reader) ([]byte, error) {
+	var dataLen uint32
+
+	if err := binary.Read(r, binary.LittleEndian, &dataLen); err != nil {
+		return nil, err
+	}
+
+	data := make([]byte, dataLen)
+
+	if _, err := io.ReadFull(r, data); err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
