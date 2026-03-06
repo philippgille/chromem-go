@@ -20,6 +20,7 @@ import (
 )
 
 const metadataFileName = "00000000"
+const walFileExtension = ".wal"
 
 func hash2hex(name string) string {
 	hash := sha256.Sum256([]byte(name))

@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -42,6 +43,12 @@ type DB struct {
 type DBConfig struct {
 	Compress bool
 	Wal      bool
+}
+
+type collectionLoadTask struct {
+	c                  *Collection
+	collectionDirEntry os.DirEntry
+	ext                string
 }
 
 // NewDB creates a new in-memory chromem-go DB.
@@ -157,38 +164,41 @@ func newPersistentDB(path string, cfg DBConfig) (*DB, error) {
 			// We can fill embed only when the user calls DB.GetCollection() or
 			// DB.GetOrCreateCollection().
 		}
-		for _, collectionDirEntry := range collectionDirEntries {
-			// Files should be metadata and documents; skip subdirectories which
-			// the user might have placed.
-			if collectionDirEntry.IsDir() {
-				continue
-			}
 
-			fPath := filepath.Join(collectionPath, collectionDirEntry.Name())
-			// Differentiate between collection metadata, documents and other files.
-			if collectionDirEntry.Name() == metadataFileName+ext {
-				// Read name and metadata
-				pc := struct {
-					Name     string
-					Metadata map[string]string
-				}{}
-				err := readFromFile(fPath, &pc, "")
-				if err != nil {
-					return nil, fmt.Errorf("couldn't read collection metadata: %w", err)
-				}
-				c.Name = pc.Name
-				c.metadata = pc.Metadata
-			} else if strings.HasSuffix(collectionDirEntry.Name(), ext) {
-				// TODO:Read document or replay if wal enabled
-				// if wal {
+		loadTaskChan := make(chan collectionLoadTask, runtime.NumCPU())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 
-				// }
-				loadDocument(fPath, c)
-			} else {
-				// Might be a file that the user has placed
-				continue
-			}
+		errorsChan := make(chan error, 1)
+		var wg sync.WaitGroup
+
+		for i := 0; i < runtime.NumCPU(); i++ {
+			wg.Add(1)
+			go loadDocumentWorker(ctx, loadTaskChan, errorsChan, &wg, cancel)
 		}
+
+	outer:
+		for _, collectionDirEntry := range collectionDirEntries {
+			select {
+			case <-ctx.Done():
+				break outer
+			case loadTaskChan <- collectionLoadTask{
+				c:                  c,
+				collectionDirEntry: collectionDirEntry,
+				ext:                ext,
+			}:
+			}
+
+		}
+		close(loadTaskChan)
+
+		wg.Wait()
+		close(errorsChan)
+
+		if err, ok := <-errorsChan; ok {
+			return nil, err
+		}
+
 		// If we have neither name nor documents, it was likely a user-added
 		// directory, so skip it.
 		if c.Name == "" && len(c.documents) == 0 {
@@ -205,8 +215,64 @@ func newPersistentDB(path string, cfg DBConfig) (*DB, error) {
 	return db, nil
 }
 
-func replayWAL(fPath string, c *Collection) error {
-	return nil
+func loadDocumentWorker(
+	ctx context.Context,
+	loadTaskChan <-chan collectionLoadTask,
+	errorChan chan<- error,
+	wg *sync.WaitGroup,
+	cancel context.CancelFunc,
+) {
+	defer wg.Done()
+
+	for {
+
+		select {
+		case <-ctx.Done():
+			return
+		case task, ok := <-loadTaskChan:
+			if !ok {
+				return
+			}
+			c := task.c
+			collectionDirEntry := task.collectionDirEntry
+			collectionPath := c.persistDirectory
+			ext := task.ext
+
+			// Files should be metadata and documents; skip subdirectories which
+			// the user might have placed.
+			if collectionDirEntry.IsDir() {
+				continue
+			}
+
+			fPath := filepath.Join(collectionPath, collectionDirEntry.Name())
+			// Differentiate between collection metadata, documents and other files.
+			if collectionDirEntry.Name() == metadataFileName+ext {
+				// Read name and metadata
+				pc := struct {
+					Name     string
+					Metadata map[string]string
+				}{}
+				err := readFromFile(fPath, &pc, "")
+				if err != nil {
+					errorChan <- (fmt.Errorf("couldn't read collection metadata: %w", err))
+					cancel()
+					return
+				}
+				c.Name = pc.Name
+				c.metadata = pc.Metadata
+			} else if strings.HasSuffix(collectionDirEntry.Name(), ext) {
+				loadDocument(fPath, c)
+			} else if strings.HasSuffix(collectionDirEntry.Name(), walFileExtension) {
+				c.wal.replayWAL(fPath, c)
+			} else {
+				// Might be a file that the user has placed
+				continue
+			}
+
+		}
+
+	}
+
 }
 
 func loadDocument(fPath string, c *Collection) error {
@@ -216,7 +282,10 @@ func loadDocument(fPath string, c *Collection) error {
 	if err != nil {
 		return fmt.Errorf("couldn't read document: %w", err)
 	}
+
+	c.documentsLock.Lock()
 	c.documents[d.ID] = d
+	c.documentsLock.Unlock()
 
 	return nil
 }

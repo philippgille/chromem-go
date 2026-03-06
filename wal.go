@@ -2,8 +2,10 @@ package chromem
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -24,7 +26,7 @@ func NewWAL(path string, wal bool) (*WAL, error) {
 		return nil, nil
 	}
 
-	walFilePath := filepath.Join(path, "wl01.db")
+	walFilePath := filepath.Join(path, "wl01.wal")
 
 	fi, err := os.Stat(walFilePath)
 	if err != nil {
@@ -73,4 +75,40 @@ func (w *WAL) startSyncLoop() {
 			w.mu.Unlock()
 		}
 	}()
+}
+
+func (w *WAL) replayWAL(walPath string, c *Collection) error {
+	f, err := os.Open(walPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	for {
+		data, err := ReadBinary(f)
+
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return fmt.Errorf("couldn't read WAL record: %w", err)
+		}
+
+		// decode document using existing reader logic
+		d := &Document{}
+		r := bytes.NewReader(data)
+
+		err = readFromReader(r, d, "")
+		if err != nil {
+			return fmt.Errorf("couldn't decode WAL record: %w", err)
+		}
+
+		// apply document
+		c.documentsLock.Lock()
+		c.documents[d.ID] = d
+		c.documentsLock.Unlock()
+	}
+
+	return nil
 }

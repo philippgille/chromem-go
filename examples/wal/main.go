@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"runtime"
@@ -22,7 +23,7 @@ func main() {
 
 	db, err := chromem.NewPersistentDBWithOptions("./collections", chromem.DBConfig{
 		Compress: true,
-		Wal:      true,
+		Wal:      false,
 	})
 
 	if err != nil {
@@ -38,32 +39,32 @@ func main() {
 	}
 
 	log.Println(runtime.NumCPU())
-	err = c.AddDocuments(ctx, []chromem.Document{
-		{
-			ID:      "1",
-			Content: "The sky is blue because of Rayleigh scattering.",
-			Metadata: map[string]string{
-				"name": "vaibhav",
-			},
-		},
-		{
-			ID:      "2",
-			Content: "Leaves are green because chlorophyll absorbs red and blue light.",
-			Metadata: map[string]string{
-				"name": "bhardwaj",
-			},
-		},
-	}, runtime.NumCPU())
-	if err != nil {
-		panic(err)
-	}
-
-	// res, err := c.Query(ctx, "Why is the sky blue?", 1, map[string]string{
-	// 	"name": "bhardwaj",
-	// }, nil)
+	// err = c.AddDocuments(ctx, []chromem.Document{
+	// 	{
+	// 		ID:      "1",
+	// 		Content: "The sky is blue because of Rayleigh scattering.",
+	// 		Metadata: map[string]string{
+	// 			"name": "vaibhav",
+	// 		},
+	// 	},
+	// 	{
+	// 		ID:      "2",
+	// 		Content: "Leaves are green because chlorophyll absorbs red and blue light.",
+	// 		Metadata: map[string]string{
+	// 			"name": "bhardwaj",
+	// 		},
+	// 	},
+	// }, runtime.NumCPU())
 	// if err != nil {
 	// 	panic(err)
 	// }
 
-	// fmt.Printf("ID: %v\nSimilarity: %v\nContent: %v\n", res[0].ID, res[0].Similarity, res[0].Content)
+	res, err := c.Query(ctx, "Why is the sky blue?", 1, map[string]string{
+		"name": "bhardwaj",
+	}, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("ID: %v\nSimilarity: %v\nContent: %v\n", res[0].ID, res[0].Similarity, res[0].Content)
 }
