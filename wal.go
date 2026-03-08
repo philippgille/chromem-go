@@ -35,10 +35,16 @@ type WAL struct {
 	closed    bool
 }
 
-func NewWAL(path string, wal bool) (*WAL, error) {
+const defaultWALMaxSegmentSize int64 = 2 * 1024 * 1024
+
+func NewWAL(path string, wal bool, maxSegmentSize int64) (*WAL, error) {
 
 	if !wal {
 		return nil, nil
+	}
+
+	if maxSegmentSize <= 0 {
+		maxSegmentSize = defaultWALMaxSegmentSize
 	}
 
 	if !folderExists(path) {
@@ -49,7 +55,7 @@ func NewWAL(path string, wal bool) (*WAL, error) {
 
 	walObj := &WAL{
 		dir:            path,
-		maxSegmentSize: 2 * 1024 * 1024,
+		maxSegmentSize: maxSegmentSize,
 		segmentID:      1,
 		syncStopCh:     make(chan struct{}),
 	}

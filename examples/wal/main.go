@@ -21,8 +21,9 @@ func main() {
 	ctx := context.Background()
 
 	db, err := chromem.NewPersistentDBWithOptions("./collections", chromem.DBConfig{
-		Compress: true,
-		Wal:      true,
+		Compress:          true,
+		Wal:               true,
+		WalSegmentMaxSize: 8 * 1024 * 1024,
 	})
 
 	if err != nil {
@@ -39,7 +40,6 @@ func main() {
 		panic(err)
 	}
 
-	log.Println(c.Name, ctx)
 	err = c.AddDocuments(ctx, []chromem.Document{
 		{
 			ID:      "1",

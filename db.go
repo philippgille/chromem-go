@@ -35,6 +35,8 @@ type DB struct {
 	compress         bool
 
 	wal bool
+	// walSegmentMaxSize is used only when wal=true. When <= 0 the default is used.
+	walSegmentMaxSize int64
 
 	// ⚠️ When adding fields here, consider adding them to the persistence struct
 	// versions in [DB.Export] and [DB.Import] as well!
@@ -43,6 +45,9 @@ type DB struct {
 type DBConfig struct {
 	Compress bool
 	Wal      bool
+	// WalSegmentMaxSize configures WAL segment rotation threshold in bytes.
+	// Only used when Wal=true. If <= 0, a default size is used.
+	WalSegmentMaxSize int64
 }
 
 type collectionLoadTask struct {
@@ -108,10 +113,11 @@ func newPersistentDB(path string, cfg DBConfig) (*DB, error) {
 	}
 
 	db := &DB{
-		collections:      make(map[string]*Collection),
-		persistDirectory: path,
-		compress:         cfg.Compress,
-		wal:              cfg.Wal,
+		collections:       make(map[string]*Collection),
+		persistDirectory:  path,
+		compress:          cfg.Compress,
+		wal:               cfg.Wal,
+		walSegmentMaxSize: cfg.WalSegmentMaxSize,
 	}
 
 	// If the directory doesn't exist, create it and return an empty DB.
@@ -151,7 +157,7 @@ func newPersistentDB(path string, cfg DBConfig) (*DB, error) {
 		if err != nil {
 			return nil, fmt.Errorf("couldn't read collection directory: %w", err)
 		}
-		wal, err := NewWAL(collectionPath, cfg.Wal)
+		wal, err := NewWAL(collectionPath, cfg.Wal, cfg.WalSegmentMaxSize)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't create WAL: %w", err)
 		}
@@ -617,7 +623,7 @@ func (db *DB) CreateCollection(name string, metadata map[string]string, embeddin
 	if embeddingFunc == nil {
 		embeddingFunc = NewEmbeddingFuncDefault()
 	}
-	collection, err := newCollection(name, metadata, embeddingFunc, db.persistDirectory, db.compress, db.wal)
+	collection, err := newCollection(name, metadata, embeddingFunc, db.persistDirectory, db.compress, db.wal, db.walSegmentMaxSize)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create collection: %w", err)
 	}

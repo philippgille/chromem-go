@@ -93,7 +93,7 @@ type NegativeQueryOptions struct {
 
 // We don't export this yet to keep the API surface to the bare minimum.
 // Users create collections via [Client.CreateCollection].
-func newCollection(name string, metadata map[string]string, embed EmbeddingFunc, dbDir string, compress bool, wal bool) (*Collection, error) {
+func newCollection(name string, metadata map[string]string, embed EmbeddingFunc, dbDir string, compress bool, wal bool, walSegmentMaxSize int64) (*Collection, error) {
 	// We copy the metadata to avoid data races in case the caller modifies the
 	// map after creating the collection while we range over it.
 	m := make(map[string]string, len(metadata))
@@ -115,7 +115,7 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 		c.persistDirectory = filepath.Join(dbDir, safeName)
 		c.compress = compress
 
-		wal, err := NewWAL(c.persistDirectory, wal)
+		wal, err := NewWAL(c.persistDirectory, wal, walSegmentMaxSize)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't create WAL: %w", err)
 		}

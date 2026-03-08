@@ -12,7 +12,7 @@ import (
 )
 
 func TestNewWAL_Disabled(t *testing.T) {
-	wal, err := NewWAL(t.TempDir(), false)
+	wal, err := NewWAL(t.TempDir(), false, 0)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
@@ -24,7 +24,7 @@ func TestNewWAL_Disabled(t *testing.T) {
 func TestWAL_AppendReplay_CloseBlocksWrites(t *testing.T) {
 	dir := t.TempDir()
 
-	wal, err := NewWAL(dir, true)
+	wal, err := NewWAL(dir, true, 0)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
@@ -91,7 +91,7 @@ func TestWAL_AppendReplay_CloseBlocksWrites(t *testing.T) {
 func TestWAL_Rotate_ConcurrentAppend(t *testing.T) {
 	dir := t.TempDir()
 
-	wal, err := NewWAL(dir, true)
+	wal, err := NewWAL(dir, true, 1024)
 	if err != nil {
 		t.Fatal("expected no error, got", err)
 	}
@@ -100,9 +100,6 @@ func TestWAL_Rotate_ConcurrentAppend(t *testing.T) {
 			t.Fatal("expected no error, got", err)
 		}
 	})
-
-	// Keep this low to force rotation under concurrent appends.
-	wal.maxSegmentSize = 1024
 
 	const workers = 8
 	const docsPerWorker = 200
@@ -162,6 +159,35 @@ func TestWAL_Rotate_ConcurrentAppend(t *testing.T) {
 
 	if replayed.Count() != expectedDocs {
 		t.Fatal("expected", expectedDocs, "replayed documents, got", replayed.Count())
+	}
+}
+
+func TestDB_WAL_ConfigurableSegmentMaxSize(t *testing.T) {
+	path := t.TempDir()
+
+	db, err := NewPersistentDBWithOptions(path, DBConfig{
+		Compress:          true,
+		Wal:               true,
+		WalSegmentMaxSize: 1024,
+	})
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+	defer db.Close()
+
+	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
+		return []float32{1, 0, 0}, nil
+	}
+
+	collection, err := db.GetOrCreateCollection("wal-config", nil, embeddingFunc)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+	if collection.wal == nil {
+		t.Fatal("expected WAL, got nil")
+	}
+	if collection.wal.maxSegmentSize != 1024 {
+		t.Fatal("expected WAL max segment size 1024, got", collection.wal.maxSegmentSize)
 	}
 }
 
