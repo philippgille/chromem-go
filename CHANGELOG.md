@@ -13,12 +13,17 @@ vNext
 - Added `Collection.ListIDs()` to list the IDs of all documents in a collection (PR [#105](https://github.com/philippgille/chromem-go/pull/105) by [@clocklear](https://github.com/clocklear))
   - Fixes issue [#103](https://github.com/philippgille/chromem-go/issues/103)
 - Added constant for `gemini-embedding-001` model (PR [#113](https://github.com/philippgille/chromem-go/pull/113) by [@scotteveritt](https://github.com/scotteveritt))
+- Added write-ahead log (WAL) support for persistent DB writes via `NewPersistentDBWithOptions(..., DBConfig{Wal: true})`.
+- Added `DB.Close()` to explicitly close WAL background workers and file handles.
+- Added WAL-focused tests and root-level benchmarks for WAL/non-WAL document insertion paths.
 
 ### Improved
 
 - Added code comments to clarify OpenAI default embedding func (PR [#109](https://github.com/philippgille/chromem-go/pull/109))
 - Switched from Ollama's OpenAI-compatible embedding endpoint to their "native" one (PR [#115](https://github.com/philippgille/chromem-go/pull/115) by [@hungrymonkey](https://github.com/hungrymonkey))
   - This requires at least Ollama [v0.3.4](https://github.com/ollama/ollama/releases/tag/v0.3.4) from 2024-08-06.
+- Improved WAL write synchronization and segment rotation to avoid stale-writer file handle errors under concurrent writes.
+- Improved DB reset/delete behavior to close WAL resources before removing persistent directories.
 
 v0.7.0 (2024-09-01)
 -------------------

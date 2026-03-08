@@ -22,11 +22,15 @@ type WAL struct {
 	currentSize    int64
 	maxSegmentSize int64
 
+	// mu guards all mutable WAL state (active file/writer, size, closed flag).
+	// It also serializes writes and segment rotation.
 	mu sync.Mutex
 
+	// syncStopCh/syncWG manage the lifecycle of the background sync goroutine.
 	syncStopCh chan struct{}
 	syncWG     sync.WaitGroup
 
+	// closeOnce makes Close idempotent.
 	closeOnce sync.Once
 	closed    bool
 }
@@ -79,6 +83,7 @@ func (w *WAL) Append(obj any, compress bool, encryptionKey string) error {
 }
 
 func (w *WAL) startSyncLoop() {
+	// Periodically flush and fsync to bound data loss on process crash.
 	ticker := time.NewTicker(1 * time.Second)
 
 	w.syncWG.Add(1)
@@ -209,7 +214,8 @@ func (w *WAL) rotateIfNeeded() error {
 		return nil
 	}
 
-	// close current segment
+	// Rotate only while holding the same lock used by WriteBinary so no write can
+	// target a file descriptor that is being closed.
 	w.writer.Flush()
 	w.currentFile.Close()
 

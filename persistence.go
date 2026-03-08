@@ -88,7 +88,8 @@ func persistToWriter(w io.Writer, obj any, compress bool, wal *WAL, encryptionKe
 	// passed writer.
 	// To reduce memory usage we chain the writers instead of buffering, so we start
 	// from the end. For AES GCM sealing the stdlib doesn't provide a writer though.
-	// for wal we need buffered io
+	// For WAL writes we always buffer first, then write under the WAL lock so we
+	// can safely serialize record boundaries and segment rotation.
 
 	var chainedWriter io.Writer
 	if encryptionKey == "" && wal == nil {
@@ -306,6 +307,8 @@ func WriteBinary(wal *WAL, bytes []byte) error {
 		return errors.New("WAL is closed")
 	}
 
+	// Always write to wal.writer under wal.mu so callers cannot accidentally
+	// write to a stale segment writer after a concurrent rotation.
 	if err := binary.Write(wal.writer, binary.LittleEndian, uint32(len(bytes))); err != nil {
 		return err
 	}
