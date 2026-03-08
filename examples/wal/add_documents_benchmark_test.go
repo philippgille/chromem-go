@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"os"
 	"runtime"
 	"strconv"
 	"testing"
@@ -34,24 +33,28 @@ func generateDocs(n int) []chromem.Document {
 func benchmarkAddDocuments(b *testing.B, useWAL bool) {
 
 	ctx := context.Background()
-
-	os.RemoveAll("./benchdb")
+	dbPath := b.TempDir()
 
 	var db *chromem.DB
 	var err error
 
 	if useWAL {
-		db, err = chromem.NewPersistentDBWithOptions("./benchdb", chromem.DBConfig{
+		db, err = chromem.NewPersistentDBWithOptions(dbPath, chromem.DBConfig{
 			Compress: true,
 			Wal:      true,
 		})
 	} else {
-		db, err = chromem.NewPersistentDB("./benchdb", true)
+		db, err = chromem.NewPersistentDB(dbPath, true)
 	}
 
 	if err != nil {
 		b.Fatal(err)
 	}
+	b.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			b.Fatalf("couldn't close DB: %v", err)
+		}
+	})
 
 	collection, err := db.GetOrCreateCollection("bench", nil, fakeEmbeddingFunc)
 	if err != nil {
@@ -74,6 +77,8 @@ func benchmarkAddDocuments(b *testing.B, useWAL bool) {
 		if err != nil {
 			b.Fatal(err)
 		}
+
+		// time.Sleep(2 * time.Second)
 	}
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-
 	"runtime"
 
 	"github.com/philippgille/chromem-go"
@@ -23,12 +22,14 @@ func main() {
 
 	db, err := chromem.NewPersistentDBWithOptions("./collections", chromem.DBConfig{
 		Compress: true,
-		Wal:      false,
+		Wal:      true,
 	})
 
 	if err != nil {
 		log.Fatal("Cannot Create the db object")
 	}
+
+	defer db.Close()
 
 	// Passing nil as embedding function leads to OpenAI being used and requires
 	// "OPENAI_API_KEY" env var to be set. Other providers are supported as well.
@@ -38,26 +39,26 @@ func main() {
 		panic(err)
 	}
 
-	log.Println(runtime.NumCPU())
-	// err = c.AddDocuments(ctx, []chromem.Document{
-	// 	{
-	// 		ID:      "1",
-	// 		Content: "The sky is blue because of Rayleigh scattering.",
-	// 		Metadata: map[string]string{
-	// 			"name": "vaibhav",
-	// 		},
-	// 	},
-	// 	{
-	// 		ID:      "2",
-	// 		Content: "Leaves are green because chlorophyll absorbs red and blue light.",
-	// 		Metadata: map[string]string{
-	// 			"name": "bhardwaj",
-	// 		},
-	// 	},
-	// }, runtime.NumCPU())
-	// if err != nil {
-	// 	panic(err)
-	// }
+	log.Println(c.Name, ctx)
+	err = c.AddDocuments(ctx, []chromem.Document{
+		{
+			ID:      "1",
+			Content: "The sky is blue because of Rayleigh scattering.",
+			Metadata: map[string]string{
+				"name": "vaibhav",
+			},
+		},
+		{
+			ID:      "2",
+			Content: "Leaves are green because chlorophyll absorbs red and blue light.",
+			Metadata: map[string]string{
+				"name": "bhardwaj",
+			},
+		},
+	}, runtime.NumCPU())
+	if err != nil {
+		panic(err)
+	}
 
 	res, err := c.Query(ctx, "Why is the sky blue?", 1, map[string]string{
 		"name": "bhardwaj",

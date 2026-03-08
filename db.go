@@ -135,6 +135,7 @@ func newPersistentDB(path string, cfg DBConfig) (*DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("couldn't read persistence directory: %w", err)
 	}
+
 	for _, dirEntry := range dirEntries {
 		// Collections are subdirectories, so skip any files (which the user might
 		// have placed).
@@ -204,6 +205,7 @@ func newPersistentDB(path string, cfg DBConfig) (*DB, error) {
 		if c.Name == "" && len(c.documents) == 0 {
 			continue
 		}
+
 		// If we have no name, it means there was no metadata file
 		if c.Name == "" {
 			return nil, fmt.Errorf("collection metadata file not found: %s", collectionPath)
@@ -246,6 +248,7 @@ func loadDocumentWorker(
 
 			fPath := filepath.Join(collectionPath, collectionDirEntry.Name())
 			// Differentiate between collection metadata, documents and other files.
+
 			if collectionDirEntry.Name() == metadataFileName+ext {
 				// Read name and metadata
 				pc := struct {
@@ -260,6 +263,7 @@ func loadDocumentWorker(
 				}
 				c.Name = pc.Name
 				c.metadata = pc.Metadata
+
 			} else if strings.HasSuffix(collectionDirEntry.Name(), ext) {
 				loadDocument(fPath, c)
 			} else if strings.HasSuffix(collectionDirEntry.Name(), walFileExtension) {
@@ -690,6 +694,29 @@ func (db *DB) GetOrCreateCollection(name string, metadata map[string]string, emb
 	return collection, nil
 }
 
+// Close releases resources used by the DB, such as WAL background workers and
+// file handles for persistent collections.
+func (db *DB) Close() error {
+	db.collectionsLock.RLock()
+	collections := make(map[string]*Collection, len(db.collections))
+	for name, collection := range db.collections {
+		collections[name] = collection
+	}
+	db.collectionsLock.RUnlock()
+
+	var closeErr error
+	for name, collection := range collections {
+		if collection == nil || collection.wal == nil {
+			continue
+		}
+		if err := collection.wal.Close(); err != nil {
+			closeErr = errors.Join(closeErr, fmt.Errorf("couldn't close WAL for collection %q: %w", name, err))
+		}
+	}
+
+	return closeErr
+}
+
 // DeleteCollection deletes the collection with the given name.
 // If the collection doesn't exist, this is a no-op.
 // If the DB is persistent, it also removes the collection's directory.
@@ -701,6 +728,13 @@ func (db *DB) DeleteCollection(name string) error {
 	col, ok := db.collections[name]
 	if !ok {
 		return nil
+	}
+
+	if col.wal != nil {
+		err := col.wal.Close()
+		if err != nil {
+			return fmt.Errorf("couldn't close WAL for collection %q: %w", name, err)
+		}
 	}
 
 	if db.persistDirectory != "" {
@@ -721,6 +755,15 @@ func (db *DB) DeleteCollection(name string) error {
 func (db *DB) Reset() error {
 	db.collectionsLock.Lock()
 	defer db.collectionsLock.Unlock()
+
+	for name, collection := range db.collections {
+		if collection == nil || collection.wal == nil {
+			continue
+		}
+		if err := collection.wal.Close(); err != nil {
+			return fmt.Errorf("couldn't close WAL for collection %q: %w", name, err)
+		}
+	}
 
 	if db.persistDirectory != "" {
 		err := os.RemoveAll(db.persistDirectory)

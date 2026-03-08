@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
@@ -14,10 +13,22 @@ import (
 )
 
 type WAL struct {
-	path   string
-	file   *os.File
-	writer *bufio.Writer
-	mu     sync.RWMutex
+	dir string
+
+	currentFile *os.File
+	writer      *bufio.Writer
+
+	segmentID      int
+	currentSize    int64
+	maxSegmentSize int64
+
+	mu sync.Mutex
+
+	syncStopCh chan struct{}
+	syncWG     sync.WaitGroup
+
+	closeOnce sync.Once
+	closed    bool
 }
 
 func NewWAL(path string, wal bool) (*WAL, error) {
@@ -26,55 +37,108 @@ func NewWAL(path string, wal bool) (*WAL, error) {
 		return nil, nil
 	}
 
-	walFilePath := filepath.Join(path, "wl01.wal")
-
-	fi, err := os.Stat(walFilePath)
-	if err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
-			return nil, fmt.Errorf("couldn't get info about the path: %w", err)
-		} else {
-			// If the file doesn't exist, create the parent path
-			err := os.MkdirAll(filepath.Dir(walFilePath), 0o700)
-			if err != nil {
-				return nil, fmt.Errorf("couldn't create parent directories to path: %w", err)
-			}
+	if !folderExists(path) {
+		if err := os.MkdirAll(path, 0755); err != nil {
+			return nil, fmt.Errorf("couldn't create WAL directory: %w", err)
 		}
-	} else if fi.IsDir() {
-		return nil, fmt.Errorf("path is a directory: %s", walFilePath)
-	}
-
-	f, err := os.OpenFile(walFilePath, os.O_CREATE|os.O_RDWR, 0644)
-
-	if err != nil {
-		return nil, err
 	}
 
 	walObj := &WAL{
-		path:   walFilePath,
-		file:   f,
-		writer: bufio.NewWriter(f),
+		dir:            path,
+		maxSegmentSize: 2 * 1024 * 1024,
+		segmentID:      1,
+		syncStopCh:     make(chan struct{}),
+	}
+
+	if err := walObj.createSegment(); err != nil {
+		return nil, err
 	}
 
 	walObj.startSyncLoop()
 
-	return walObj, err
+	return walObj, nil
+}
+
+func folderExists(path string) bool {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return err == nil && info.IsDir()
 }
 
 func (w *WAL) Append(obj any, compress bool, encryptionKey string) error {
-	return persistToWriter(w.writer, obj, compress, w, encryptionKey)
+	// WAL writes are routed through WriteBinary, which locks and writes to the
+	// current active segment writer. We intentionally pass nil here to avoid
+	// capturing a stale writer pointer during segment rotation.
+	if err := persistToWriter(nil, obj, compress, w, encryptionKey); err != nil {
+		return err
+	}
+
+	return w.rotateIfNeeded()
 }
 
 func (w *WAL) startSyncLoop() {
 	ticker := time.NewTicker(1 * time.Second)
 
+	w.syncWG.Add(1)
 	go func() {
-		for range ticker.C {
-			w.mu.Lock()
-			w.writer.Flush()
-			w.file.Sync()
-			w.mu.Unlock()
+		defer w.syncWG.Done()
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				w.mu.Lock()
+				if !w.closed {
+					_ = w.writer.Flush()
+					_ = w.currentFile.Sync()
+				}
+				w.mu.Unlock()
+			case <-w.syncStopCh:
+				return
+			}
 		}
 	}()
+}
+
+func (w *WAL) Close() error {
+	if w == nil {
+		return nil
+	}
+
+	var closeErr error
+	w.closeOnce.Do(func() {
+		close(w.syncStopCh)
+		w.syncWG.Wait()
+
+		w.mu.Lock()
+		defer w.mu.Unlock()
+
+		if w.closed {
+			return
+		}
+
+		if w.writer != nil {
+			if err := w.writer.Flush(); err != nil {
+				closeErr = errors.Join(closeErr, fmt.Errorf("couldn't flush WAL writer: %w", err))
+			}
+		}
+		if w.currentFile != nil {
+			if err := w.currentFile.Sync(); err != nil {
+				closeErr = errors.Join(closeErr, fmt.Errorf("couldn't sync WAL file: %w", err))
+			}
+			if err := w.currentFile.Close(); err != nil {
+				closeErr = errors.Join(closeErr, fmt.Errorf("couldn't close WAL file: %w", err))
+			}
+		}
+
+		w.writer = nil
+		w.currentFile = nil
+		w.closed = true
+	})
+
+	return closeErr
 }
 
 func (w *WAL) replayWAL(walPath string, c *Collection) error {
@@ -111,4 +175,45 @@ func (w *WAL) replayWAL(walPath string, c *Collection) error {
 	}
 
 	return nil
+}
+
+func (w *WAL) createSegment() error {
+
+	filename := fmt.Sprintf("%06d.wal", w.segmentID)
+
+	path := filepath.Join(w.dir, filename)
+
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return err
+	}
+
+	w.currentFile = f
+	w.writer = bufio.NewWriter(f)
+
+	w.currentSize = 0
+
+	return nil
+}
+
+func (w *WAL) rotateIfNeeded() error {
+
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if w.closed {
+		return errors.New("WAL is closed")
+	}
+
+	if w.currentSize < w.maxSegmentSize {
+		return nil
+	}
+
+	// close current segment
+	w.writer.Flush()
+	w.currentFile.Close()
+
+	w.segmentID++
+
+	return w.createSegment()
 }

@@ -16,7 +16,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"sync"
 )
 
 const metadataFileName = "00000000"
@@ -127,7 +126,7 @@ func persistToWriter(w io.Writer, obj any, compress bool, wal *WAL, encryptionKe
 	if encryptionKey == "" {
 		if wal != nil {
 			buf := chainedWriter.(*bytes.Buffer).Bytes()
-			err := WriteBinary(&wal.mu, w, buf)
+			err := WriteBinary(wal, buf)
 			if err != nil {
 				return fmt.Errorf("couldn't write data in WAL: %w", err)
 			}
@@ -153,7 +152,7 @@ func persistToWriter(w io.Writer, obj any, compress bool, wal *WAL, encryptionKe
 	encrypted := gcm.Seal(nonce, nonce, buf.Bytes(), nil)
 
 	if wal != nil {
-		err := WriteBinary(&wal.mu, w, encrypted)
+		err := WriteBinary(wal, encrypted)
 		if err != nil {
 			return fmt.Errorf("couldn't write data in WAL: %w", err)
 		}
@@ -297,20 +296,25 @@ func removeFile(filePath string) error {
 	return nil
 }
 
-func WriteBinary(mu *sync.RWMutex, w io.Writer, bytes []byte) error {
+func WriteBinary(wal *WAL, bytes []byte) error {
 
-	mu.Lock()
+	wal.mu.Lock()
 
-	defer mu.Unlock()
+	defer wal.mu.Unlock()
 
-	if err := binary.Write(w, binary.LittleEndian, uint32(len(bytes))); err != nil {
+	if wal.closed {
+		return errors.New("WAL is closed")
+	}
+
+	if err := binary.Write(wal.writer, binary.LittleEndian, uint32(len(bytes))); err != nil {
 		return err
 	}
 
-	if _, err := w.Write(bytes); err != nil {
+	if _, err := wal.writer.Write(bytes); err != nil {
 		return err
 	}
 
+	wal.currentSize += int64(len(bytes))
 	return nil
 }
 

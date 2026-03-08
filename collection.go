@@ -296,7 +296,7 @@ func (c *Collection) AddDocument(ctx context.Context, doc Document) error {
 		if c.wal != nil {
 			err := c.wal.Append(doc, c.compress, "")
 			if err != nil {
-				return fmt.Errorf("couldn't persist document to %q: %w", c.wal.path, err)
+				return fmt.Errorf("couldn't persist document to %q (segment %d): %w", c.wal.dir, c.wal.segmentID, err)
 			}
 		} else {
 			docPath := c.getDocPath(doc.ID)
