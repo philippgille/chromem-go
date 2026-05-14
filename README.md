@@ -159,9 +159,10 @@ For the full interface see the Godoc: <https://pkg.go.dev/github.com/philippgill
   - [X] Metadata filters: Exact matches
 - Storage:
   - [X] In-memory
-  - [X] Optional immediate persistence (writes one file for each added collection and document, encoded as [gob](https://go.dev/blog/gob), optionally gzip-compressed)
-  - [X] Backups: Export and import of the entire DB to/from a single file (encoded as [gob](https://go.dev/blog/gob), optionally gzip-compressed and AES-GCM encrypted)
+  - [X] Optional immediate persistence (writes one file for each added collection and document, encoded as [gob](https://go.dev/blog/gob), optionally gzip-compressed or compressed with a registered custom codec)
+  - [X] Backups: Export and import of the entire DB to/from a single file (encoded as [gob](https://go.dev/blog/gob), optionally gzip-compressed or compressed with a registered custom codec, and AES-GCM encrypted)
     - Includes methods for generic `io.Writer`/`io.Reader` so you can plug S3 buckets and other blob storage, see [examples/s3-export-import](examples/s3-export-import) for example code
+    - Plug a custom codec (e.g. zstd) by calling `chromem.RegisterCompression("zstd", chromem.CompressionCodec{Extension: ".zst", MagicNumber: []byte{0x28, 0xb5, 0x2f, 0xfd}, NewWriter: ..., NewReader: ...})`, then pass the registered name to `NewPersistentDBWithCompression` / `ExportTo*WithCompression` / `ImportFrom*WithCompression`
 - Data types:
   - [X] Documents (text)
 

@@ -2,7 +2,6 @@ package chromem
 
 import (
 	"bytes"
-	"compress/gzip"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -28,12 +27,23 @@ func hash2hex(name string) string {
 }
 
 // persistToFile persists an object to a file at the given path. The object is serialized
-// as gob, optionally compressed with flate (as gzip) and optionally encrypted with
+// as gob, optionally compressed with gzip and optionally encrypted with
 // AES-GCM. The encryption key must be 32 bytes long. If the file exists, it's
 // overwritten, otherwise created.
 func persistToFile(filePath string, obj any, compress bool, encryptionKey string) error {
+	return persistToFileWithCompression(filePath, obj, compressionFromBool(compress), encryptionKey)
+}
+
+// persistToFileWithCompression persists an object to a file at the given path.
+// The object is serialized as gob, optionally compressed with a registered codec
+// and optionally encrypted with AES-GCM. The encryption key must be 32 bytes
+// long. If the file exists, it's overwritten, otherwise created.
+func persistToFileWithCompression(filePath string, obj any, compression Compression, encryptionKey string) error {
 	if filePath == "" {
 		return fmt.Errorf("file path is empty")
+	}
+	if err := compression.validate(); err != nil {
+		return err
 	}
 	// AES 256 requires a 32 byte key
 	if encryptionKey != "" {
@@ -66,14 +76,26 @@ func persistToFile(filePath string, obj any, compress bool, encryptionKey string
 	}
 	defer f.Close()
 
-	return persistToWriter(f, obj, compress, encryptionKey)
+	return persistToWriterWithCompression(f, obj, compression, encryptionKey)
 }
 
 // persistToWriter persists an object to a writer. The object is serialized
-// as gob, optionally compressed with flate (as gzip) and optionally encrypted with
+// as gob, optionally compressed with gzip and optionally encrypted with
 // AES-GCM. The encryption key must be 32 bytes long.
 // If the writer has to be closed, it's the caller's responsibility.
 func persistToWriter(w io.Writer, obj any, compress bool, encryptionKey string) error {
+	return persistToWriterWithCompression(w, obj, compressionFromBool(compress), encryptionKey)
+}
+
+// persistToWriterWithCompression persists an object to a writer. The object is
+// serialized as gob, optionally compressed with a registered codec and
+// optionally encrypted with AES-GCM. The encryption key must be 32 bytes long.
+// If the writer has to be closed, it's the caller's responsibility.
+func persistToWriterWithCompression(w io.Writer, obj any, compression Compression, encryptionKey string) error {
+	codec, ok := lookupCompressionCodec(compression)
+	if !ok {
+		return fmt.Errorf("unsupported compression: %q", compression)
+	}
 	// AES 256 requires a 32 byte key
 	if encryptionKey != "" {
 		if len(encryptionKey) != 32 {
@@ -82,7 +104,7 @@ func persistToWriter(w io.Writer, obj any, compress bool, encryptionKey string) 
 	}
 
 	// We want to:
-	// Encode as gob -> compress with flate -> encrypt with AES-GCM -> write to
+	// Encode as gob -> compress -> encrypt with AES-GCM -> write to
 	// passed writer.
 	// To reduce memory usage we chain the writers instead of buffering, so we start
 	// from the end. For AES GCM sealing the stdlib doesn't provide a writer though.
@@ -94,29 +116,24 @@ func persistToWriter(w io.Writer, obj any, compress bool, encryptionKey string) 
 		chainedWriter = &bytes.Buffer{}
 	}
 
-	var gzw *gzip.Writer
-	var enc *gob.Encoder
-	if compress {
-		gzw = gzip.NewWriter(chainedWriter)
-		enc = gob.NewEncoder(gzw)
-	} else {
-		enc = gob.NewEncoder(chainedWriter)
+	compressor, err := codec.NewWriter(chainedWriter)
+	if err != nil {
+		return fmt.Errorf("couldn't create compression writer: %w", err)
 	}
+	enc := gob.NewEncoder(compressor)
 
 	// Start encoding, it will write to the chain of writers.
 	if err := enc.Encode(obj); err != nil {
+		_ = compressor.Close()
 		return fmt.Errorf("couldn't encode or write object: %w", err)
 	}
 
-	// If compressing, close the gzip writer. Otherwise, the gzip footer won't be
-	// written yet. When using encryption (and chainedWriter is a buffer) then
-	// we'll encrypt an incomplete stream. Without encryption when we return here and having
-	// a deferred Close(), there might be a silenced error.
-	if compress {
-		err := gzw.Close()
-		if err != nil {
-			return fmt.Errorf("couldn't close gzip writer: %w", err)
-		}
+	// Close the compressor so compression footers are written before encryption.
+	// When using encryption (and chainedWriter is a buffer) then we'll encrypt an
+	// incomplete stream. Without encryption when we return here and having a
+	// deferred Close(), there might be a silenced error.
+	if err := compressor.Close(); err != nil {
+		return fmt.Errorf("couldn't close compression writer: %w", err)
 	}
 
 	// Without encyrption, the chain is done and the writing is finished.
@@ -153,6 +170,10 @@ func persistToWriter(w io.Writer, obj any, compress bool, encryptionKey string) 
 // optionally be compressed as gzip and/or encrypted with AES-GCM. The encryption
 // key must be 32 bytes long.
 func readFromFile(filePath string, obj any, encryptionKey string) error {
+	return readFromFileWithCompression(filePath, obj, encryptionKey, "")
+}
+
+func readFromFileWithCompression(filePath string, obj any, encryptionKey string, compression Compression) error {
 	if filePath == "" {
 		return fmt.Errorf("file path is empty")
 	}
@@ -169,7 +190,7 @@ func readFromFile(filePath string, obj any, encryptionKey string) error {
 	}
 	defer r.Close()
 
-	return readFromReader(r, obj, encryptionKey)
+	return readFromReaderWithCompression(r, obj, encryptionKey, compression)
 }
 
 // readFromReader reads an object from a Reader. The object is deserialized from gob.
@@ -178,6 +199,10 @@ func readFromFile(filePath string, obj any, encryptionKey string) error {
 // be 32 bytes long.
 // If the reader has to be closed, it's the caller's responsibility.
 func readFromReader(r io.ReadSeeker, obj any, encryptionKey string) error {
+	return readFromReaderWithCompression(r, obj, encryptionKey, "")
+}
+
+func readFromReaderWithCompression(r io.ReadSeeker, obj any, encryptionKey string, compression Compression) error {
 	// AES 256 requires a 32 byte key
 	if encryptionKey != "" {
 		if len(encryptionKey) != 32 {
@@ -186,13 +211,13 @@ func readFromReader(r io.ReadSeeker, obj any, encryptionKey string) error {
 	}
 
 	// We want to:
-	// Read from reader -> decrypt with AES-GCM -> decompress with flate -> decode
+	// Read from reader -> decrypt with AES-GCM -> decompress -> decode
 	// as gob.
 	// To reduce memory usage we chain the readers instead of buffering, so we start
 	// from the end. For the decryption there's no reader though.
 
 	// For the chainedReader we don't declare it as ReadSeeker, so we can reassign
-	// the gzip reader to it.
+	// compression readers to it.
 	var chainedReader io.Reader
 
 	// Decrypt if an encryption key is provided
@@ -224,35 +249,34 @@ func readFromReader(r io.ReadSeeker, obj any, encryptionKey string) error {
 		chainedReader = r
 	}
 
-	// Determine if the stream is compressed
-	magicNumber := make([]byte, 2)
-	_, err := chainedReader.Read(magicNumber)
-	if err != nil {
-		return fmt.Errorf("couldn't read magic number to determine whether the stream is compressed: %w", err)
-	}
-	var compressed bool
-	if magicNumber[0] == 0x1f && magicNumber[1] == 0x8b {
-		compressed = true
-	}
+	var codec CompressionCodec
+	var ok bool
+	if compression == "" {
+		magicNumber := make([]byte, maxCompressionMagicLen())
+		n, err := io.ReadFull(chainedReader, magicNumber)
+		if err != nil && !(errors.Is(err, io.ErrUnexpectedEOF) && n > 0) {
+			return fmt.Errorf("couldn't read magic number to determine whether the stream is compressed: %w", err)
+		}
+		magicNumber = magicNumber[:n]
+		chainedReader = io.MultiReader(bytes.NewReader(magicNumber), chainedReader)
 
-	// Reset reader. Both the reader from the param and bytes.Reader support seeking.
-	if s, ok := chainedReader.(io.Seeker); !ok {
-		return fmt.Errorf("reader doesn't support seeking")
+		codec, compression, ok = detectCompressionCodec(magicNumber)
+		if !ok {
+			return fmt.Errorf("unsupported compression: %q", compression)
+		}
 	} else {
-		_, err := s.Seek(0, 0)
-		if err != nil {
-			return fmt.Errorf("couldn't reset reader: %w", err)
+		codec, ok = lookupCompressionCodec(compression)
+		if !ok {
+			return fmt.Errorf("unsupported compression: %q", compression)
 		}
 	}
 
-	if compressed {
-		gzr, err := gzip.NewReader(chainedReader)
-		if err != nil {
-			return fmt.Errorf("couldn't create gzip reader: %w", err)
-		}
-		defer gzr.Close()
-		chainedReader = gzr
+	compressionReader, err := codec.NewReader(chainedReader)
+	if err != nil {
+		return fmt.Errorf("couldn't create compression reader: %w", err)
 	}
+	defer compressionReader.Close()
+	chainedReader = compressionReader
 
 	dec := gob.NewDecoder(chainedReader)
 	err = dec.Decode(obj)

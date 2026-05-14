@@ -245,7 +245,11 @@ func TestDB_ImportExportSpecificCollections(t *testing.T) {
 	// Make sure that the imported documents are actually persisted on disk
 	for _, col := range newPDB.collections {
 		for _, d := range col.documents {
-			_, err = os.Stat(col.getDocPath(d.ID))
+			docPath, err := col.getDocPath(d.ID)
+			if err != nil {
+				t.Fatalf("expected no error from getDocPath for doc %q, got %v", d.ID, err)
+			}
+			_, err = os.Stat(docPath)
 			if err != nil {
 				t.Fatalf("expected no error when looking up persistent file for doc %q, got %v", d.ID, err)
 			}
@@ -271,7 +275,11 @@ func TestDB_ImportExportSpecificCollections(t *testing.T) {
 	// Make sure that the imported documents are actually persisted on disk
 	for _, col := range newPDB.collections {
 		for _, d := range col.documents {
-			_, err = os.Stat(col.getDocPath(d.ID))
+			docPath, err := col.getDocPath(d.ID)
+			if err != nil {
+				t.Fatalf("expected no error from getDocPath for doc %q, got %v", d.ID, err)
+			}
+			_, err = os.Stat(docPath)
 			if err != nil {
 				t.Fatalf("expected no error when looking up persistent file for doc %q, got %v", d.ID, err)
 			}

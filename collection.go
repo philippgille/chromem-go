@@ -22,7 +22,7 @@ type Collection struct {
 	embed         EmbeddingFunc
 
 	persistDirectory string
-	compress         bool
+	compression      Compression
 
 	// ⚠️ When adding fields here, consider adding them to the persistence struct
 	// versions in [DB.Export] and [DB.Import] as well!
@@ -91,7 +91,7 @@ type NegativeQueryOptions struct {
 
 // We don't export this yet to keep the API surface to the bare minimum.
 // Users create collections via [Client.CreateCollection].
-func newCollection(name string, metadata map[string]string, embed EmbeddingFunc, dbDir string, compress bool) (*Collection, error) {
+func newCollection(name string, metadata map[string]string, embed EmbeddingFunc, dbDir string, compression Compression) (*Collection, error) {
 	// We copy the metadata to avoid data races in case the caller modifies the
 	// map after creating the collection while we range over it.
 	m := make(map[string]string, len(metadata))
@@ -111,7 +111,7 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 	if dbDir != "" {
 		safeName := hash2hex(name)
 		c.persistDirectory = filepath.Join(dbDir, safeName)
-		c.compress = compress
+		c.compression = compression
 		return c, c.persistMetadata()
 	}
 
@@ -282,8 +282,11 @@ func (c *Collection) AddDocument(ctx context.Context, doc Document) error {
 
 	// Persist the document
 	if c.persistDirectory != "" {
-		docPath := c.getDocPath(doc.ID)
-		err := persistToFile(docPath, doc, c.compress, "")
+		docPath, err := c.getDocPath(doc.ID)
+		if err != nil {
+			return fmt.Errorf("couldn't determine document path: %w", err)
+		}
+		err = persistToFileWithCompression(docPath, doc, c.compression, "")
 		if err != nil {
 			return fmt.Errorf("couldn't persist document to %q: %w", docPath, err)
 		}
@@ -441,8 +444,11 @@ func (c *Collection) Delete(_ context.Context, where, whereDocument map[string]s
 
 		// Remove the document from disk
 		if c.persistDirectory != "" {
-			docPath := c.getDocPath(docID)
-			err := removeFile(docPath)
+			docPath, err := c.getDocPath(docID)
+			if err != nil {
+				return fmt.Errorf("couldn't determine document path: %w", err)
+			}
+			err = removeFile(docPath)
 			if err != nil {
 				return fmt.Errorf("couldn't remove document at %q: %w", docPath, err)
 			}
@@ -623,25 +629,25 @@ func (c *Collection) queryEmbedding(ctx context.Context, queryEmbedding, negativ
 	return res, nil
 }
 
-// getDocPath generates the path to the document file.
-func (c *Collection) getDocPath(docID string) string {
-	safeID := hash2hex(docID)
-	docPath := filepath.Join(c.persistDirectory, safeID)
-	docPath += ".gob"
-	if c.compress {
-		docPath += ".gz"
+// getDocPath generates the path to the document file. It returns an error if
+// the collection's compression codec is not registered.
+func (c *Collection) getDocPath(docID string) (string, error) {
+	ext, err := c.compression.fileExtension()
+	if err != nil {
+		return "", err
 	}
-	return docPath
+	safeID := hash2hex(docID)
+	return filepath.Join(c.persistDirectory, safeID) + ext, nil
 }
 
 // persistMetadata persists the collection metadata to disk
 func (c *Collection) persistMetadata() error {
 	// Persist name and metadata
-	metadataPath := filepath.Join(c.persistDirectory, metadataFileName)
-	metadataPath += ".gob"
-	if c.compress {
-		metadataPath += ".gz"
+	ext, err := c.compression.fileExtension()
+	if err != nil {
+		return err
 	}
+	metadataPath := filepath.Join(c.persistDirectory, metadataFileName) + ext
 	pc := struct {
 		Name     string
 		Metadata map[string]string
@@ -649,7 +655,7 @@ func (c *Collection) persistMetadata() error {
 		Name:     c.Name,
 		Metadata: c.metadata,
 	}
-	err := persistToFile(metadataPath, pc, c.compress, "")
+	err = persistToFileWithCompression(metadataPath, pc, c.compression, "")
 	if err != nil {
 		return err
 	}
