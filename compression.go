@@ -8,15 +8,7 @@ import (
 	"sync"
 )
 
-// Compression identifies the compression algorithm used for persistence and
-// export files.
-//
-// The zero value (empty string) has context-dependent meaning:
-//   - Write paths (Export, NewPersistentDB) treat it as [CompressionNone].
-//   - Read paths that accept an optional compression (e.g.
-//     [DB.ImportFromFileWithCompression]) treat it as "auto-detect from magic
-//     bytes". Auto-detect only works for codecs that declare a non-empty
-//     [CompressionCodec.MagicNumber].
+// Compression identifies a registered persistence and export codec.
 type Compression string
 
 const (
@@ -27,21 +19,18 @@ const (
 	CompressionGzip Compression = "gzip"
 )
 
-// CompressionCodec describes how to compress and decompress a stream for a
-// given Compression name. External codecs register themselves from client code.
+// CompressionCodec describes a compression implementation.
 type CompressionCodec struct {
-	// Extension is appended to ".gob" for on-disk files. It must be empty for
-	// no compression or start with a dot, for example ".zst".
+	// Extension is appended to ".gob" for on-disk files.
 	Extension string
 
-	// MagicNumber is used to auto-detect the codec on the read path. Codecs with
-	// an empty magic number are not eligible for auto-detection.
+	// MagicNumber enables auto-detection on read.
 	MagicNumber []byte
 
-	// NewWriter wraps w. The returned WriteCloser must flush all bytes on Close.
+	// NewWriter wraps w with a compression writer.
 	NewWriter func(w io.Writer) (io.WriteCloser, error)
 
-	// NewReader wraps r. The returned ReadCloser must be safe to Close once.
+	// NewReader wraps r with a compression reader.
 	NewReader func(r io.Reader) (io.ReadCloser, error)
 }
 
@@ -74,8 +63,7 @@ func init() {
 	})
 }
 
-// RegisterCompression registers a codec under the given name. The names "none"
-// and "gzip" are reserved for built-in codecs.
+// RegisterCompression registers a codec under the given name.
 func RegisterCompression(name Compression, codec CompressionCodec) error {
 	if name == "" {
 		return fmt.Errorf("compression name is empty")

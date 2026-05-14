@@ -629,8 +629,7 @@ func (c *Collection) queryEmbedding(ctx context.Context, queryEmbedding, negativ
 	return res, nil
 }
 
-// getDocPath generates the path to the document file. It returns an error if
-// the collection's compression codec is not registered.
+// getDocPath generates the path to the document file.
 func (c *Collection) getDocPath(docID string) (string, error) {
 	ext, err := c.compression.fileExtension()
 	if err != nil {

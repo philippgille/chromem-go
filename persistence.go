@@ -34,10 +34,7 @@ func persistToFile(filePath string, obj any, compress bool, encryptionKey string
 	return persistToFileWithCompression(filePath, obj, compressionFromBool(compress), encryptionKey)
 }
 
-// persistToFileWithCompression persists an object to a file at the given path.
-// The object is serialized as gob, optionally compressed with a registered codec
-// and optionally encrypted with AES-GCM. The encryption key must be 32 bytes
-// long. If the file exists, it's overwritten, otherwise created.
+// persistToFileWithCompression persists an object with a registered codec.
 func persistToFileWithCompression(filePath string, obj any, compression Compression, encryptionKey string) error {
 	if filePath == "" {
 		return fmt.Errorf("file path is empty")
@@ -87,10 +84,7 @@ func persistToWriter(w io.Writer, obj any, compress bool, encryptionKey string) 
 	return persistToWriterWithCompression(w, obj, compressionFromBool(compress), encryptionKey)
 }
 
-// persistToWriterWithCompression persists an object to a writer. The object is
-// serialized as gob, optionally compressed with a registered codec and
-// optionally encrypted with AES-GCM. The encryption key must be 32 bytes long.
-// If the writer has to be closed, it's the caller's responsibility.
+// persistToWriterWithCompression persists an object with a registered codec.
 func persistToWriterWithCompression(w io.Writer, obj any, compression Compression, encryptionKey string) error {
 	codec, ok := lookupCompressionCodec(compression)
 	if !ok {
@@ -128,10 +122,7 @@ func persistToWriterWithCompression(w io.Writer, obj any, compression Compressio
 		return fmt.Errorf("couldn't encode or write object: %w", err)
 	}
 
-	// Close the compressor so compression footers are written before encryption.
-	// When using encryption (and chainedWriter is a buffer) then we'll encrypt an
-	// incomplete stream. Without encryption when we return here and having a
-	// deferred Close(), there might be a silenced error.
+	// Close before encryption so compression footers are included.
 	if err := compressor.Close(); err != nil {
 		return fmt.Errorf("couldn't close compression writer: %w", err)
 	}

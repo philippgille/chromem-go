@@ -69,25 +69,8 @@ func NewPersistentDB(path string, compress bool) (*DB, error) {
 	return NewPersistentDBWithCompression(path, compressionFromBool(compress))
 }
 
-// NewPersistentDBWithCompression creates a new persistent chromem-go DB.
-// If the path is empty, it defaults to "./chromem-go".
-// If compression is provided, the files are compressed with that registered
-// algorithm.
-//
-// The persistence covers the collections (including their documents) and the metadata.
-// However, it doesn't cover the EmbeddingFunc, as functions can't be serialized.
-// When some data is persisted, and you create a new persistent DB with the same
-// path, you'll have to provide the same EmbeddingFunc as before when getting an
-// existing collection and adding more documents to it.
-//
-// Currently, the persistence is done synchronously on each write operation, and
-// each document addition leads to a new file, encoded as gob. In the future we
-// will make this configurable (encoding, async writes, WAL-based writes, etc.).
-//
-// In addition to persistence for each added collection and document you can use
-// [DB.ExportToFile] / [DB.ExportToWriter] and [DB.ImportFromFile] /
-// [DB.ImportFromReader] to export and import the entire DB to/from a file or
-// writer/reader, which also works for the pure in-memory DB.
+// NewPersistentDBWithCompression is like [NewPersistentDB], but uses a
+// registered compression codec.
 func NewPersistentDBWithCompression(path string, compression Compression) (*DB, error) {
 	if err := compression.validate(); err != nil {
 		return nil, err
@@ -222,9 +205,7 @@ func (db *DB) Import(filePath string, encryptionKey string) error {
 
 // ImportFromFile imports the DB from a file at the given path. The file must be
 // encoded as gob and can optionally be compressed with gzip or another
-// registered codec (with a non-empty magic number) and encrypted with AES-GCM.
-// The codec is auto-detected by magic bytes; for codecs without a magic number,
-// use [DB.ImportFromFileWithCompression] to specify the codec explicitly.
+// registered codec with a magic number, and encrypted with AES-GCM.
 // This works for both the in-memory and persistent DBs.
 // Existing collections are overwritten.
 //
@@ -237,16 +218,11 @@ func (db *DB) ImportFromFile(filePath string, encryptionKey string, collections 
 	return db.ImportFromFileWithCompression(filePath, "", encryptionKey, collections...)
 }
 
-// ImportFromFileWithCompression imports the DB from a file at the given path.
-// The file must be encoded as gob and can optionally be compressed and
-// encrypted with AES-GCM.
-// This works for both the in-memory and persistent DBs.
-// Existing collections are overwritten.
+// ImportFromFileWithCompression is like [DB.ImportFromFile], but can use a
+// specific registered compression codec.
 //
 //   - filePath: Mandatory, must not be empty
-//   - compression: Optional. If empty, the codec is auto-detected from magic
-//     bytes (only works for codecs that declare a non-empty MagicNumber).
-//     If non-empty, the named codec must be registered.
+//   - compression: Optional. If empty, the codec is auto-detected from magic bytes.
 //   - encryptionKey: Optional, must be 32 bytes long if provided
 //   - collections: Optional. If provided, only the collections with the given names
 //     are imported. Non-existing collections are ignored.
@@ -335,9 +311,7 @@ func (db *DB) ImportFromFileWithCompression(filePath string, compression Compres
 
 // ImportFromReader imports the DB from a reader. The stream must be encoded as
 // gob and can optionally be compressed with gzip or another registered codec
-// (with a non-empty magic number) and encrypted with AES-GCM.
-// The codec is auto-detected by magic bytes; for codecs without a magic number,
-// use [DB.ImportFromReaderWithCompression] to specify the codec explicitly.
+// with a magic number, and encrypted with AES-GCM.
 // This works for both the in-memory and persistent DBs.
 // Existing collections are overwritten.
 // If the writer has to be closed, it's the caller's responsibility.
@@ -354,16 +328,11 @@ func (db *DB) ImportFromReader(reader io.ReadSeeker, encryptionKey string, colle
 	return db.ImportFromReaderWithCompression(reader, "", encryptionKey, collections...)
 }
 
-// ImportFromReaderWithCompression imports the DB from a reader. The stream must
-// be encoded as gob and can optionally be compressed and encrypted with AES-GCM.
-// This works for both the in-memory and persistent DBs.
-// Existing collections are overwritten.
-// If the reader has to be closed, it's the caller's responsibility.
+// ImportFromReaderWithCompression is like [DB.ImportFromReader], but can use a
+// specific registered compression codec.
 //
 //   - reader: An implementation of [io.ReadSeeker]
-//   - compression: Optional. If empty, the codec is auto-detected from magic
-//     bytes (only works for codecs that declare a non-empty MagicNumber).
-//     If non-empty, the named codec must be registered.
+//   - compression: Optional. If empty, the codec is auto-detected from magic bytes.
 //   - encryptionKey: Optional, must be 32 bytes long if provided
 //   - collections: Optional. If provided, only the collections with the given names
 //     are imported. Non-existing collections are ignored.
@@ -467,14 +436,11 @@ func (db *DB) ExportToFile(filePath string, compress bool, encryptionKey string,
 	return db.ExportToFileWithCompression(filePath, compressionFromBool(compress), encryptionKey, collections...)
 }
 
-// ExportToFileWithCompression exports the DB to a file at the given path. The file is
-// encoded as gob, optionally compressed with a registered codec and optionally
-// encrypted with AES-GCM.
-// This works for both the in-memory and persistent DBs.
-// If the file exists, it's overwritten, otherwise created.
+// ExportToFileWithCompression is like [DB.ExportToFile], but uses a registered
+// compression codec.
 //
 //   - filePath: If empty, it defaults to "./chromem-go.gob" (+ compression extension + ".enc")
-//   - compression: Optional. Compresses with the given registered algorithm.
+//   - compression: Optional. Compresses with the given codec.
 //   - encryptionKey: Optional. Encrypts with AES-GCM if provided. Must be 32 bytes
 //     long if provided.
 //   - collections: Optional. If provided, only the collections with the given names
@@ -554,17 +520,11 @@ func (db *DB) ExportToWriter(writer io.Writer, compress bool, encryptionKey stri
 	return db.ExportToWriterWithCompression(writer, compressionFromBool(compress), encryptionKey, collections...)
 }
 
-// ExportToWriterWithCompression exports the DB to a writer. The stream is encoded as
-// gob, optionally compressed with a registered codec and optionally encrypted
-// with AES-GCM.
-// This works for both the in-memory and persistent DBs.
-// If the writer has to be closed, it's the caller's responsibility.
-// This can be used to export DBs to object storage like S3. See
-// https://github.com/philippgille/chromem-go/tree/main/examples/s3-export-import
-// for an example.
+// ExportToWriterWithCompression is like [DB.ExportToWriter], but uses a
+// registered compression codec.
 //
 //   - writer: An implementation of [io.Writer]
-//   - compression: Optional. Compresses with the given registered algorithm.
+//   - compression: Optional. Compresses with the given codec.
 //   - encryptionKey: Optional. Encrypts with AES-GCM if provided. Must be 32 bytes
 //     long if provided.
 //   - collections: Optional. If provided, only the collections with the given names
