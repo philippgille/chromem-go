@@ -24,6 +24,8 @@ type Collection struct {
 	persistDirectory string
 	compress         bool
 
+	wal *WAL
+
 	// ⚠️ When adding fields here, consider adding them to the persistence struct
 	// versions in [DB.Export] and [DB.Import] as well!
 }
@@ -91,7 +93,7 @@ type NegativeQueryOptions struct {
 
 // We don't export this yet to keep the API surface to the bare minimum.
 // Users create collections via [Client.CreateCollection].
-func newCollection(name string, metadata map[string]string, embed EmbeddingFunc, dbDir string, compress bool) (*Collection, error) {
+func newCollection(name string, metadata map[string]string, embed EmbeddingFunc, dbDir string, compress bool, wal bool, walSegmentMaxSize int64) (*Collection, error) {
 	// We copy the metadata to avoid data races in case the caller modifies the
 	// map after creating the collection while we range over it.
 	m := make(map[string]string, len(metadata))
@@ -112,6 +114,14 @@ func newCollection(name string, metadata map[string]string, embed EmbeddingFunc,
 		safeName := hash2hex(name)
 		c.persistDirectory = filepath.Join(dbDir, safeName)
 		c.compress = compress
+
+		wal, err := NewWAL(c.persistDirectory, wal, walSegmentMaxSize)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't create WAL: %w", err)
+		}
+
+		c.wal = wal
+
 		return c, c.persistMetadata()
 	}
 
@@ -282,10 +292,18 @@ func (c *Collection) AddDocument(ctx context.Context, doc Document) error {
 
 	// Persist the document
 	if c.persistDirectory != "" {
-		docPath := c.getDocPath(doc.ID)
-		err := persistToFile(docPath, doc, c.compress, "")
-		if err != nil {
-			return fmt.Errorf("couldn't persist document to %q: %w", docPath, err)
+
+		if c.wal != nil {
+			err := c.wal.Append(doc, c.compress, "")
+			if err != nil {
+				return fmt.Errorf("couldn't persist document to %q (segment %d): %w", c.wal.dir, c.wal.segmentID, err)
+			}
+		} else {
+			docPath := c.getDocPath(doc.ID)
+			err := persistToFile(docPath, doc, c.compress, "")
+			if err != nil {
+				return fmt.Errorf("couldn't persist document to %q: %w", docPath, err)
+			}
 		}
 	}
 

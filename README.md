@@ -160,6 +160,7 @@ For the full interface see the Godoc: <https://pkg.go.dev/github.com/philippgill
 - Storage:
   - [X] In-memory
   - [X] Optional immediate persistence (writes one file for each added collection and document, encoded as [gob](https://go.dev/blog/gob), optionally gzip-compressed)
+  - [X] Optional write-ahead log (WAL) for persistent writes (`NewPersistentDBWithOptions(..., chromem.DBConfig{Wal: true})`)
   - [X] Backups: Export and import of the entire DB to/from a single file (encoded as [gob](https://go.dev/blog/gob), optionally gzip-compressed and AES-GCM encrypted)
     - Includes methods for generic `io.Writer`/`io.Reader` so you can plug S3 buckets and other blob storage, see [examples/s3-export-import](examples/s3-export-import) for example code
 - Data types:
@@ -180,7 +181,6 @@ For the full interface see the Godoc: <https://pkg.go.dev/github.com/philippgill
   - Operators (`$and`, `$or` etc.)
 - Storage:
   - JSON as second encoding format
-  - Write-ahead log (WAL) as second file format
   - Optional remote storage (S3, PostgreSQL, ...)
 - Data types:
   - Images
@@ -254,6 +254,23 @@ ID: 1
 Similarity: 0.6833369
 Content: The sky is blue because of Rayleigh scattering.
 ```
+
+### Persistence with WAL
+
+WAL can be enabled for persistent DBs with options:
+
+```go
+db, err := chromem.NewPersistentDBWithOptions("./chromem-go", chromem.DBConfig{
+  Compress: true,
+  Wal:      true,
+})
+if err != nil {
+  panic(err)
+}
+defer db.Close()
+```
+
+See [examples/wal](examples/wal) for a full example.
 
 ## Benchmarks
 
