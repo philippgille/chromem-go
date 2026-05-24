@@ -307,6 +307,10 @@ Then I found [@eliben](https://github.com/eliben)'s [blog post](https://eli.theg
 
 That's when I decided to build my own vector database, embeddable in Go, inspired by the ChromaDB interface. ChromaDB stood out for being embeddable (in Python), and by showing its core API in 4 commands on their README and on the landing page of their website.
 
+## Projects using chromem-go
+
+- [Hector](https://github.com/kadirpekel/hector): A config-first A2A-native agent platform that uses chromem-go as its default embedded vector database for RAG and long term memory.
+
 ## Related projects
 
 - Shoutout to [@eliben](https://github.com/eliben) whose [blog post](https://eli.thegreenplace.net/2023/retrieval-augmented-generation-in-go/) and [example code](https://github.com/eliben/code-for-blog/tree/eda87b87dad9ed8bd45d1c8d6395efba3741ed39/2023/go-rag-openai) inspired me to start this project!
