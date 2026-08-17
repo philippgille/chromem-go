@@ -395,6 +395,39 @@ func (c *Collection) GetByMetadata(_ context.Context, where map[string]string) (
 	return results, nil
 }
 
+// Filter returns documents that match the given metadata and document filters.
+//
+//   - where: Conditional filtering on metadata. Optional.
+//   - whereDocument: Conditional filtering on documents. Optional.
+//
+// The returned documents are a deep copy of the original documents, so they can
+// be safely modified without affecting the collection.
+func (c *Collection) Filter(_ context.Context, where, whereDocument map[string]string) ([]*Document, error) {
+	for k := range whereDocument {
+		if !slices.Contains(supportedFilters, k) {
+			return nil, errors.New("unsupported whereDocument operator")
+		}
+	}
+
+	c.documentsLock.RLock()
+	defer c.documentsLock.RUnlock()
+	if len(c.documents) == 0 {
+		return nil, nil
+	}
+
+	filteredDocs := filterDocs(c.documents, where, whereDocument)
+	if len(filteredDocs) == 0 {
+		return nil, nil
+	}
+
+	results := make([]*Document, 0, len(filteredDocs))
+	for _, doc := range filteredDocs {
+		docCopy := cloneDocument(doc)
+		results = append(results, docCopy)
+	}
+	return results, nil
+}
+
 // Delete removes document(s) from the collection.
 //
 //   - where: Conditional filtering on metadata. Optional.

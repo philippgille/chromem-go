@@ -842,6 +842,81 @@ func TestCollection_Delete(t *testing.T) {
 	checkCount(0)
 }
 
+func TestCollection_Filter(t *testing.T) {
+	ctx := context.Background()
+	db := NewDB()
+	c, err := db.CreateCollection("test", nil, nil)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	err = c.Add(ctx,
+		[]string{"1", "2", "3"},
+		[][]float32{{1}, {2}, {3}},
+		[]map[string]string{
+			{"kind": "guide"},
+			{"kind": "guide"},
+			{"kind": "reference"},
+		},
+		[]string{"getting started", "advanced guide", "reference"},
+	)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	results, err := c.Filter(ctx,
+		map[string]string{"kind": "guide"},
+		map[string]string{WhereNotContains: "reference"},
+	)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+
+	for _, result := range results {
+		result.Metadata["kind"] = "changed"
+		result.Embedding[0] = 99
+	}
+	original, err := c.GetByID(ctx, "1")
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+	if original.Metadata["kind"] != "guide" || original.Embedding[0] != 1 {
+		t.Fatal("filter results must be deep copies")
+	}
+}
+
+func TestCollection_Filter_UnsupportedDocumentFilter(t *testing.T) {
+	db := NewDB()
+	c, err := db.CreateCollection("test", nil, nil)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	_, err = c.Filter(context.Background(), nil, map[string]string{"$unknown": "value"})
+	if err == nil {
+		t.Fatal("expected unsupported filter error")
+	}
+}
+
+func TestCollection_Filter_Empty(t *testing.T) {
+	db := NewDB()
+	c, err := db.CreateCollection("test", nil, nil)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	results, err := c.Filter(context.Background(), nil, nil)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+	if results != nil {
+		t.Fatalf("expected nil results, got %v", results)
+	}
+}
+
 // TestCloneDocument verifies that cloneDocument creates a deep copy of the Document.
 func TestCloneDocument(t *testing.T) {
 	orig := &Document{
