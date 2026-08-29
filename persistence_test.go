@@ -2,7 +2,10 @@ package chromem
 
 import (
 	"compress/gzip"
+	"context"
+	"crypto/sha256"
 	"encoding/gob"
+	"fmt"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -234,5 +237,104 @@ func TestPersistenceEncryption(t *testing.T) {
 				t.Fatalf("expected %+v, got %+v", obj, res)
 			}
 		})
+	}
+}
+
+// findHash2hexCollision deterministically finds two distinct strings whose
+// first 4 bytes of sha256 are equal, by hashing candidates "id-0", "id-1",
+// ... and looking for the first repeat among the first 4 bytes. With a
+// 32-bit truncation this is expected within roughly 2^16 candidates
+// (birthday bound).
+func findHash2hexCollision(t *testing.T) (string, string) {
+	t.Helper()
+
+	seen := make(map[[4]byte]string)
+	for i := 0; ; i++ {
+		id := fmt.Sprintf("id-%d", i)
+		hash := sha256.Sum256([]byte(id))
+		var prefix [4]byte
+		copy(prefix[:], hash[:4])
+		if other, ok := seen[prefix]; ok {
+			return other, id
+		}
+		seen[prefix] = id
+
+		if i > 1<<20 {
+			t.Fatal("couldn't find a hash2hex collision within a reasonable number of candidates")
+		}
+	}
+}
+
+// TestPersistentDB_CollidingDocumentFilenamesSurviveReload documents a bug
+// where two distinct document IDs whose sha256 hash shares its first 4 bytes
+// are persisted to the same on-disk filename, so the second document's file
+// silently overwrites the first one's. Both documents must survive a DB
+// reload.
+func TestPersistentDB_CollidingDocumentFilenamesSurviveReload(t *testing.T) {
+	id1, id2 := findHash2hexCollision(t)
+
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "chromem-test-*")
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	db, err := NewPersistentDB(tmpDir, false)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	name := "test"
+	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
+		return []float32{-0.40824828, 0.40824828, 0.81649655}, nil
+	}
+	c, err := db.CreateCollection(name, nil, embeddingFunc)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	err = c.AddDocument(context.Background(), Document{
+		ID:      id1,
+		Content: "content for " + id1,
+	})
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+	err = c.AddDocument(context.Background(), Document{
+		ID:      id2,
+		Content: "content for " + id2,
+	})
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	// Open a fresh DB on the same directory to force a reload from disk.
+	reloadedDB, err := NewPersistentDB(tmpDir, false)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+	reloadedCollection := reloadedDB.GetCollection(name, embeddingFunc)
+	if reloadedCollection == nil {
+		t.Fatal("expected collection, got nil")
+	}
+
+	if reloadedCollection.Count() != 2 {
+		t.Fatalf("expected 2 documents after reload, got %d", reloadedCollection.Count())
+	}
+
+	got1, err := reloadedCollection.GetByID(context.Background(), id1)
+	if err != nil {
+		t.Fatalf("expected document %q to survive reload, got error: %v", id1, err)
+	}
+	if got1.Content != "content for "+id1 {
+		t.Fatalf("expected content %q, got %q", "content for "+id1, got1.Content)
+	}
+
+	got2, err := reloadedCollection.GetByID(context.Background(), id2)
+	if err != nil {
+		t.Fatalf("expected document %q to survive reload, got error: %v", id2, err)
+	}
+	if got2.Content != "content for "+id2 {
+		t.Fatalf("expected content %q, got %q", "content for "+id2, got2.Content)
 	}
 }

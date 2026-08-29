@@ -21,10 +21,14 @@ const metadataFileName = "00000000"
 
 func hash2hex(name string) string {
 	hash := sha256.Sum256([]byte(name))
-	// We encode 4 of the 32 bytes (32 out of 256 bits), so 8 hex characters.
-	// It's enough to avoid collisions in reasonable amounts of documents per collection
-	// and being shorter is better for file paths.
-	return hex.EncodeToString(hash[:4])
+	// We encode 16 of the 32 bytes (128 out of 256 bits), so 32 hex characters.
+	// A shorter prefix is tempting for shorter file paths, but truncating a hash
+	// is subject to the birthday bound: with only 32 bits (4 bytes) two distinct
+	// names collide with ~50% probability at around 2^16 (~65k) names, which is a
+	// realistic number of documents in a single collection. Since a collision here
+	// means one document's file silently overwrites another's, we use 128 bits,
+	// where a collision is practically impossible at any realistic collection size.
+	return hex.EncodeToString(hash[:16])
 }
 
 // persistToFile persists an object to a file at the given path. The object is serialized
