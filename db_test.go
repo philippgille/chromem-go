@@ -2,6 +2,7 @@ package chromem
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -65,6 +66,68 @@ func TestNewPersistentDB_Errors(t *testing.T) {
 			t.Fatal("expected error, got nil")
 		}
 	})
+}
+
+// TestPersistentDB_ParallelLoadRecoversAllDocuments persists a collection
+// with many documents and then loads it into a fresh DB, to exercise the
+// concurrent per-document loading in NewPersistentDB. Run with -race to
+// verify the concurrent writes to the collection's document map are
+// properly synchronized.
+func TestPersistentDB_ParallelLoadRecoversAllDocuments(t *testing.T) {
+	r := rand.New(rand.NewSource(rand.Int63()))
+	randString := randomString(r, 10)
+	path := filepath.Join(os.TempDir(), randString)
+	defer os.RemoveAll(path)
+
+	vectors := []float32{-0.40824828, 0.40824828, 0.81649655} // normalized version of `{-0.1, 0.1, 0.2}`
+	embeddingFunc := func(_ context.Context, _ string) ([]float32, error) {
+		return vectors, nil
+	}
+
+	db, err := NewPersistentDB(path, false)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+	c, err := db.CreateCollection("test", nil, embeddingFunc)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	const numDocs = 250
+	ids := make([]string, 0, numDocs)
+	contents := make([]string, 0, numDocs)
+	for i := 0; i < numDocs; i++ {
+		ids = append(ids, fmt.Sprintf("doc-%d", i))
+		contents = append(contents, fmt.Sprintf("content for doc %d", i))
+	}
+	err = c.AddConcurrently(context.Background(), ids, nil, nil, contents, 8)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+
+	// Open a fresh DB on the same directory to force a reload from disk.
+	reloadedDB, err := NewPersistentDB(path, false)
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+	reloadedCollection := reloadedDB.GetCollection("test", embeddingFunc)
+	if reloadedCollection == nil {
+		t.Fatal("expected collection, got nil")
+	}
+
+	if reloadedCollection.Count() != numDocs {
+		t.Fatalf("expected %d documents after reload, got %d", numDocs, reloadedCollection.Count())
+	}
+
+	for i, id := range ids {
+		doc, err := reloadedCollection.GetByID(context.Background(), id)
+		if err != nil {
+			t.Fatalf("expected document %q to be present, got error: %v", id, err)
+		}
+		if doc.Content != contents[i] {
+			t.Fatalf("expected content %q for doc %q, got %q", contents[i], id, doc.Content)
+		}
+	}
 }
 
 func TestDB_ImportExport(t *testing.T) {

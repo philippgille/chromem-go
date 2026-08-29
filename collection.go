@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"sync"
 )
@@ -631,6 +632,61 @@ func (c *Collection) queryEmbedding(ctx context.Context, queryEmbedding, negativ
 	}
 
 	return res, nil
+}
+
+// loadDocumentFiles reads the document files at the given paths and adds the
+// decoded documents to the collection. The reads happen concurrently, bounded
+// by the number of available CPUs, mirroring the concurrency shape of
+// [Collection.AddDocuments]. Upon error, concurrently running reads are
+// canceled and the error is returned.
+func (c *Collection) loadDocumentFiles(paths []string) error {
+	var sharedErr error
+	sharedErrLock := sync.Mutex{}
+	ctx, cancel := context.WithCancelCause(context.Background())
+	defer cancel(nil)
+	setSharedErr := func(err error) {
+		sharedErrLock.Lock()
+		defer sharedErrLock.Unlock()
+		// Another goroutine might have already set the error.
+		if sharedErr == nil {
+			sharedErr = err
+			// Cancel the operation for all other goroutines.
+			cancel(sharedErr)
+		}
+	}
+
+	var wg sync.WaitGroup
+	semaphore := make(chan struct{}, runtime.NumCPU())
+	for _, path := range paths {
+		wg.Add(1)
+		go func(path string) {
+			defer wg.Done()
+
+			// Don't even start if another goroutine already failed.
+			if ctx.Err() != nil {
+				return
+			}
+
+			// Wait here while $numCPU other goroutines are reading documents.
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
+
+			d := &Document{}
+			err := readFromFile(path, d, "")
+			if err != nil {
+				setSharedErr(fmt.Errorf("couldn't read document: %w", err))
+				return
+			}
+
+			c.documentsLock.Lock()
+			c.documents[d.ID] = d
+			c.documentsLock.Unlock()
+		}(path)
+	}
+
+	wg.Wait()
+
+	return sharedErr
 }
 
 // getDocPath generates the path to the document file.

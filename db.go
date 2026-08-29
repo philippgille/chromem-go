@@ -113,9 +113,8 @@ func NewPersistentDB(path string, compress bool) (*DB, error) {
 			continue
 		}
 		// For each subdirectory, create a collection and read its name, metadata
-		// and documents.
-		// TODO: Parallelize this (e.g. chan with $numCPU buffer and $numCPU goroutines
-		// reading from it).
+		// and documents. The metadata file is read here, while document files
+		// are loaded concurrently below via [Collection.loadDocumentFiles].
 		collectionPath := filepath.Join(path, dirEntry.Name())
 		collectionDirEntries, err := os.ReadDir(collectionPath)
 		if err != nil {
@@ -130,6 +129,7 @@ func NewPersistentDB(path string, compress bool) (*DB, error) {
 			// We can fill embed only when the user calls DB.GetCollection() or
 			// DB.GetOrCreateCollection().
 		}
+		docPaths := make([]string, 0, len(collectionDirEntries))
 		for _, collectionDirEntry := range collectionDirEntries {
 			// Files should be metadata and documents; skip subdirectories which
 			// the user might have placed.
@@ -152,16 +152,17 @@ func NewPersistentDB(path string, compress bool) (*DB, error) {
 				c.Name = pc.Name
 				c.metadata = pc.Metadata
 			} else if strings.HasSuffix(collectionDirEntry.Name(), ext) {
-				// Read document
-				d := &Document{}
-				err := readFromFile(fPath, d, "")
-				if err != nil {
-					return nil, fmt.Errorf("couldn't read document: %w", err)
-				}
-				c.documents[d.ID] = d
+				// Collect the document path; it's loaded below, concurrently
+				// with the other document files of this collection.
+				docPaths = append(docPaths, fPath)
 			} else {
 				// Might be a file that the user has placed
 				continue
+			}
+		}
+		if len(docPaths) > 0 {
+			if err := c.loadDocumentFiles(docPaths); err != nil {
+				return nil, err
 			}
 		}
 		// If we have neither name nor documents, it was likely a user-added
