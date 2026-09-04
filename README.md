@@ -149,6 +149,7 @@ For the full interface see the Godoc: <https://pkg.go.dev/github.com/philippgill
     - [X] [mixedbread.ai](https://www.mixedbread.ai/)
   - Local:
     - [X] [Ollama](https://github.com/ollama/ollama)
+    - [X] [llmman](https://github.com/llmmanorg/llmman) (Ollama-compatible API)
     - [X] [LocalAI](https://github.com/mudler/LocalAI)
   - Bring your own (implement [`chromem.EmbeddingFunc`](https://pkg.go.dev/github.com/philippgille/chromem-go#EmbeddingFunc))
   - You can also pass existing embeddings when adding documents to a collection, instead of letting `chromem-go` create them

@@ -98,3 +98,17 @@ func NewEmbeddingFuncOllama(model string, baseURLOllama string) EmbeddingFunc {
 		return v, nil
 	}
 }
+
+const defaultBaseURLLlmman = "http://localhost:17434/api"
+
+// NewEmbeddingFuncLlmman returns a function that creates embeddings for a text
+// using llmman, a local model runner that serves the Ollama API on port 17434.
+// See https://github.com/llmmanorg/llmman
+// baseURLLlmman is the base URL of the llmman Ollama-compatible API. If it's
+// empty, "http://localhost:17434/api" is used.
+func NewEmbeddingFuncLlmman(model string, baseURLLlmman string) EmbeddingFunc {
+	if baseURLLlmman == "" {
+		baseURLLlmman = defaultBaseURLLlmman
+	}
+	return NewEmbeddingFuncOllama(model, baseURLLlmman)
+}
