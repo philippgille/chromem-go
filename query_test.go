@@ -196,3 +196,142 @@ func TestNegative(t *testing.T) {
 		}
 	})
 }
+
+func TestThreshold(t *testing.T) {
+	ctx := context.Background()
+	db := NewDB()
+
+	c, err := db.CreateCollection("test-threshold", nil, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	// Add test documents with known embeddings
+	if err := c.AddDocuments(ctx, []Document{
+		{
+			ID:        "high-similarity",
+			Embedding: []float32{0.9, 0.1, 0.1}, // Similar to query
+		},
+		{
+			ID:        "medium-similarity",
+			Embedding: []float32{0.5, 0.5, 0.5}, // Medium similarity
+		},
+		{
+			ID:        "low-similarity",
+			Embedding: []float32{0.1, 0.9, 0.1}, // Low similarity
+		},
+	}, 1); err != nil {
+		t.Fatalf("failed to add documents: %v", err)
+	}
+
+	query := []float32{0.8, 0.2, 0.2}
+
+	t.Run("threshold filters low similarity", func(t *testing.T) {
+		res, err := c.QueryWithOptions(ctx, QueryOptions{
+			QueryEmbedding: query,
+			NResults:       c.Count(), // Use actual count
+			Threshold:      0.85,      // Only return documents with >= 0.85 similarity
+		})
+		if err != nil {
+			t.Fatalf("query failed: %v", err)
+		}
+
+		// Should only return high-similarity document
+		if len(res) != 1 {
+			t.Fatalf("expected 1 result with threshold 0.85, got %d", len(res))
+		}
+
+		if res[0].ID != "high-similarity" {
+			t.Errorf("expected high-similarity document, got %s", res[0].ID)
+		}
+	})
+
+	t.Run("threshold 0 returns all results", func(t *testing.T) {
+		res, err := c.QueryWithOptions(ctx, QueryOptions{
+			QueryEmbedding: query,
+			NResults:       c.Count(), // Use actual count
+			Threshold:      0,         // No threshold
+		})
+		if err != nil {
+			t.Fatalf("query failed: %v", err)
+		}
+
+		// Should return all 3 documents
+		if len(res) != 3 {
+			t.Fatalf("expected 3 results with threshold 0, got %d", len(res))
+		}
+	})
+
+	t.Run("high threshold returns no results", func(t *testing.T) {
+		res, err := c.QueryWithOptions(ctx, QueryOptions{
+			QueryEmbedding: query,
+			NResults:       c.Count(), // Use actual count
+			Threshold:      0.99,      // Very high threshold (higher than 0.98)
+		})
+		if err != nil {
+			t.Fatalf("query failed: %v", err)
+		}
+
+		// Should return no documents
+		if len(res) != 0 {
+			t.Errorf("expected 0 results with threshold 0.99, got %d", len(res))
+		}
+	})
+
+	t.Run("threshold with nResults limit", func(t *testing.T) {
+		// Add more documents to test nResults limit
+		if err := c.AddDocuments(ctx, []Document{
+			{
+				ID:        "another-high",
+				Embedding: []float32{0.85, 0.15, 0.15},
+			},
+			{
+				ID:        "another-medium",
+				Embedding: []float32{0.45, 0.45, 0.45},
+			},
+		}, 1); err != nil {
+			t.Fatalf("failed to add more documents: %v", err)
+		}
+
+		res, err := c.QueryWithOptions(ctx, QueryOptions{
+			QueryEmbedding: query,
+			NResults:       2,   // Only return top 2
+			Threshold:      0.4, // But only those with >= 0.4 similarity
+		})
+		if err != nil {
+			t.Fatalf("query failed: %v", err)
+		}
+
+		// Should return at most 2 results, but both must meet threshold
+		if len(res) > 2 {
+			t.Errorf("expected at most 2 results, got %d", len(res))
+		}
+
+		// Verify all results meet threshold
+		for _, r := range res {
+			if r.Similarity < 0.4 {
+				t.Errorf("result %s has similarity %v below threshold 0.4", r.ID, r.Similarity)
+			}
+		}
+	})
+
+	t.Run("invalid threshold returns error", func(t *testing.T) {
+		_, err := c.QueryWithOptions(ctx, QueryOptions{
+			QueryEmbedding: query,
+			NResults:       1,
+			Threshold:      -0.5, // Invalid threshold
+		})
+		if err == nil {
+			t.Error("expected error for negative threshold")
+		}
+
+		_, err = c.QueryWithOptions(ctx, QueryOptions{
+			QueryEmbedding: query,
+			NResults:       1,
+			Threshold:      1.5, // Invalid threshold
+		})
+		if err == nil {
+			t.Error("expected error for threshold > 1")
+		}
+	})
+}
