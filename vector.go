@@ -3,6 +3,8 @@ package chromem
 import (
 	"errors"
 	"math"
+
+	"github.com/philippgille/chromem-go/simd"
 )
 
 const isNormalizedPrecisionTolerance = 1e-6
@@ -18,8 +20,12 @@ func dotProduct(a, b []float32) (float32, error) {
 	}
 
 	var dotProduct float32
-	for i := range a {
-		dotProduct += a[i] * b[i]
+	if simd.UseAVX2 {
+		dotProduct = simd.Dot_AVX2_F32(a, b)
+	} else {
+		for i := range a {
+			dotProduct += a[i] * b[i]
+		}
 	}
 
 	return dotProduct, nil
