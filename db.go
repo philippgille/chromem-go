@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -33,8 +34,26 @@ type DB struct {
 	persistDirectory string
 	compress         bool
 
+	wal bool
+	// walSegmentMaxSize is used only when wal=true. When <= 0 the default is used.
+	walSegmentMaxSize int64
+
 	// ⚠️ When adding fields here, consider adding them to the persistence struct
 	// versions in [DB.Export] and [DB.Import] as well!
+}
+
+type DBConfig struct {
+	Compress bool
+	Wal      bool
+	// WalSegmentMaxSize configures WAL segment rotation threshold in bytes.
+	// Only used when Wal=true. If <= 0, a default size is used.
+	WalSegmentMaxSize int64
+}
+
+type collectionLoadTask struct {
+	c                  *Collection
+	collectionDirEntry os.DirEntry
+	ext                string
 }
 
 // NewDB creates a new in-memory chromem-go DB.
@@ -66,6 +85,20 @@ func NewDB() *DB {
 // [DB.ImportFromReader] to export and import the entire DB to/from a file or
 // writer/reader, which also works for the pure in-memory DB.
 func NewPersistentDB(path string, compress bool) (*DB, error) {
+	return newPersistentDB(path,
+		DBConfig{
+			Compress: compress,
+			Wal:      false,
+		},
+	)
+}
+
+func NewPersistentDBWithOptions(path string, cfg DBConfig) (*DB, error) {
+	return newPersistentDB(path, cfg)
+}
+
+func newPersistentDB(path string, cfg DBConfig) (*DB, error) {
+
 	if path == "" {
 		path = "./chromem-go"
 	} else {
@@ -75,14 +108,16 @@ func NewPersistentDB(path string, compress bool) (*DB, error) {
 
 	// We check for this file extension and skip others
 	ext := ".gob"
-	if compress {
+	if cfg.Compress {
 		ext += ".gz"
 	}
 
 	db := &DB{
-		collections:      make(map[string]*Collection),
-		persistDirectory: path,
-		compress:         compress,
+		collections:       make(map[string]*Collection),
+		persistDirectory:  path,
+		compress:          cfg.Compress,
+		wal:               cfg.Wal,
+		walSegmentMaxSize: cfg.WalSegmentMaxSize,
 	}
 
 	// If the directory doesn't exist, create it and return an empty DB.
@@ -106,6 +141,7 @@ func NewPersistentDB(path string, compress bool) (*DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("couldn't read persistence directory: %w", err)
 	}
+
 	for _, dirEntry := range dirEntries {
 		// Collections are subdirectories, so skip any files (which the user might
 		// have placed).
@@ -121,54 +157,61 @@ func NewPersistentDB(path string, compress bool) (*DB, error) {
 		if err != nil {
 			return nil, fmt.Errorf("couldn't read collection directory: %w", err)
 		}
+		wal, err := NewWAL(collectionPath, cfg.Wal, cfg.WalSegmentMaxSize)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't create WAL: %w", err)
+		}
 		c := &Collection{
 			documents:        make(map[string]*Document),
 			persistDirectory: collectionPath,
-			compress:         compress,
+			compress:         cfg.Compress,
+			wal:              wal,
 			// We can fill Name and metadata only after reading
 			// the metadata.
 			// We can fill embed only when the user calls DB.GetCollection() or
 			// DB.GetOrCreateCollection().
 		}
+
+		loadTaskChan := make(chan collectionLoadTask, runtime.NumCPU())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		errorsChan := make(chan error, 1)
+		var wg sync.WaitGroup
+
+		for i := 0; i < runtime.NumCPU(); i++ {
+			wg.Add(1)
+			go loadDocumentWorker(ctx, loadTaskChan, errorsChan, &wg, cancel)
+		}
+
+	outer:
 		for _, collectionDirEntry := range collectionDirEntries {
-			// Files should be metadata and documents; skip subdirectories which
-			// the user might have placed.
-			if collectionDirEntry.IsDir() {
-				continue
+			select {
+			case <-ctx.Done():
+				break outer
+			case loadTaskChan <- collectionLoadTask{
+				c:                  c,
+				collectionDirEntry: collectionDirEntry,
+				ext:                ext,
+			}:
 			}
 
-			fPath := filepath.Join(collectionPath, collectionDirEntry.Name())
-			// Differentiate between collection metadata, documents and other files.
-			if collectionDirEntry.Name() == metadataFileName+ext {
-				// Read name and metadata
-				pc := struct {
-					Name     string
-					Metadata map[string]string
-				}{}
-				err := readFromFile(fPath, &pc, "")
-				if err != nil {
-					return nil, fmt.Errorf("couldn't read collection metadata: %w", err)
-				}
-				c.Name = pc.Name
-				c.metadata = pc.Metadata
-			} else if strings.HasSuffix(collectionDirEntry.Name(), ext) {
-				// Read document
-				d := &Document{}
-				err := readFromFile(fPath, d, "")
-				if err != nil {
-					return nil, fmt.Errorf("couldn't read document: %w", err)
-				}
-				c.documents[d.ID] = d
-			} else {
-				// Might be a file that the user has placed
-				continue
-			}
 		}
+		close(loadTaskChan)
+
+		wg.Wait()
+		close(errorsChan)
+
+		if err, ok := <-errorsChan; ok {
+			return nil, err
+		}
+
 		// If we have neither name nor documents, it was likely a user-added
 		// directory, so skip it.
 		if c.Name == "" && len(c.documents) == 0 {
 			continue
 		}
+
 		// If we have no name, it means there was no metadata file
 		if c.Name == "" {
 			return nil, fmt.Errorf("collection metadata file not found: %s", collectionPath)
@@ -178,6 +221,83 @@ func NewPersistentDB(path string, compress bool) (*DB, error) {
 	}
 
 	return db, nil
+}
+
+func loadDocumentWorker(
+	ctx context.Context,
+	loadTaskChan <-chan collectionLoadTask,
+	errorChan chan<- error,
+	wg *sync.WaitGroup,
+	cancel context.CancelFunc,
+) {
+	defer wg.Done()
+
+	for {
+
+		select {
+		case <-ctx.Done():
+			return
+		case task, ok := <-loadTaskChan:
+			if !ok {
+				return
+			}
+			c := task.c
+			collectionDirEntry := task.collectionDirEntry
+			collectionPath := c.persistDirectory
+			ext := task.ext
+
+			// Files should be metadata and documents; skip subdirectories which
+			// the user might have placed.
+			if collectionDirEntry.IsDir() {
+				continue
+			}
+
+			fPath := filepath.Join(collectionPath, collectionDirEntry.Name())
+			// Differentiate between collection metadata, documents and other files.
+
+			if collectionDirEntry.Name() == metadataFileName+ext {
+				// Read name and metadata
+				pc := struct {
+					Name     string
+					Metadata map[string]string
+				}{}
+				err := readFromFile(fPath, &pc, "")
+				if err != nil {
+					errorChan <- (fmt.Errorf("couldn't read collection metadata: %w", err))
+					cancel()
+					return
+				}
+				c.Name = pc.Name
+				c.metadata = pc.Metadata
+
+			} else if strings.HasSuffix(collectionDirEntry.Name(), ext) {
+				loadDocument(fPath, c)
+			} else if strings.HasSuffix(collectionDirEntry.Name(), walFileExtension) {
+				c.wal.replayWAL(fPath, c)
+			} else {
+				// Might be a file that the user has placed
+				continue
+			}
+
+		}
+
+	}
+
+}
+
+func loadDocument(fPath string, c *Collection) error {
+	// Read document
+	d := &Document{}
+	err := readFromFile(fPath, d, "")
+	if err != nil {
+		return fmt.Errorf("couldn't read document: %w", err)
+	}
+
+	c.documentsLock.Lock()
+	c.documents[d.ID] = d
+	c.documentsLock.Unlock()
+
+	return nil
 }
 
 // Import imports the DB from a file at the given path. The file must be encoded
@@ -481,7 +601,8 @@ func (db *DB) ExportToWriter(writer io.Writer, compress bool, encryptionKey stri
 		}
 	}
 
-	err := persistToWriter(writer, persistenceDB, compress, encryptionKey)
+	//TODO: Need to check both export and import DB carefully
+	err := persistToWriter(writer, persistenceDB, compress, nil, encryptionKey)
 	if err != nil {
 		return fmt.Errorf("couldn't export DB: %w", err)
 	}
@@ -502,7 +623,7 @@ func (db *DB) CreateCollection(name string, metadata map[string]string, embeddin
 	if embeddingFunc == nil {
 		embeddingFunc = NewEmbeddingFuncDefault()
 	}
-	collection, err := newCollection(name, metadata, embeddingFunc, db.persistDirectory, db.compress)
+	collection, err := newCollection(name, metadata, embeddingFunc, db.persistDirectory, db.compress, db.wal, db.walSegmentMaxSize)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create collection: %w", err)
 	}
@@ -579,6 +700,29 @@ func (db *DB) GetOrCreateCollection(name string, metadata map[string]string, emb
 	return collection, nil
 }
 
+// Close releases resources used by the DB, such as WAL background workers and
+// file handles for persistent collections.
+func (db *DB) Close() error {
+	db.collectionsLock.RLock()
+	collections := make(map[string]*Collection, len(db.collections))
+	for name, collection := range db.collections {
+		collections[name] = collection
+	}
+	db.collectionsLock.RUnlock()
+
+	var closeErr error
+	for name, collection := range collections {
+		if collection == nil || collection.wal == nil {
+			continue
+		}
+		if err := collection.wal.Close(); err != nil {
+			closeErr = errors.Join(closeErr, fmt.Errorf("couldn't close WAL for collection %q: %w", name, err))
+		}
+	}
+
+	return closeErr
+}
+
 // DeleteCollection deletes the collection with the given name.
 // If the collection doesn't exist, this is a no-op.
 // If the DB is persistent, it also removes the collection's directory.
@@ -590,6 +734,13 @@ func (db *DB) DeleteCollection(name string) error {
 	col, ok := db.collections[name]
 	if !ok {
 		return nil
+	}
+
+	if col.wal != nil {
+		err := col.wal.Close()
+		if err != nil {
+			return fmt.Errorf("couldn't close WAL for collection %q: %w", name, err)
+		}
 	}
 
 	if db.persistDirectory != "" {
@@ -610,6 +761,15 @@ func (db *DB) DeleteCollection(name string) error {
 func (db *DB) Reset() error {
 	db.collectionsLock.Lock()
 	defer db.collectionsLock.Unlock()
+
+	for name, collection := range db.collections {
+		if collection == nil || collection.wal == nil {
+			continue
+		}
+		if err := collection.wal.Close(); err != nil {
+			return fmt.Errorf("couldn't close WAL for collection %q: %w", name, err)
+		}
+	}
 
 	if db.persistDirectory != "" {
 		err := os.RemoveAll(db.persistDirectory)
