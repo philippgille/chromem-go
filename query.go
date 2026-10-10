@@ -249,6 +249,9 @@ func getMostSimilarDocs(ctx context.Context, queryVectors, negativeVector []floa
 	if sharedErr != nil {
 		return nil, sharedErr
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 
 	return nMaxDocs.values(), nil
 }

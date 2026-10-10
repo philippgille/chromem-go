@@ -20,6 +20,10 @@ vNext
 - Switched from Ollama's OpenAI-compatible embedding endpoint to their "native" one (PR [#115](https://github.com/philippgille/chromem-go/pull/115) by [@hungrymonkey](https://github.com/hungrymonkey))
   - This requires at least Ollama [v0.3.4](https://github.com/ollama/ollama/releases/tag/v0.3.4) from 2024-08-06.
 
+### Fixed
+
+- Return context cancellation and deadline errors when a similarity search stops, instead of reporting empty or partial results as successful.
+
 v0.7.0 (2024-09-01)
 -------------------
 

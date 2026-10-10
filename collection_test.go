@@ -8,7 +8,69 @@ import (
 	"slices"
 	"strconv"
 	"testing"
+	"time"
 )
+
+func TestCollection_QueryContextErrors(t *testing.T) {
+	embedding := []float32{1, 0}
+	c, err := NewDB().CreateCollection("context-errors", nil, func(context.Context, string) ([]float32, error) {
+		return embedding, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.AddDocument(context.Background(), Document{ID: "doc", Embedding: embedding}); err != nil {
+		t.Fatal(err)
+	}
+
+	canceled, cancel := context.WithCancel(context.Background())
+	cancel()
+	expired, cancelDeadline := context.WithDeadline(context.Background(), time.Unix(0, 0))
+	defer cancelDeadline()
+
+	contexts := []struct {
+		name string
+		ctx  context.Context
+		want error
+	}{
+		{"active", context.Background(), nil},
+		{"canceled", canceled, context.Canceled},
+		{"expired", expired, context.DeadlineExceeded},
+	}
+	queries := []struct {
+		name string
+		run  func(context.Context) ([]Result, error)
+	}{
+		{"Query", func(ctx context.Context) ([]Result, error) {
+			return c.Query(ctx, "query", 1, nil, nil)
+		}},
+		{"QueryEmbedding", func(ctx context.Context) ([]Result, error) {
+			return c.QueryEmbedding(ctx, embedding, 1, nil, nil)
+		}},
+		{"QueryWithOptions", func(ctx context.Context) ([]Result, error) {
+			return c.QueryWithOptions(ctx, QueryOptions{QueryEmbedding: embedding, NResults: 1})
+		}},
+	}
+	for _, query := range queries {
+		for _, tc := range contexts {
+			t.Run(query.name+"/"+tc.name, func(t *testing.T) {
+				results, err := query.run(tc.ctx)
+				if !errors.Is(err, tc.want) {
+					t.Fatalf("got error %v, want %v", err, tc.want)
+				}
+				if tc.want != nil {
+					if results != nil {
+						t.Fatalf("canceled query returned results: %v", results)
+					}
+					return
+				}
+				if len(results) != 1 || results[0].ID != "doc" || results[0].Similarity != 1 {
+					t.Fatalf("active query returned unexpected results: %v", results)
+				}
+			})
+		}
+	}
+}
 
 func TestCollection_Add(t *testing.T) {
 	ctx := context.Background()
