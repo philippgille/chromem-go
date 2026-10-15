@@ -5,6 +5,8 @@ import (
 	"errors"
 	"math/rand"
 	"os"
+	"path/filepath"
+	"reflect"
 	"slices"
 	"strconv"
 	"testing"
@@ -840,6 +842,77 @@ func TestCollection_Delete(t *testing.T) {
 	}
 
 	checkCount(0)
+}
+
+func TestCollection_DeletePersistenceError(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	db, err := NewPersistentDB(dir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := db.CreateCollection("test", nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	failed := Document{
+		ID: "failed", Metadata: map[string]string{"foo": "bar"},
+		Embedding: []float32{1, 0}, Content: "keep this document",
+	}
+	err = c.AddDocuments(ctx, []Document{
+		{ID: "first", Embedding: []float32{1, 0}}, failed,
+	}, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	docPath := c.getDocPath(failed.ID)
+	if err := os.Rename(docPath, docPath+".saved"); err != nil {
+		t.Fatal(err)
+	}
+	// A nonempty directory makes removal fail without relying on file permissions.
+	if err := os.MkdirAll(filepath.Join(docPath, "blocker"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Delete(ctx, nil, nil, "first", failed.ID); err == nil {
+		t.Fatal("expected a persistence error")
+	}
+	doc, err := c.GetByID(ctx, failed.ID)
+	if err != nil || !reflect.DeepEqual(doc, failed) {
+		t.Fatalf("failed document changed: got %#v, error %v", doc, err)
+	}
+	if c.Count() != 1 {
+		t.Fatalf("expected only the failed document, got %d documents", c.Count())
+	}
+	if _, err := os.Stat(c.getDocPath("first")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected the first document file to be removed, got %v", err)
+	}
+
+	if err := os.RemoveAll(docPath); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(docPath+".saved", docPath); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := NewPersistentDB(dir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reloaded := reopened.GetCollection("test", nil)
+	doc, err = reloaded.GetByID(ctx, failed.ID)
+	if err != nil || !reflect.DeepEqual(doc, failed) || reloaded.Count() != 1 {
+		t.Fatalf("unexpected reloaded document: got %#v, error %v", doc, err)
+	}
+
+	if err := os.Remove(docPath); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Delete(ctx, nil, nil, failed.ID); err != nil {
+		t.Fatal(err)
+	}
+	if c.Count() != 0 {
+		t.Fatal("expected deletion to succeed when the document file is already missing")
+	}
 }
 
 // TestCloneDocument verifies that cloneDocument creates a deep copy of the Document.

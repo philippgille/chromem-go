@@ -437,8 +437,6 @@ func (c *Collection) Delete(_ context.Context, where, whereDocument map[string]s
 	}
 
 	for _, docID := range docIDs {
-		delete(c.documents, docID)
-
 		// Remove the document from disk
 		if c.persistDirectory != "" {
 			docPath := c.getDocPath(docID)
@@ -447,6 +445,8 @@ func (c *Collection) Delete(_ context.Context, where, whereDocument map[string]s
 				return fmt.Errorf("couldn't remove document at %q: %w", docPath, err)
 			}
 		}
+
+		delete(c.documents, docID)
 	}
 
 	return nil
