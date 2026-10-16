@@ -257,10 +257,7 @@ func (c *Collection) AddDocument(ctx context.Context, doc Document) error {
 
 	// We copy the metadata to avoid data races in case the caller modifies the
 	// map after creating the document while we range over it.
-	m := make(map[string]string, len(doc.Metadata))
-	for k, v := range doc.Metadata {
-		m[k] = v
-	}
+	doc.Metadata = maps.Clone(doc.Metadata)
 
 	// Create embedding if they don't exist, otherwise normalize if necessary
 	if len(doc.Embedding) == 0 {
