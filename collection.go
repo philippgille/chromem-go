@@ -531,6 +531,9 @@ func (c *Collection) QueryWithOptions(ctx context.Context, options QueryOptions)
 		}
 
 		if options.Negative.Mode == NEGATIVE_MODE_SUBTRACT {
+			if len(queryVector) != len(negativeVector) {
+				return nil, errors.New("query and negative embeddings must have the same length")
+			}
 			queryVector = subtractVector(queryVector, negativeVector)
 			queryVector = normalizeVector(queryVector)
 		} else if options.Negative.Mode == NEGATIVE_MODE_FILTER {
